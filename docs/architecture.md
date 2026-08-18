@@ -8,11 +8,11 @@ Personal project draft. Full decision-support model (not only a ranking engine).
 
 | Component | Responsibility |
 | --- | --- |
-| Frontend | Search, preference weights, confirmation UI, result cards, explanations, alternatives |
+| Frontend | Welcome search, weight sliders, country/currency waterfall, confirm popup, loading, Decision Page |
 | API / Orchestrator | Owns one search session; coordinates services and human-in-the-loop confirmation |
 | Query Normalizer | Typos, category, brand, model, capacity and other attributes |
 | Reference Catalog | Small reference data for normalization / validation (not a price warehouse) |
-| Confirmation Gate | Asks the user only when the catalog match is missing, invalid, or ambiguous |
+| Confirmation Gate | Popup on search when the catalog match is missing, invalid, or ambiguous |
 | Live Data Acquisition | API / scraping / headless browser adapters per source |
 | Product Matching | Catalog + attributes + text similarity; same product vs near variant |
 | FX Service | Live exchange rates into a common currency |
@@ -36,18 +36,21 @@ Personal project draft. Full decision-support model (not only a ranking engine).
 
 ```
 1. User query
-2. User selects preference weights     ← destination, currency, criterion weights (defaults OK)
+2. User selects preference weights     ← sliders optional; country/currency waterfall
 3. Normalize (+ catalog validation)
-4. Confirm model/specs only if needed   ← skip when catalog match is unique and valid
-5. Live worldwide acquisition
-6. Product matching (same vs near)
-7. FX conversion
-8. Landed cost (shipping, tax, fees)
-9. Ranking by those weights
-10. Build explanations / reasoning
-11. Scout close alternatives (careful rules)
-12. Present results
+4. Confirm popup only if needed        ← skip when catalog match is unique and valid
+5. Loading screen                      ← animation / fun facts over real work
+6. Live worldwide acquisition
+7. Product matching (same vs near)
+8. FX conversion
+9. Landed cost (shipping, tax, fees)
+10. Ranking by those weights
+11. Build explanations / reasoning
+12. Scout close alternatives (careful rules)
+13. Decision Page
 ```
+
+Screens: **Welcome → (confirm popup) → Loading → Decision Page.** See [ui-concept.md](ui-concept.md).
 
 ### 1. User query
 
@@ -55,13 +58,21 @@ The user types what they want to buy (need not be a perfect product name).
 
 ### 2. User selects preference weights
 
-This is a first-class user step, not a hidden ranking default. On the search screen (same moment as the query, or immediately after), the user sets:
+This is a first-class user step, not a hidden ranking default. On the **welcome / search** screen, next to the search bar:
 
-- **Criterion weights** that must sum to 1, e.g. landed price, seller trust, warranty, specs, reviews, delivery
-- **Destination country** (landed-cost target)
-- **Reference currency** (TRY, USD, …)
+- **Criterion weights** (sliders) that must sum to 1, e.g. landed price, seller trust, warranty, specs, reviews, delivery
+- **Destination country** and **reference currency** — optional controls next to the sliders
+- Optional **catalogue browse** if they want to explore instead of typing
 
 If they do not move the sliders, **published defaults** apply (e.g. price 50%, seller 25%, reviews 15%, delivery 10%) and the session still records `UserPreferences` — ranking never invents weights after the fact. The user can change weights later and re-rank without re-fetching offers.
+
+**Country / currency waterfall** (each later step overwrites the one before):
+
+1. **Default:** TR + TRY  
+2. **If they permit geolocation:** inferred country + that country’s usual currency replaces the default  
+3. **If they manually select** next to the sliders: that replaces default or geo  
+
+Search uses whatever is in effect at submit. Manual choice is not snapped back to location.
 
 ### 3. Understand and normalize
 
@@ -69,32 +80,36 @@ The user does not need a perfect product name (`Aple`, wrong capacity, etc.). Th
 
 Colors and other non-core, frequently changing fields need not live in the catalog. The catalog answers “what product could this be?” Live data answers “where, how much, under what conditions — now?”
 
-### 4. Confirm model / specs with the user (gate)
+### 4. Confirm model / specs (popup on search)
 
-**No friction when the catalog already answers.** If normalization yields a **single valid** `ProductVariant` (the typed model/specs exist in the catalog), auto-select it and start live search. Example: `Samsung Galaxy S26 Ultra 512 GB` is in the catalog → do not ask “is this correct?”
+**Not a separate page.** If they try to search a product that is not real or is ambiguous, show a **popup on the welcome screen**. If normalization yields a **single valid** `ProductVariant`, skip the popup and go to loading.
 
-**Do not silently invent variants.** Confirm only when the input is invalid, incomplete, or ambiguous.
+**Do not silently invent variants.**
 
 Example: catalog has 512 GB and 1 TB, user typed “600 GB”:
 
-> 600 GB isn’t a valid option for this model. Are you looking for **512 GB** or **1 TB** (or another nearby configuration)?
+> 600 GB isn’t a valid option for this model. Are you looking for **512 GB** or **1 TB**?
 
-Also confirm when:
+Also popup when:
 
 - brand/model is fuzzy and multiple catalog candidates remain
 - required comparison attributes are missing (e.g. storage or RAM for phones/laptops)
 - the user may mean a model family rather than a specific SKU
 - parse confidence is low even if one candidate is guessed
 
-If the catalog match is unique and valid, the orchestrator skips this step and goes straight to live acquisition.
+After they confirm (or if no popup was needed), show the loading screen and start live acquisition.
 
-### 5. Live data acquisition
+### 5. Loading screen
+
+Shown while acquisition, FX, landed cost, ranking, and explanations run. Fun animation and/or rotating fun facts over **real** work — do not add fake delay. Optional “still waiting on …” if a source is slow.
+
+### 6. Live data acquisition
 
 Official/structured APIs first; each source is a separate adapter. HTML or headless only when an API is not available **and** terms allow it. Worldwide sources may return prices in different currencies and under different commercial terms.
 
 See [data-source-strategy.md](data-source-strategy.md) for MVP countries, source mix, FX/fee providers, reliability, and legal limits.
 
-### 6. Product matching
+### 7. Product matching
 
 Same physical product can appear under different titles across stores.
 
@@ -111,11 +126,11 @@ Matching must distinguish:
 - **Same model, different specs** (e.g. 256 GB vs 512 GB) — candidate for “close alternative,” not a merged offer
 - **Different but comparable product** — also alternative territory, with stricter rules
 
-### 7. FX conversion
+### 8. FX conversion
 
 Convert offer list prices into a common currency via a live exchange-rate provider (no custom FX engine). Example: USD/EUR offers → TRY (or user’s preferred currency) using current rates, then pass amounts into landed-cost and ranking on the same scale.
 
-### 8. Landed cost (after FX)
+### 9. Landed cost (after FX)
 
 For **worldwide** options, list price in common currency is not enough. After FX, compute an estimated **total landed cost** toward the user’s destination:
 
@@ -135,7 +150,7 @@ Rules of thumb for the prototype:
 
 Ranking and “best price” should prefer **landed cost**, not raw list price, when comparing across countries.
 
-### 9. Ranking with user preferences
+### 10. Ranking with user preferences
 
 Goal is not only cheapest list price — it is the best fit for this user. Use the **weights already chosen in step 2** (including defaults if the user left them unchanged), e.g.:
 
@@ -155,7 +170,7 @@ FinalScore = w_price × PriceScore
 
 Lower landed cost → higher PriceScore. Uncertain landed-cost offers should carry a confidence penalty.
 
-### 10. Explanation / reasoning (before presentation)
+### 11. Explanation / reasoning (before presentation)
 
 Before the UI shows winners, an **Explanation Builder** turns scores and cost breakdowns into short reasons. Every highlighted card should answer *why*.
 
@@ -167,7 +182,7 @@ Examples:
 
 Explanations should cite the decisive factors (weights, landed-cost components, confidence), not a black-box rank.
 
-### 11. Close alternatives (careful)
+### 12. Close alternatives (careful)
 
 Alternatives are **not** random similar titles. They are deliberate “you might prefer this instead” candidates in two families:
 
@@ -186,7 +201,9 @@ Alternatives are **not** random similar titles. They are deliberate “you might
 - Each alternative gets its own explanation: what differs, cost delta, and why it might beat the primary pick for this user.
 - If no candidate passes the guardrails, show fewer alternatives (or none) rather than weak suggestions.
 
-### 12. Result presentation
+### 13. Decision Page
+
+The main UI. Show **why**, original price + FX (rate and timestamp), landed-cost add-ons (shipping, tax, duty — mark estimates), commercial terms, spec diffs, and the lenses below. Full layout: [ui-concept.md](ui-concept.md).
 
 | Card | Meaning |
 | --- | --- |
@@ -201,11 +218,11 @@ Alternatives are **not** random similar titles. They are deliberate “you might
 
 ## Service boundaries (summary)
 
-- **Frontend** — search, preference weights, confirmation prompts, explained result cards, alternatives.
-- **API / Orchestrator** — one search session; skips confirmation when the catalog match is unique and valid; coordinates the pipeline.
+- **Frontend** — welcome search, optional sliders, country/currency waterfall, confirm popup, loading, Decision Page.
+- **API / Orchestrator** — one search session; skips confirm popup when the catalog match is unique and valid; coordinates the pipeline.
 - **Query Normalizer** — parse and clean user text into structured attributes.
 - **Reference Catalog** — small validation/normalization reference.
-- **Confirmation Gate** — human check on model/specs **only when needed**.
+- **Confirmation Gate** — popup on search for model/specs **only when needed**.
 - **Source Adapters** — per retailer/API/scraper acquisition.
 - **Product Matcher** — merge exact offers; tag near variants separately.
 - **FX Service** — live rates → common currency.

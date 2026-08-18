@@ -293,9 +293,10 @@ Missing data: skip or down-weight that criterion; record it in `missingCriteria`
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `destinationCountry` | ISO country | Set by the user in the preference step; where landed cost is calculated |
-| `referenceCurrency` | ISO 4217 | Set by the user (TRY, USD, …) |
-| `weights` | map of criterion → 0–1 | Set by the user; must sum to 1. Defaults apply only if they leave sliders unchanged |
+| `destinationCountry` | ISO country | Waterfall: default **TR**, then geolocation if permitted, then manual select (later overwrites earlier) |
+| `referenceCurrency` | ISO 4217 | Same waterfall; default **TRY** |
+| `origin` | enum | `default` \| `geolocation` \| `manual` — which step last set country/currency |
+| `weights` | map of criterion → 0–1 | Set by sliders; must sum to 1. Defaults if sliders unchanged |
 
 Example: `{ price: 0.50, seller: 0.25, warranty: 0.15, specs: 0.10 }`.
 
@@ -307,7 +308,7 @@ Example: `{ price: 0.50, seller: 0.25, warranty: 0.15, specs: 0.10 }`.
 | `extracted` | identity-like fields | Brand, family, storage, … as parsed |
 | `candidateVariantIds` | list | Catalog hits |
 | `needsConfirmation` | bool | `true` only if invalid, incomplete, or ambiguous — **false** when a unique catalog variant already matches |
-| `confirmationPrompt` | string? | “600 GB isn’t valid. 512 GB or 1 TB?” — unset when no gate is needed |
+| `confirmationPrompt` | string? | Popup copy: “600 GB isn’t valid. 512 GB or 1 TB?” — unset when no popup |
 
 ### `SearchSession`
 
