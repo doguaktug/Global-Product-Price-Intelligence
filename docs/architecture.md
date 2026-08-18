@@ -2,7 +2,7 @@
 
 Personal project draft. Full decision-support model (not only a ranking engine).
 
-**Core idea:** The user enters a product; the system understands and normalizes the query, **confirms only when the catalog match is missing or ambiguous**, then pulls live worldwide offers. Prices are converted with current FX, **landed costs** (shipping, border tax, registration fees) are added, offers are matched, ranked by user preferences, and presented with **explicit reasoning** — including carefully selected close alternatives.
+**Core idea:** The user enters a product **and selects preference weights** (or accepts defaults); the system understands and normalizes the query, **confirms only when the catalog match is missing or ambiguous**, then pulls live worldwide offers. Prices are converted with current FX, **landed costs** (shipping, border tax, registration fees) are added, offers are matched, ranked by user preferences, and presented with **explicit reasoning** — including carefully selected close alternatives.
 
 ## High-level components
 
@@ -36,25 +36,40 @@ Personal project draft. Full decision-support model (not only a ranking engine).
 
 ```
 1. User query
-2. Normalize (+ catalog validation)
-3. Confirm model/specs only if needed   ← skip when catalog match is unique and valid
-4. Live worldwide acquisition
-5. Product matching (same vs near)
-6. FX conversion
-7. Landed cost (shipping, tax, fees)
-8. Ranking by user weights
-9. Build explanations / reasoning
-10. Scout close alternatives (careful rules)
-11. Present results
+2. User selects preference weights     ← destination, currency, criterion weights (defaults OK)
+3. Normalize (+ catalog validation)
+4. Confirm model/specs only if needed   ← skip when catalog match is unique and valid
+5. Live worldwide acquisition
+6. Product matching (same vs near)
+7. FX conversion
+8. Landed cost (shipping, tax, fees)
+9. Ranking by those weights
+10. Build explanations / reasoning
+11. Scout close alternatives (careful rules)
+12. Present results
 ```
 
-### 1–2. Understand and normalize
+### 1. User query
+
+The user types what they want to buy (need not be a perfect product name).
+
+### 2. User selects preference weights
+
+This is a first-class user step, not a hidden ranking default. On the search screen (same moment as the query, or immediately after), the user sets:
+
+- **Criterion weights** that must sum to 1, e.g. landed price, seller trust, warranty, specs, reviews, delivery
+- **Destination country** (landed-cost target)
+- **Reference currency** (TRY, USD, …)
+
+If they do not move the sliders, **published defaults** apply (e.g. price 50%, seller 25%, reviews 15%, delivery 10%) and the session still records `UserPreferences` — ranking never invents weights after the fact. The user can change weights later and re-rank without re-fetching offers.
+
+### 3. Understand and normalize
 
 The user does not need a perfect product name (`Aple`, wrong capacity, etc.). The normalizer extracts category, brand, model, and technical attributes; fixes typos; and checks against valid catalog options.
 
 Colors and other non-core, frequently changing fields need not live in the catalog. The catalog answers “what product could this be?” Live data answers “where, how much, under what conditions — now?”
 
-### 3. Confirm model / specs with the user (gate)
+### 4. Confirm model / specs with the user (gate)
 
 **No friction when the catalog already answers.** If normalization yields a **single valid** `ProductVariant` (the typed model/specs exist in the catalog), auto-select it and start live search. Example: `Samsung Galaxy S26 Ultra 512 GB` is in the catalog → do not ask “is this correct?”
 
@@ -73,13 +88,13 @@ Also confirm when:
 
 If the catalog match is unique and valid, the orchestrator skips this step and goes straight to live acquisition.
 
-### 4. Live data acquisition
+### 5. Live data acquisition
 
 Official/structured APIs first; each source is a separate adapter. HTML or headless only when an API is not available **and** terms allow it. Worldwide sources may return prices in different currencies and under different commercial terms.
 
 See [data-source-strategy.md](data-source-strategy.md) for MVP countries, source mix, FX/fee providers, reliability, and legal limits.
 
-### 5. Product matching
+### 6. Product matching
 
 Same physical product can appear under different titles across stores.
 
@@ -96,11 +111,11 @@ Matching must distinguish:
 - **Same model, different specs** (e.g. 256 GB vs 512 GB) — candidate for “close alternative,” not a merged offer
 - **Different but comparable product** — also alternative territory, with stricter rules
 
-### 6. FX conversion
+### 7. FX conversion
 
 Convert offer list prices into a common currency via a live exchange-rate provider (no custom FX engine). Example: USD/EUR offers → TRY (or user’s preferred currency) using current rates, then pass amounts into landed-cost and ranking on the same scale.
 
-### 7. Landed cost (after FX)
+### 8. Landed cost (after FX)
 
 For **worldwide** options, list price in common currency is not enough. After FX, compute an estimated **total landed cost** toward the user’s destination:
 
@@ -120,9 +135,9 @@ Rules of thumb for the prototype:
 
 Ranking and “best price” should prefer **landed cost**, not raw list price, when comparing across countries.
 
-### 8. Ranking with user preferences
+### 9. Ranking with user preferences
 
-Goal is not only cheapest list price — it is the best fit for this user. Collect weights up front (or defaults), e.g.:
+Goal is not only cheapest list price — it is the best fit for this user. Use the **weights already chosen in step 2** (including defaults if the user left them unchanged), e.g.:
 
 - price (landed) 50%
 - seller trust 25%
@@ -140,7 +155,7 @@ FinalScore = w_price × PriceScore
 
 Lower landed cost → higher PriceScore. Uncertain landed-cost offers should carry a confidence penalty.
 
-### 9. Explanation / reasoning (before presentation)
+### 10. Explanation / reasoning (before presentation)
 
 Before the UI shows winners, an **Explanation Builder** turns scores and cost breakdowns into short reasons. Every highlighted card should answer *why*.
 
@@ -152,7 +167,7 @@ Examples:
 
 Explanations should cite the decisive factors (weights, landed-cost components, confidence), not a black-box rank.
 
-### 10. Close alternatives (careful)
+### 11. Close alternatives (careful)
 
 Alternatives are **not** random similar titles. They are deliberate “you might prefer this instead” candidates in two families:
 
@@ -171,7 +186,7 @@ Alternatives are **not** random similar titles. They are deliberate “you might
 - Each alternative gets its own explanation: what differs, cost delta, and why it might beat the primary pick for this user.
 - If no candidate passes the guardrails, show fewer alternatives (or none) rather than weak suggestions.
 
-### 11. Result presentation
+### 12. Result presentation
 
 | Card | Meaning |
 | --- | --- |
@@ -212,7 +227,7 @@ Persist only what the system needs to operate: small reference catalog, optional
 
 ## Core philosophy
 
-**What are they looking for?** → normalize → **if catalog match is unique and valid, proceed; otherwise confirm** → **which exact product?** → match → **where/how much worldwide, now?** → live fetch → **common currency?** → FX → **true total to get it here?** → landed costs → **what matters to this user?** → weight & rank → **why?** → explain → **what else is worth a look?** → careful alternatives → present.
+**What are they looking for?** → **what matters to them (weights, destination, currency)?** → normalize → **if catalog match is unique and valid, proceed; otherwise confirm** → **which exact product?** → match → **where/how much worldwide, now?** → live fetch → **common currency?** → FX → **true total to get it here?** → landed costs → weight & rank → **why?** → explain → **what else is worth a look?** → careful alternatives → present.
 
 **Main advantage:** current worldwide comparison without a huge static price DB, optimized for *decision support*.  
 **Main challenges:** live source volatility, matching accuracy, honest landed-cost estimates, disciplined alternatives, and source access/limits.

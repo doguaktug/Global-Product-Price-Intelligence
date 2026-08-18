@@ -293,9 +293,9 @@ Missing data: skip or down-weight that criterion; record it in `missingCriteria`
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `destinationCountry` | ISO country | Where landed cost is calculated |
-| `referenceCurrency` | ISO 4217 | TRY, USD, … |
-| `weights` | map of criterion → 0–1 | Must sum to 1 |
+| `destinationCountry` | ISO country | Set by the user in the preference step; where landed cost is calculated |
+| `referenceCurrency` | ISO 4217 | Set by the user (TRY, USD, …) |
+| `weights` | map of criterion → 0–1 | Set by the user; must sum to 1. Defaults apply only if they leave sliders unchanged |
 
 Example: `{ price: 0.50, seller: 0.25, warranty: 0.15, specs: 0.10 }`.
 
@@ -319,7 +319,7 @@ Orchestrator aggregate: one user search.
 | `rawQuery` | string | |
 | `normalizedQuery` | `NormalizedQuery` | |
 | `confirmedVariantId` | string? | Set immediately on a unique valid catalog hit, or after the user confirms |
-| `preferences` | `UserPreferences` | |
+| `preferences` | `UserPreferences` | Captured as an explicit user step at session start (defaults if unchanged) |
 | `status` | enum | `received` \| `needs_confirmation` \| `fetching` \| `ranked` \| `failed` |
 | `createdAt` | datetime | |
 

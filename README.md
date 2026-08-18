@@ -8,15 +8,17 @@ Not a conventional price-comparison site. The core question:
 
 ## Process (high level)
 
-1. Normalize the query against a small reference catalog  
-2. **Confirm model/specs only if needed** — skip when the catalog already has a unique valid match; ask when invalid or ambiguous (e.g. 600 GB → 512 GB or 1 TB?)  
-3. Acquire live worldwide offers  
-4. Match exact products (keep different specs separate)  
-5. Convert with live FX, then add **shipping, border tax, registration and similar fees**  
-6. Rank by user preference weights on landed cost and quality signals  
-7. **Build reasoning** for each highlighted choice  
-8. Suggest **close alternatives** carefully (same product different specs, or a comparable different product)  
-9. Present best landed price / best for you / best rated + alternatives
+1. User enters a product  
+2. **User selects preference weights** (destination, reference currency, criterion weights — defaults if unchanged)  
+3. Normalize the query against a small reference catalog  
+4. **Confirm model/specs only if needed** — skip when the catalog already has a unique valid match; ask when invalid or ambiguous (e.g. 600 GB → 512 GB or 1 TB?)  
+5. Acquire live worldwide offers  
+6. Match exact products (keep different specs separate)  
+7. Convert with live FX, then add **shipping, border tax, registration and similar fees**  
+8. Rank by the user’s weights on landed cost and quality signals  
+9. **Build reasoning** for each highlighted choice  
+10. Suggest **close alternatives** carefully (same product different specs, or a comparable different product)  
+11. Present best landed price / best for you / best rated + alternatives
 
 ## Design docs
 
