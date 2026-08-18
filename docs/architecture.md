@@ -195,6 +195,12 @@ Alternatives are **not** random similar titles. They are deliberate “you might
 - **Alternative Scout** — guarded same-spec-variant and cross-product suggestions.
 - **Result Formatter** — packages cards + breakdowns + reasons for the UI.
 
+## Data model
+
+The pipeline is modeled as **domain objects**: entities (`ProductVariant`, `Offer`, `SearchSession`) and immutable value objects (`Money`, `FxQuote`, `LandedCost`). Original prices are never overwritten; FX and landed cost are additional objects.
+
+See [data-model.md](data-model.md) for fields, relationships, and what is persisted vs computed per search.
+
 ## Storage strategy
 
 Persist only what the system needs to operate: small reference catalog, optional short-lived offer/FX/fee cache, and search-session state (including confirmation choices). Do not mirror the whole web as a price database.

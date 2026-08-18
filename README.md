@@ -18,4 +18,7 @@ Not a conventional price-comparison site. The core question:
 8. Suggest **close alternatives** carefully (same product different specs, or a comparable different product)  
 9. Present best landed price / best for you / best rated + alternatives
 
-See [docs/architecture.md](docs/architecture.md) for the full system model.
+## Design docs
+
+- [System architecture](docs/architecture.md) — process, services, ranking and alternatives
+- [Data model](docs/data-model.md) — domain objects (entities + value objects), not a price warehouse
