@@ -9,7 +9,7 @@ Not a conventional price-comparison site. The core question:
 ## Process (high level)
 
 1. Normalize the query against a small reference catalog  
-2. **Confirm model/specs with the user** when ambiguous or invalid (e.g. 600 GB → 512 GB or 1 TB?)  
+2. **Confirm model/specs only if needed** — skip when the catalog already has a unique valid match; ask when invalid or ambiguous (e.g. 600 GB → 512 GB or 1 TB?)  
 3. Acquire live worldwide offers  
 4. Match exact products (keep different specs separate)  
 5. Convert with live FX, then add **shipping, border tax, registration and similar fees**  
@@ -22,3 +22,4 @@ Not a conventional price-comparison site. The core question:
 
 - [System architecture](docs/architecture.md) — process, services, ranking and alternatives
 - [Data model](docs/data-model.md) — domain objects (entities + value objects), not a price warehouse
+- [Data source strategy](docs/data-source-strategy.md) — catalog vs live adapters vs FX vs fee rules

@@ -2,7 +2,7 @@
 
 Personal project draft. Full decision-support model (not only a ranking engine).
 
-**Core idea:** The user enters a product; the system understands and normalizes the query, **confirms ambiguous model/specs with the user**, then pulls live worldwide offers. Prices are converted with current FX, **landed costs** (shipping, border tax, registration fees) are added, offers are matched, ranked by user preferences, and presented with **explicit reasoning** — including carefully selected close alternatives.
+**Core idea:** The user enters a product; the system understands and normalizes the query, **confirms only when the catalog match is missing or ambiguous**, then pulls live worldwide offers. Prices are converted with current FX, **landed costs** (shipping, border tax, registration fees) are added, offers are matched, ranked by user preferences, and presented with **explicit reasoning** — including carefully selected close alternatives.
 
 ## High-level components
 
@@ -12,7 +12,7 @@ Personal project draft. Full decision-support model (not only a ranking engine).
 | API / Orchestrator | Owns one search session; coordinates services and human-in-the-loop confirmation |
 | Query Normalizer | Typos, category, brand, model, capacity and other attributes |
 | Reference Catalog | Small reference data for normalization / validation (not a price warehouse) |
-| Confirmation Gate | Resolves ambiguous or invalid specs with the user before live search |
+| Confirmation Gate | Asks the user only when the catalog match is missing, invalid, or ambiguous |
 | Live Data Acquisition | API / scraping / headless browser adapters per source |
 | Product Matching | Catalog + attributes + text similarity; same product vs near variant |
 | FX Service | Live exchange rates into a common currency |
@@ -37,7 +37,7 @@ Personal project draft. Full decision-support model (not only a ranking engine).
 ```
 1. User query
 2. Normalize (+ catalog validation)
-3. Confirm model/specs with user   ← gate before live work
+3. Confirm model/specs only if needed   ← skip when catalog match is unique and valid
 4. Live worldwide acquisition
 5. Product matching (same vs near)
 6. FX conversion
@@ -56,7 +56,9 @@ Colors and other non-core, frequently changing fields need not live in the catal
 
 ### 3. Confirm model / specs with the user (gate)
 
-**Do not silently invent variants.** If the input is invalid or ambiguous, stop and ask before starting live search.
+**No friction when the catalog already answers.** If normalization yields a **single valid** `ProductVariant` (the typed model/specs exist in the catalog), auto-select it and start live search. Example: `Samsung Galaxy S26 Ultra 512 GB` is in the catalog → do not ask “is this correct?”
+
+**Do not silently invent variants.** Confirm only when the input is invalid, incomplete, or ambiguous.
 
 Example: catalog has 512 GB and 1 TB, user typed “600 GB”:
 
@@ -67,12 +69,15 @@ Also confirm when:
 - brand/model is fuzzy and multiple catalog candidates remain
 - required comparison attributes are missing (e.g. storage or RAM for phones/laptops)
 - the user may mean a model family rather than a specific SKU
+- parse confidence is low even if one candidate is guessed
 
-Only after confirmation does the orchestrator kick off live acquisition. This saves cost/latency and prevents ranking nonsense.
+If the catalog match is unique and valid, the orchestrator skips this step and goes straight to live acquisition.
 
 ### 4. Live data acquisition
 
-Three approaches: official API (preferred), HTML scraping, headless browser for JS-rendered pages. Worldwide sources may return prices in different currencies and under different commercial terms.
+Official/structured APIs first; each source is a separate adapter. HTML or headless only when an API is not available **and** terms allow it. Worldwide sources may return prices in different currencies and under different commercial terms.
+
+See [data-source-strategy.md](data-source-strategy.md) for MVP countries, source mix, FX/fee providers, reliability, and legal limits.
 
 ### 5. Product matching
 
@@ -182,10 +187,10 @@ Alternatives are **not** random similar titles. They are deliberate “you might
 ## Service boundaries (summary)
 
 - **Frontend** — search, preference weights, confirmation prompts, explained result cards, alternatives.
-- **API / Orchestrator** — one search session; enforces confirm-before-fetch; coordinates the pipeline.
+- **API / Orchestrator** — one search session; skips confirmation when the catalog match is unique and valid; coordinates the pipeline.
 - **Query Normalizer** — parse and clean user text into structured attributes.
 - **Reference Catalog** — small validation/normalization reference.
-- **Confirmation Gate** — human check on model/specs when needed.
+- **Confirmation Gate** — human check on model/specs **only when needed**.
 - **Source Adapters** — per retailer/API/scraper acquisition.
 - **Product Matcher** — merge exact offers; tag near variants separately.
 - **FX Service** — live rates → common currency.
@@ -207,7 +212,7 @@ Persist only what the system needs to operate: small reference catalog, optional
 
 ## Core philosophy
 
-**What are they looking for?** → normalize → **confirm the real model/specs** → **which exact product?** → match → **where/how much worldwide, now?** → live fetch → **common currency?** → FX → **true total to get it here?** → landed costs → **what matters to this user?** → weight & rank → **why?** → explain → **what else is worth a look?** → careful alternatives → present.
+**What are they looking for?** → normalize → **if catalog match is unique and valid, proceed; otherwise confirm** → **which exact product?** → match → **where/how much worldwide, now?** → live fetch → **common currency?** → FX → **true total to get it here?** → landed costs → **what matters to this user?** → weight & rank → **why?** → explain → **what else is worth a look?** → careful alternatives → present.
 
 **Main advantage:** current worldwide comparison without a huge static price DB, optimized for *decision support*.  
 **Main challenges:** live source volatility, matching accuracy, honest landed-cost estimates, disciplined alternatives, and source access/limits.

@@ -126,7 +126,7 @@ A model line, not a buyable SKU.
 | `aliases` | list of strings | `S26 Ultra`, `Galaxy S26U` — for normalization / typos |
 | `validOptions` | map | `{ storageGb: [256, 512, 1024], memoryGb: [12, 16] }` |
 
-`validOptions` is what the **confirmation gate** uses: “600 GB isn’t an option — 512 GB or 1 TB?”
+`validOptions` is what the **confirmation gate** uses when input is invalid or ambiguous: “600 GB isn’t an option — 512 GB or 1 TB?” If the user’s specs already match a single catalog variant, skip confirmation.
 
 ### `ProductVariant`
 
@@ -306,8 +306,8 @@ Example: `{ price: 0.50, seller: 0.25, warranty: 0.15, specs: 0.10 }`.
 | `rawText` | string | `"Aple 600GB telefon"` |
 | `extracted` | identity-like fields | Brand, family, storage, … as parsed |
 | `candidateVariantIds` | list | Catalog hits |
-| `needsConfirmation` | bool | Gate before live fetch |
-| `confirmationPrompt` | string? | “600 GB isn’t valid. 512 GB or 1 TB?” |
+| `needsConfirmation` | bool | `true` only if invalid, incomplete, or ambiguous — **false** when a unique catalog variant already matches |
+| `confirmationPrompt` | string? | “600 GB isn’t valid. 512 GB or 1 TB?” — unset when no gate is needed |
 
 ### `SearchSession`
 
@@ -318,12 +318,12 @@ Orchestrator aggregate: one user search.
 | `id` | string | |
 | `rawQuery` | string | |
 | `normalizedQuery` | `NormalizedQuery` | |
-| `confirmedVariantId` | string? | Set after the gate |
+| `confirmedVariantId` | string? | Set immediately on a unique valid catalog hit, or after the user confirms |
 | `preferences` | `UserPreferences` | |
 | `status` | enum | `received` \| `needs_confirmation` \| `fetching` \| `ranked` \| `failed` |
 | `createdAt` | datetime | |
 
-Live fetch starts only when status leaves `needs_confirmation`.
+Live fetch starts when there is a confirmed variant. Unique catalog matches skip `needs_confirmation`.
 
 ### `Explanation`
 
