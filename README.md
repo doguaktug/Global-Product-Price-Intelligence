@@ -8,14 +8,22 @@ Not a conventional price-comparison site. The core question:
 
 ## Process (high level)
 
-1. Normalize the query against a small reference catalog  
-2. **Confirm model/specs with the user** when ambiguous or invalid (e.g. 600 GB → 512 GB or 1 TB?)  
-3. Acquire live worldwide offers  
-4. Match exact products (keep different specs separate)  
-5. Convert with live FX, then add **shipping, border tax, registration and similar fees**  
-6. Rank by user preference weights on landed cost and quality signals  
-7. **Build reasoning** for each highlighted choice  
-8. Suggest **close alternatives** carefully (same product different specs, or a comparable different product)  
-9. Present best landed price / best for you / best rated + alternatives
+1. User enters a product  
+2. **User selects preference weights** (optional sliders; country/currency: TR+TRY → geo if permitted → manual next to sliders; later overwrites earlier)  
+3. Normalize the query against a small reference catalog  
+4. **Confirm popup only if needed** — skip when the catalog already has a unique valid match  
+5. Loading (animation / fun facts over real work)  
+6. Acquire live worldwide offers  
+7. Match exact products (keep different specs separate)  
+8. Convert with live FX, then add **shipping, border tax, registration and similar fees**  
+9. Rank by the user’s weights on landed cost and quality signals  
+10. **Build reasoning** for each highlighted choice  
+11. Suggest **close alternatives** carefully (same product different specs, or a comparable different product)  
+12. Present the **Decision Page** (why, FX, landed-cost add-ons, best landed / best for you / best rated + alternatives)
 
-See [docs/architecture.md](docs/architecture.md) for the full system model.
+## Design docs
+
+- [System architecture](docs/architecture.md) — process, services, ranking and alternatives
+- [Data model](docs/data-model.md) — domain objects (entities + value objects), not a price warehouse
+- [Data source strategy](docs/data-source-strategy.md) — catalog vs live adapters vs FX vs fee rules
+- [Initial UI concept](docs/ui-concept.md) — welcome, confirm popup, loading, Decision Page
