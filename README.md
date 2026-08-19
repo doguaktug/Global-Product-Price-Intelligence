@@ -27,3 +27,4 @@ Not a conventional price-comparison site. The core question:
 - [Data model](docs/data-model.md) — domain objects (entities + value objects), not a price warehouse
 - [Data source strategy](docs/data-source-strategy.md) — catalog vs live adapters vs FX vs fee rules
 - [Initial UI concept](docs/ui-concept.md) — welcome, confirm popup, loading, Decision Page
+- [Proposed algorithm](docs/proposed-algorithm.md) — weighted scoring, missing-data handling, explanations, alternative guardrails

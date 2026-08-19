@@ -168,7 +168,9 @@ FinalScore = w_price × PriceScore
            + w_delivery × DeliveryScore
 ```
 
-Lower landed cost → higher PriceScore. Uncertain landed-cost offers should carry a confidence penalty.
+Lower landed cost → higher PriceScore. Uncertain landed-cost offers carry a confidence penalty. Missing criteria are excluded per offer with weight re-normalization.
+
+Full algorithm: [proposed-algorithm.md](proposed-algorithm.md) — normalization, missing-data rules, confidence, highlight selection, alternative guardrails, and explanation generation.
 
 ### 11. Explanation / reasoning (before presentation)
 
