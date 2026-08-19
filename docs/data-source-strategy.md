@@ -166,6 +166,40 @@ Adapters must not invent stock, warranty, or shipping to look complete.
 
 ---
 
+## Availability and freshness policy
+
+**Problem:** the user clicks "best deal" and the retailer says "item not available." This kills trust.
+
+**Three layers to minimize it:**
+
+### 1. At fetch time — filter honestly
+
+- Adapters must capture `stockStatus` from the listing (not guess from "page exists").
+- `out_of_stock` offers are **excluded from ranking** entirely — they are not offers.
+- `unknown` stock is allowed but carries a lower `dataConfidence` and an explanation caveat.
+- `limited` stock is included with a visible warning on the card.
+
+### 2. Cache TTL — don't serve stale offers
+
+- Offer cache TTL: **15–30 minutes** max.
+- After expiry, the next search re-fetches live.
+- The Decision Page shows `collectedAt` visibly on every card (e.g. "price seen 3 min ago").
+
+### 3. On click — re-check before redirect
+
+When the user clicks a retailer link on the Decision Page:
+
+1. **Quick re-check:** lightweight re-fetch of stock/price for that one listing (adapter's `check_availability` method — not a full search).
+2. **If still available and price is close:** redirect to the retailer.
+3. **If gone or price changed materially:** show a warning popup *before* redirecting. Example: "This item appears to be unavailable now" or "Price has changed from €1,399 to €1,499 — continue?"
+4. **If re-check fails or times out (e.g. >3s):** redirect anyway with a disclaimer: "We couldn't verify availability — please confirm on the retailer's page."
+
+### What we cannot prevent
+
+A listing can go stale between re-check and the user's actual purchase. We do not control the retailer. The system's job is to **minimize** dead-link clicks and **never pretend** an offer is guaranteed.
+
+---
+
 ## Rate limits, caching, failure
 
 - Per-adapter rate limit and timeout.

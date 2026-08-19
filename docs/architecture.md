@@ -207,6 +207,8 @@ Alternatives are **not** random similar titles. They are deliberate “you might
 
 The main UI. Show **why**, original price + FX (rate and timestamp), landed-cost add-ons (shipping, tax, duty — mark estimates), commercial terms, spec diffs, and the lenses below. Full layout: [ui-concept.md](ui-concept.md).
 
+**Availability freshness:** every offer card shows a visible `collectedAt` timestamp ("price seen 3 min ago"). When the user clicks a retailer link, the system performs a **quick re-check** of that listing (lightweight re-fetch of stock/price) before redirecting. If the item is no longer available or the price has changed materially, show a warning instead of silently forwarding to a dead page. If re-check fails or times out, redirect anyway with a disclaimer: "We couldn't verify — confirm on the retailer's page."
+
 | Card | Meaning |
 | --- | --- |
 | Best landed price | Lowest estimated total cost in the common currency (FX + fees). |
