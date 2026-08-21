@@ -109,7 +109,8 @@ These answer “what product could this be?” — not “what does it cost toda
 | --- | --- | --- |
 | `id` | string | e.g. `smartphone`, `laptop`, `tablet` |
 | `coreSpecKeys` | list of spec keys | Specs that matter for this category (storage, RAM, display, battery, …) |
-| `identityKeys` | list of spec keys | Fields that distinguish identical vs similar (storage, memory, region) |
+| `identityKeys` | list of spec keys | Must be resolved before search; distinguish identical vs similar (storage, memory, region). **No “Not important.”** |
+| `optionalKeys` | list of spec keys | Catalogued but **not** used for scoring (e.g. colour, finish). Missing → popup with options **+ “Not important.”** |
 
 MVP categories: smartphones, laptops, tablets (assignment: 2–3 categories).
 
@@ -124,9 +125,14 @@ A model line, not a buyable SKU.
 | `brand` | string | `Samsung` |
 | `familyName` | string | `Galaxy S26 Ultra` |
 | `aliases` | list of strings | `S26 Ultra`, `Galaxy S26U` — for normalization / typos |
-| `validOptions` | map | `{ storageGb: [256, 512, 1024], memoryGb: [12, 16] }` |
+| `validOptions` | map | `{ storageGb: [256, 512, 1024], memoryGb: [12, 16], colour: ["Black", "Silver"] }` |
 
-`validOptions` is what the **confirmation gate** uses when input is invalid or ambiguous: “600 GB isn’t an option — 512 GB or 1 TB?” If the user’s specs already match a single catalog variant, skip confirmation.
+`validOptions` feeds the **confirmation popup**:
+
+- Missing **identity** key (e.g. user typed `Samsung S26` with no storage) → list those options; user **must** pick one.
+- Missing **optional** key (e.g. colour) → list those options **plus `not_important`**.
+- Invalid value (e.g. `600 GB`) → nearest/valid options only; still no `not_important` for identity keys.
+- Fully specified unique variant → skip confirmation.
 
 ### `ProductVariant`
 
@@ -304,11 +310,47 @@ Example: `{ price: 0.50, seller: 0.25, warranty: 0.15, specs: 0.10 }`.
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `rawText` | string | `"Aple 600GB telefon"` |
-| `extracted` | identity-like fields | Brand, family, storage, … as parsed |
-| `candidateVariantIds` | list | Catalog hits |
-| `needsConfirmation` | bool | `true` only if invalid, incomplete, or ambiguous — **false** when a unique catalog variant already matches |
-| `confirmationPrompt` | string? | Popup copy: “600 GB isn’t valid. 512 GB or 1 TB?” — unset when no popup |
+| `rawText` | string | `"Samsung S26"` or `"Aple 600GB telefon"` |
+| `extracted` | identity-like fields | Brand, family, storage, colour, … as parsed (may be incomplete) |
+| `candidateFamilyId` | string? | Catalog family hit |
+| `candidateVariantIds` | list | Catalog hits (may be many if colour unconstrained) |
+| `needsConfirmation` | bool | `true` if any identity key missing/invalid/ambiguous, or optional keys need a prompt — **false** when fully specified |
+| `pendingProperties` | list of `ConfirmationPrompt` | One entry per property the popup must ask |
+
+### `ConfirmationPrompt`
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `propertyKey` | string | e.g. `storageGb`, `colour` |
+| `role` | enum | `identity` \| `optional` |
+| `reason` | enum | `missing` \| `invalid` \| `ambiguous` |
+| `options` | list | Available catalog values |
+| `allowNotImportant` | bool | `true` only when `role = optional` |
+
+### `PropertyChoice`
+
+User’s answer for one prompted property.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `propertyKey` | string | |
+| `kind` | enum | `value` \| `not_important` |
+| `value` | any? | Set when `kind = value`; unset when `not_important` |
+
+`not_important` is **only valid** for `optional` properties. Identity properties must use `kind = value`.
+
+### `SearchScope`
+
+What live search and ranking are allowed to cover after confirmation.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `familyId` | string | Confirmed model family |
+| `constraints` | map of property → value | Identity (and any optional) properties the user fixed |
+| `unconstrainedKeys` | list of strings | Optional keys marked **Not important** — include **all** `validOptions` for these |
+| `variantIds` | list of strings | All catalog variants matching constraints (one if fully pinned; many if colour is unconstrained) |
+
+Matching: offers that match any variant in `variantIds` on identity keys count as in-scope. Different unconstrained colours of the same storage are comparable as the same decision target, not as “similar alternatives,” unless the user later cares about colour.
 
 ### `SearchSession`
 
@@ -319,12 +361,14 @@ Orchestrator aggregate: one user search.
 | `id` | string | |
 | `rawQuery` | string | |
 | `normalizedQuery` | `NormalizedQuery` | |
-| `confirmedVariantId` | string? | Set immediately on a unique valid catalog hit, or after the user confirms |
+| `propertyChoices` | list of `PropertyChoice` | Answers from the confirm popup |
+| `searchScope` | `SearchScope`? | Set after auto-match or popup; drives live fetch |
+| `confirmedVariantId` | string? | Set when scope collapses to exactly one variant; otherwise null and use `searchScope.variantIds` |
 | `preferences` | `UserPreferences` | Captured as an explicit user step at session start (defaults if unchanged) |
 | `status` | enum | `received` \| `needs_confirmation` \| `fetching` \| `ranked` \| `failed` |
 | `createdAt` | datetime | |
 
-Live fetch starts when there is a confirmed variant. Unique catalog matches skip `needs_confirmation`.
+Live fetch starts when `searchScope` is set and every identity key is constrained. Unique fully specified catalog matches skip `needs_confirmation`.
 
 ### `Explanation`
 
@@ -366,7 +410,7 @@ What the UI renders.
 | Field | Type | Notes |
 | --- | --- | --- |
 | `sessionId` | string | |
-| `confirmedVariant` | `ProductVariant` | Reference product |
+| `confirmedVariant` | `ProductVariant`? | Set when scope is a single variant; else primary/reference from identity constraints |
 | `offers` | list of `Offer` | Matched + scored |
 | `highlights` | list of `DecisionHighlight` | |
 | `alternatives` | list of `Alternative` | Cap ~3; omit if none pass |

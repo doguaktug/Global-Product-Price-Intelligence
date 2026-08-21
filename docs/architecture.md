@@ -12,7 +12,7 @@ Personal project draft. Full decision-support model (not only a ranking engine).
 | API / Orchestrator | Owns one search session; coordinates services and human-in-the-loop confirmation |
 | Query Normalizer | Typos, category, brand, model, capacity and other attributes |
 | Reference Catalog | Small reference data for normalization / validation (not a price warehouse) |
-| Confirmation Gate | Popup on search when the catalog match is missing, invalid, or ambiguous |
+| Confirmation Gate | Popup when properties are missing, invalid, or ambiguous; identity fields require a choice, non-scoring fields may be “Not important” |
 | Live Data Acquisition | API / scraping / headless browser adapters per source |
 | Product Matching | Catalog + attributes + text similarity; same product vs near variant |
 | FX Service | Live exchange rates into a common currency |
@@ -38,7 +38,7 @@ Personal project draft. Full decision-support model (not only a ranking engine).
 1. User query
 2. User selects preference weights     ← sliders optional; country/currency waterfall
 3. Normalize (+ catalog validation)
-4. Confirm popup only if needed        ← skip when catalog match is unique and valid
+4. Confirm popup only if needed        ← incomplete identity must choose; optional may be “Not important”
 5. Loading screen                      ← animation / fun facts over real work
 6. Live worldwide acquisition
 7. Product matching (same vs near)
@@ -82,22 +82,41 @@ Colors and other non-core, frequently changing fields need not live in the catal
 
 ### 4. Confirm model / specs (popup on search)
 
-**Not a separate page.** If they try to search a product that is not real or is ambiguous, show a **popup on the welcome screen**. If normalization yields a **single valid** `ProductVariant`, skip the popup and go to loading.
+**Not a separate page.** Show a **popup on the welcome screen** when the query is invalid, incomplete, or ambiguous. Skip it when normalization already yields a **fully specified** unique catalog match (every identity property filled with a valid value).
 
 **Do not silently invent variants.**
 
-Example: catalog has 512 GB and 1 TB, user typed “600 GB”:
+#### Incomplete identity properties (must choose)
 
-> 600 GB isn’t a valid option for this model. Are you looking for **512 GB** or **1 TB**?
+If the user omits a property needed to narrow the product (e.g. types `Samsung S26` with no storage), the popup lists **available catalog options** for that property. They **must** pick one — there is no “search everything” for identity fields.
+
+> Which storage? 256 GB / 512 GB / 1 TB
+
+Same for other `identityKeys` (RAM, region/version, …) when missing or ambiguous.
+
+#### Non-scoring properties (may choose “Not important”)
+
+If a property is **not** used for scoring or identity (e.g. colour), and the user did not specify it, the popup still offers the catalog options **plus “Not important.”**
+
+- Pick a colour → search only that colour.  
+- Pick **Not important** → search and selection run across **all** colour options for the confirmed model/identity specs.
+
+#### Invalid values
+
+Catalog has 512 GB and 1 TB; user typed “600 GB”:
+
+> 600 GB isn’t a valid option. Are you looking for **512 GB** or **1 TB**?
 
 Also popup when:
 
 - brand/model is fuzzy and multiple catalog candidates remain
-- required comparison attributes are missing (e.g. storage or RAM for phones/laptops)
+- required identity attributes are missing
 - the user may mean a model family rather than a specific SKU
 - parse confidence is low even if one candidate is guessed
 
-After they confirm (or if no popup was needed), show the loading screen and start live acquisition.
+One popup may collect several missing properties at once. After required choices are set (and optional ones are either chosen or marked not important), show the loading screen and start live acquisition.
+
+See [ui-concept.md](ui-concept.md) for the screen sketch.
 
 ### 5. Loading screen
 
@@ -226,7 +245,7 @@ The main UI. Show **why**, original price + FX (rate and timestamp), landed-cost
 - **API / Orchestrator** — one search session; skips confirm popup when the catalog match is unique and valid; coordinates the pipeline.
 - **Query Normalizer** — parse and clean user text into structured attributes.
 - **Reference Catalog** — small validation/normalization reference.
-- **Confirmation Gate** — popup on search for model/specs **only when needed**.
+- **Confirmation Gate** — popup for missing/invalid/ambiguous specs; identity keys must be chosen; non-scoring keys may be **Not important** (search all).
 - **Source Adapters** — per retailer/API/scraper acquisition.
 - **Product Matcher** — merge exact offers; tag near variants separately.
 - **FX Service** — live rates → common currency.
@@ -248,7 +267,7 @@ Persist only what the system needs to operate: small reference catalog, optional
 
 ## Core philosophy
 
-**What are they looking for?** → **what matters to them (weights, destination, currency)?** → normalize → **if catalog match is unique and valid, proceed; otherwise confirm** → **which exact product?** → match → **where/how much worldwide, now?** → live fetch → **common currency?** → FX → **true total to get it here?** → landed costs → weight & rank → **why?** → explain → **what else is worth a look?** → careful alternatives → present.
+**What are they looking for?** → **what matters to them (weights, destination, currency)?** → normalize → **if incomplete/invalid, confirm (identity must pick; optional may be Not important)** → **search scope** → match → **where/how much worldwide, now?** → live fetch → **common currency?** → FX → **true total to get it here?** → landed costs → weight & rank → **why?** → explain → **what else is worth a look?** → careful alternatives → present.
 
 **Main advantage:** current worldwide comparison without a huge static price DB, optimized for *decision support*.  
 **Main challenges:** live source volatility, matching accuracy, honest landed-cost estimates, disciplined alternatives, and source access/limits.

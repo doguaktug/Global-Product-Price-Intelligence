@@ -22,7 +22,7 @@ The algorithm must:
 
 | Input | Source |
 | --- | --- |
-| `offers[]` | Matched offers with `matchKind = identical` for the confirmed variant |
+| `offers[]` | Matched offers in the session `searchScope` (identity constraints fixed; optional keys like colour may be unconstrained) |
 | `nearOffers[]` | Offers with `matchKind = similar` or `different` (alternative candidates) |
 | `preferences` | `UserPreferences`: weights, destination, reference currency |
 

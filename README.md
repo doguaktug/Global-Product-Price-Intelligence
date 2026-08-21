@@ -11,7 +11,7 @@ Not a conventional price-comparison site. The core question:
 1. User enters a product  
 2. **User selects preference weights** (optional sliders; country/currency: TR+TRY → geo if permitted → manual next to sliders; later overwrites earlier)  
 3. Normalize the query against a small reference catalog  
-4. **Confirm popup only if needed** — skip when the catalog already has a unique valid match  
+4. **Confirm popup only if needed** — skip when fully specified; missing identity props (e.g. storage on `Samsung S26`) require a choice; non-scoring props (e.g. colour) may be **Not important** (search all)  
 5. Loading (animation / fun facts over real work)  
 6. Acquire live worldwide offers  
 7. Match exact products (keep different specs separate)  
