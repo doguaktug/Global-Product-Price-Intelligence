@@ -34,13 +34,55 @@ Search uses whatever is in effect at submit. Manual choice is not snapped back t
 
 ## 2. Confirm popup (not a full page)
 
-Stays on the welcome screen. Shown **only** when they try to search a product that is not a real catalog variant or is ambiguous.
+Stays on the welcome screen. Shown when the query is **invalid**, **incomplete**, or **ambiguous** — not when a single valid catalog variant is already fully specified.
 
-Example: `600 GB` iPhone / `600 GB` on a model that only has 512 GB and 1 TB.
+Skip the popup when normalization already matches a **single valid** catalog variant with every required identity property filled. After they finish the popup, continue to loading.
+
+### Two kinds of missing property
+
+Catalog properties fall into two roles (per category):
+
+| Role | Examples | If the user did not specify it |
+| --- | --- | --- |
+| **Identity / scoring** | storage, RAM, region/version | Popup with **available catalog options only** — they **must** pick one. No “not important.” |
+| **Non-scoring / cosmetic** | colour, finish | Popup with available options **plus “Not important”**. If they pick that, search runs across **all** those options. |
+
+Identity properties narrow *which product* we are deciding on and feed matching / spec comparison. Cosmetic properties do not affect the score — so the user may leave them open.
+
+### Incomplete query example
+
+User types: `Samsung S26` (no storage).
+
+Popup:
+
+> Which storage do you want?
+> - 256 GB  
+> - 512 GB  
+> - 1 TB  
+
+They must choose. Search does not start until identity gaps are closed.
+
+If colour is also an available catalog option and was not typed:
+
+> Colour?
+> - Black  
+> - Silver  
+> - **Not important**
+
+- Pick **Black** → search only black variants of the chosen storage.  
+- Pick **Not important** → search & selection across **all** colours for that storage/model.
+
+### Invalid value example
+
+Catalog has 512 GB and 1 TB; user typed `600 GB`:
 
 > 600 GB isn’t a valid option. Are you looking for **512 GB** or **1 TB**?
 
-Skip the popup when normalization already matches a **single valid** catalog variant. After they pick, continue to loading.
+Still no “not important” — storage is identity.
+
+### Multiple prompts in one popup
+
+If several properties are missing (e.g. storage + colour), one popup can ask for all of them before search. Required fields must be answered; optional fields may use **Not important**.
 
 ---
 

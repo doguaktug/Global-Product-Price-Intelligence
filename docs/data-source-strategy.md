@@ -43,9 +43,11 @@ The catalog is **not** filled from scrape. Live adapters never overwrite `Money`
 Each adapter implements the same contract:
 
 ```
-search(confirmedVariant, destination) → list of raw listings
+search(searchScope, destination) → list of raw listings
 normalize(raw) → Offer (original Money, raw specs, seller, country)
 ```
+
+`searchScope` includes fixed identity constraints and any optional keys marked **Not important** (all colours, etc.).
 
 If a method is blocked (403, robots disallow, missing API key), the adapter fails **soft**: zero offers from that source, logged, other sources continue.
 
@@ -148,7 +150,7 @@ If shipping or duty cannot be estimated honestly, set `LandedCost.completeness =
 - Optional later: enrich specs from manufacturer pages **once**, not on every search.
 - Not a crawled product graph.
 
-This is also what lets confirmation stay quiet: if the user types a variant that **exists in this seed**, search starts immediately.
+This is also what lets confirmation stay quiet: if the user types a **fully specified** variant that exists in this seed, search starts immediately. Incomplete identity fields (e.g. `Samsung S26` without storage) open the popup; optional fields like colour may be left as **Not important**.
 
 ---
 
