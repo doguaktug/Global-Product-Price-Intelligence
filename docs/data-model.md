@@ -257,7 +257,7 @@ One listing, at collection time. This is the unit of comparison.
 | `listPrice` | `Money` | **Original; never overwritten** |
 | `convertedListPrice` | `ConvertedMoney`? | Filled after FX |
 | `landedCost` | `LandedCost`? | Filled after FX + fees |
-| `stockStatus` | enum? | `in_stock` \| `limited` \| `out_of_stock` \| `unknown` |
+| `stockStatus` | enum? | `in_stock` \| `limited` \| `out_of_stock` \| `unknown`. Out-of-stock offers are **excluded from ranking**; unknown carries lower confidence |
 | `deliveryTime` | string? | Keep source phrasing + optional normalized days |
 | `warranty` | string? | |
 | `returnPolicy` | string? | |
@@ -265,7 +265,7 @@ One listing, at collection time. This is the unit of comparison.
 | `matchedVariantId` | string? | Set after matching |
 | `matchKind` | enum | `identical` \| `similar` \| `different` \| `unmatched` |
 | `matchNotes` | list of strings | e.g. “same family, storage 1TB vs 512GB” |
-| `collectedAt` | datetime | Freshness |
+| `collectedAt` | datetime | Freshness; shown visibly on Decision Page cards. Cache TTL 15–30 min |
 | `dataConfidence` | 0–1 | Missing/conflicting fields pull this down |
 
 **Matching rule in the model:** two offers may share a `matchedVariantId` only when `matchKind = identical`. Similar SKUs (1 TB vs 512 GB, US vs EU version) stay separate offers and may become **alternatives**, not merged rows.
