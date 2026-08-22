@@ -2,6 +2,8 @@
 
 How the system turns raw offers into a recommendation — and explains it. This is the Week 1 "proposed algorithm" deliverable. Implementation will be Python.
 
+The end-to-end process around this algorithm is in [process-framework-and-algorithm.md](process-framework-and-algorithm.md).
+
 ---
 
 ## Why not just "cheapest wins"
