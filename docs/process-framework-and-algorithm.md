@@ -398,19 +398,6 @@ caveats:
 | `COMPARABLE_SCORE_FLOOR` | 0.85 | Minimum final-score ratio versus best-for-you |
 | `MAX_ALTERNATIVES` | 3 | Cap on alternative suggestions |
 
-## Why this method
-
-| Assignment question | Answer |
-| --- | --- |
-| Why this method? | Weighted multi-criteria scoring. It is transparent, explainable, and user-controlled. It handles missing data. |
-| Which variables? | Landed cost, seller trust, warranty, specifications, reviews, and delivery. The set can grow. |
-| How are values scaled? | Min–max inside the offer set, per criterion. The range is 0–1. |
-| How are the criteria weighted? | User sliders, or published defaults. The system scales weights again per offer when a criterion is missing. |
-| How is the final ranking calculated? | `finalScore = confidenceMultiplier × sum(w × score)`. Then pick highlights by these rules. |
-| Missing information? | Exclude that criterion for that offer. Scale the remaining weights. Record the gap in `missingCriteria`. |
-| Unreliable information? | Multiply by `dataConfidence` and the completeness multiplier. Add a caveat. |
-| How does it explain? | Headline, then reasons with values, then caveats for gaps and estimates. |
-
 ## Procedure summary
 
 1. Extract raw criterion values for each identical offer.
