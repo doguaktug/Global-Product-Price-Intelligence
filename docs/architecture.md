@@ -50,7 +50,7 @@ Personal project draft. Full decision-support model (not only a ranking engine).
 13. Decision Page
 ```
 
-Screens: **Welcome → (confirm popup) → Loading → Decision Page.** See [ui-concept.md](ui-concept.md). Assignment-style writeup of the same process and the ranking algorithm: [process-framework-and-algorithm.md](process-framework-and-algorithm.md).
+Screens: **Welcome → (confirm popup) → Loading → Decision Page.** See [ui-concept.md](ui-concept.md). The STEP writeup of this process is [process-framework-and-algorithm.md](process-framework-and-algorithm.md).
 
 ### 1. User query
 
