@@ -71,3 +71,4 @@ Most pipeline modules are **stubs** ready to implement in Week 2. Catalog seed d
 - [Initial UI concept](docs/ui-concept.md) — welcome, confirm popup, loading, Decision Page
 - [Proposed algorithm](docs/proposed-algorithm.md) — weighted scoring, missing-data handling, explanations, alternative guardrails
 - [Process framework](docs/process-framework-and-algorithm.md) — STEP flow from first page to Decision Page
+- [Project layout](docs/project-layout.md) — Python package map for Week 2
