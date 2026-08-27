@@ -1,0 +1,52 @@
+[
+  {
+    "id": "bestbuy-us",
+    "display_name": "Best Buy",
+    "country": "US",
+    "kind": "authorized_retailer",
+    "reliability": 0.9,
+    "acquisition_method": "api",
+    "base_url": "https://www.bestbuy.com",
+    "notes": "Official Products API when key is set; otherwise fixture."
+  },
+  {
+    "id": "fixture-de",
+    "display_name": "DE Electronics (fixture)",
+    "country": "DE",
+    "kind": "authorized_retailer",
+    "reliability": 0.85,
+    "acquisition_method": "fixture",
+    "base_url": null,
+    "notes": "Demo fixture for Germany / EUR."
+  },
+  {
+    "id": "fixture-tr",
+    "display_name": "TR Electronics (fixture)",
+    "country": "TR",
+    "kind": "marketplace",
+    "reliability": 0.7,
+    "acquisition_method": "fixture",
+    "base_url": null,
+    "notes": "Demo fixture for Türkiye / TRY."
+  },
+  {
+    "id": "fixture-uk",
+    "display_name": "UK Electronics (fixture)",
+    "country": "GB",
+    "kind": "authorized_retailer",
+    "reliability": 0.85,
+    "acquisition_method": "fixture",
+    "base_url": null,
+    "notes": "Demo fixture for United Kingdom / GBP."
+  },
+  {
+    "id": "fixture-jp",
+    "display_name": "JP Electronics (fixture)",
+    "country": "JP",
+    "kind": "marketplace",
+    "reliability": 0.65,
+    "acquisition_method": "fixture",
+    "base_url": null,
+    "notes": "Demo fixture for Japan / JPY."
+  }
+]
