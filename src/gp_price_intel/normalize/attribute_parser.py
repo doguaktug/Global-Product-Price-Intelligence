@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import re
 
-from gp_price_intel.normalize.similarity import best_fuzzy_match, normalize_text
+from gp_price_intel.normalize.similarity import (
+    best_fuzzy_match,
+    strip_spec_tokens,
+    token_similarity,
+    tokenize,
+)
 
 STORAGE_PATTERN = re.compile(
     r"(?P<amount>\d+(?:\.\d+)?)\s*(?P<unit>gb|tb|g\b|t\b)",
@@ -57,12 +62,23 @@ def parse_region_version(text: str) -> str | None:
 def parse_colour(text: str, valid_colours: list[str]) -> str | None:
     if not valid_colours:
         return None
-    normalized_query = normalize_text(text)
-    best_colour, score = best_fuzzy_match(normalized_query, valid_colours)
-    if best_colour is None or score < 0.55:
-        # Also try substring match for multi-word colours (e.g. "black titanium")
-        for colour in valid_colours:
-            if normalize_text(colour) in normalized_query:
-                return colour
-        return None
-    return best_colour
+
+    residue = strip_spec_tokens(text)
+    query_tokens = tokenize(residue)
+
+    # Multi-word colours: every colour token must fuzzy-match a query token.
+    for colour in valid_colours:
+        colour_tokens = tokenize(colour)
+        if not colour_tokens:
+            continue
+        if all(
+            any(token_similarity(colour_token, query_token) >= 0.85 for query_token in query_tokens)
+            for colour_token in colour_tokens
+        ):
+            return colour
+
+    best_colour, score = best_fuzzy_match(residue, valid_colours)
+    if best_colour is not None and score >= 0.55:
+        return best_colour
+
+    return None

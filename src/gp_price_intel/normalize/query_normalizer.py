@@ -19,7 +19,12 @@ from gp_price_intel.normalize.attribute_parser import (
     parse_region_version,
     parse_storage_gb,
 )
-from gp_price_intel.normalize.similarity import normalize_text, similarity
+from gp_price_intel.normalize.similarity import (
+    score_query_against_labels,
+    similarity,
+    strip_spec_tokens,
+    token_set_ratio,
+)
 
 FAMILY_MATCH_THRESHOLD = 0.45
 FAMILY_AMBIGUITY_GAP = 0.06
@@ -145,9 +150,8 @@ class QueryNormalizer:
                 f"{family.brand} {family.family_name}",
                 family.family_name,
                 *family.aliases,
-                f"{family.brand} {' '.join(family.aliases)}",
             ]
-            best = max(similarity(text, label) for label in labels)
+            best = score_query_against_labels(text, labels)
             scored.append((family, best))
 
         scored.sort(key=lambda item: item[1], reverse=True)
@@ -160,10 +164,10 @@ class QueryNormalizer:
 
     def _family_option_ids(self, text: str) -> list[str]:
         """Rank families by similarity for ambiguous family picker."""
-        ranked = []
-        for family in self.catalog.list_families():
-            label = f"{family.brand} {family.family_name}"
-            ranked.append((family.id, similarity(text, label)))
+        ranked = [
+            (family.id, score_query_against_labels(text, [f"{family.brand} {family.family_name}"]))
+            for family in self.catalog.list_families()
+        ]
         ranked.sort(key=lambda item: item[1], reverse=True)
         return [family_id for family_id, _ in ranked]
 
