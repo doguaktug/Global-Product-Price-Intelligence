@@ -23,4 +23,4 @@ data/
 tests/            # pytest smoke tests
 ```
 
-Week 2 fills stubs in order: normalizer → adapters/FX → matcher → landed cost → ranking → Decision Page API payloads.
+Week 2 progress: **normalize/** implements fuzzy catalog matching + confirmation popups. Next: adapters/FX → matcher → landed cost → ranking.
