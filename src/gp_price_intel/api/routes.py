@@ -8,10 +8,12 @@ from pydantic import BaseModel, Field
 from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.domain.models import (
     DecisionPage,
+    NormalizedQuery,
     PropertyChoice,
     SearchSession,
     UserPreferences,
 )
+from gp_price_intel.normalize.confirmation import ConfirmationError
 from gp_price_intel.orchestrator.search import SearchOrchestrator
 
 router = APIRouter(prefix="/api")
@@ -22,6 +24,10 @@ _orchestrator = SearchOrchestrator(catalog=_catalog)
 class StartSearchRequest(BaseModel):
     query: str = Field(min_length=1)
     preferences: UserPreferences | None = None
+
+
+class NormalizeRequest(BaseModel):
+    query: str = Field(min_length=1)
 
 
 class ConfirmRequest(BaseModel):
@@ -49,9 +55,18 @@ def start_search(body: StartSearchRequest) -> SearchSession:
     return _orchestrator.start_session(body.query, body.preferences)
 
 
+@router.post("/search/normalize", response_model=NormalizedQuery)
+def normalize_query(body: NormalizeRequest) -> NormalizedQuery:
+    """Preview catalog match + confirmation prompts without creating a session."""
+    return _orchestrator.preview_normalization(body.query)
+
+
 @router.post("/search/confirm", response_model=SearchSession)
 def confirm_search(body: ConfirmRequest) -> SearchSession:
-    return _orchestrator.apply_choices(body.session, body.choices)
+    try:
+        return _orchestrator.apply_choices(body.session, body.choices)
+    except ConfirmationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post("/search/run", response_model=DecisionPage)

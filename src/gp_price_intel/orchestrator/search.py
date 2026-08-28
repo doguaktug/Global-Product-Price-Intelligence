@@ -21,6 +21,7 @@ from gp_price_intel.explanation.builder import ExplanationBuilder
 from gp_price_intel.fx.service import FxService
 from gp_price_intel.landed_cost.service import LandedCostService
 from gp_price_intel.matching.matcher import ProductMatcher
+from gp_price_intel.normalize.confirmation import ConfirmationError, resolve_search_scope
 from gp_price_intel.normalize.query_normalizer import QueryNormalizer
 from gp_price_intel.ranking.engine import RankingEngine
 
@@ -69,8 +70,22 @@ class SearchOrchestrator:
         session: SearchSession,
         choices: list[PropertyChoice],
     ) -> SearchSession:
+        if session.normalized_query is None:
+            raise ConfirmationError("Session has no normalized query.")
+
         session.property_choices = choices
-        # Week 2: build SearchScope from choices + catalog variants.
+        try:
+            scope, confirmed_variant_id = resolve_search_scope(
+                self.catalog,
+                session.normalized_query,
+                choices,
+            )
+        except ConfirmationError:
+            session.status = SessionStatus.NEEDS_CONFIRMATION
+            raise
+
+        session.search_scope = scope
+        session.confirmed_variant_id = confirmed_variant_id
         session.status = SessionStatus.RECEIVED
         return session
 

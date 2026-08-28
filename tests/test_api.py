@@ -21,3 +21,13 @@ def test_catalog_categories_endpoint() -> None:
     assert response.status_code == 200
     ids = {row["id"] for row in response.json()}
     assert "smartphone" in ids
+
+
+def test_normalize_endpoint_flags_missing_storage() -> None:
+    client = TestClient(create_app())
+    response = client.post("/api/search/normalize", json={"query": "Samsung S26"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["needs_confirmation"] is True
+    keys = {p["property_key"] for p in body["pending_properties"]}
+    assert "storage_gb" in keys
