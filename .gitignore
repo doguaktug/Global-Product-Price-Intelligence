@@ -1,0 +1,31 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtualenvs
+.venv/
+venv/
+ENV/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Local runtime
+*.log
+.coverage
+htmlcov/

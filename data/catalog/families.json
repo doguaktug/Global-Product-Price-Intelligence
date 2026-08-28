@@ -1,0 +1,41 @@
+[
+  {
+    "id": "samsung-galaxy-s26-ultra",
+    "category_id": "smartphone",
+    "brand": "Samsung",
+    "family_name": "Galaxy S26 Ultra",
+    "aliases": ["S26 Ultra", "Galaxy S26U", "S26U", "Samsung S26 Ultra"],
+    "valid_options": {
+      "storage_gb": [256, 512, 1024],
+      "memory_gb": [12, 16],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Black", "Silver", "White"]
+    }
+  },
+  {
+    "id": "apple-iphone-16-pro",
+    "category_id": "smartphone",
+    "brand": "Apple",
+    "family_name": "iPhone 16 Pro",
+    "aliases": ["iPhone 16Pro", "IPHONE 16 PRO"],
+    "valid_options": {
+      "storage_gb": [128, 256, 512, 1024],
+      "memory_gb": [8],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Black Titanium", "Natural Titanium", "White Titanium", "Desert Titanium"]
+    }
+  },
+  {
+    "id": "apple-macbook-air-m3",
+    "category_id": "laptop",
+    "brand": "Apple",
+    "family_name": "MacBook Air M3",
+    "aliases": ["MBA M3", "MacBook Air 13 M3"],
+    "valid_options": {
+      "storage_gb": [256, 512, 1024],
+      "memory_gb": [8, 16, 24],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Midnight", "Starlight", "Space Gray", "Silver"]
+    }
+  }
+]

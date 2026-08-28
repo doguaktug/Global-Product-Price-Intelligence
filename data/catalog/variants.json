@@ -1,0 +1,67 @@
+[
+  {
+    "id": "samsung-galaxy-s26-ultra-512-12-eu-black",
+    "family_id": "samsung-galaxy-s26-ultra",
+    "model_name": "Galaxy S26 Ultra",
+    "storage_gb": 512,
+    "memory_gb": 12,
+    "region_version": "EU",
+    "colour": "Black",
+    "canonical_specs": [
+      {"key": "battery_mah", "value": 5000, "unit": "mAh", "raw_text": "5000 mAh"},
+      {"key": "display_inch", "value": 6.9, "unit": "in", "raw_text": "6.9-inch"}
+    ]
+  },
+  {
+    "id": "samsung-galaxy-s26-ultra-512-12-eu-silver",
+    "family_id": "samsung-galaxy-s26-ultra",
+    "model_name": "Galaxy S26 Ultra",
+    "storage_gb": 512,
+    "memory_gb": 12,
+    "region_version": "EU",
+    "colour": "Silver",
+    "canonical_specs": [
+      {"key": "battery_mah", "value": 5000, "unit": "mAh", "raw_text": "5000 mAh"},
+      {"key": "display_inch", "value": 6.9, "unit": "in", "raw_text": "6.9-inch"}
+    ]
+  },
+  {
+    "id": "samsung-galaxy-s26-ultra-1024-12-eu-black",
+    "family_id": "samsung-galaxy-s26-ultra",
+    "model_name": "Galaxy S26 Ultra",
+    "storage_gb": 1024,
+    "memory_gb": 12,
+    "region_version": "EU",
+    "colour": "Black",
+    "canonical_specs": [
+      {"key": "battery_mah", "value": 5000, "unit": "mAh", "raw_text": "5000 mAh"},
+      {"key": "display_inch", "value": 6.9, "unit": "in", "raw_text": "6.9-inch"}
+    ]
+  },
+  {
+    "id": "apple-iphone-16-pro-256-8-eu-black",
+    "family_id": "apple-iphone-16-pro",
+    "model_name": "iPhone 16 Pro",
+    "storage_gb": 256,
+    "memory_gb": 8,
+    "region_version": "EU",
+    "colour": "Black Titanium",
+    "canonical_specs": [
+      {"key": "battery_mah", "value": 3582, "unit": "mAh", "raw_text": "3582 mAh"},
+      {"key": "display_inch", "value": 6.3, "unit": "in", "raw_text": "6.3-inch"}
+    ]
+  },
+  {
+    "id": "apple-macbook-air-m3-512-16-us-midnight",
+    "family_id": "apple-macbook-air-m3",
+    "model_name": "MacBook Air M3",
+    "storage_gb": 512,
+    "memory_gb": 16,
+    "region_version": "US",
+    "colour": "Midnight",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"},
+      {"key": "processor", "value": "M3", "unit": null, "raw_text": "Apple M3"}
+    ]
+  }
+]

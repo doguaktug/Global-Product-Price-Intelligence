@@ -1,0 +1,20 @@
+[
+  {
+    "id": "smartphone",
+    "core_spec_keys": ["storage_gb", "memory_gb", "display_inch", "battery_mah"],
+    "identity_keys": ["storage_gb", "memory_gb", "region_version"],
+    "optional_keys": ["colour"]
+  },
+  {
+    "id": "laptop",
+    "core_spec_keys": ["storage_gb", "memory_gb", "display_inch", "processor"],
+    "identity_keys": ["storage_gb", "memory_gb", "region_version"],
+    "optional_keys": ["colour"]
+  },
+  {
+    "id": "tablet",
+    "core_spec_keys": ["storage_gb", "memory_gb", "display_inch"],
+    "identity_keys": ["storage_gb", "memory_gb", "region_version"],
+    "optional_keys": ["colour"]
+  }
+]
