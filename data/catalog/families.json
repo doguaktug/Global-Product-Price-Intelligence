@@ -4,7 +4,7 @@
     "category_id": "smartphone",
     "brand": "Samsung",
     "family_name": "Galaxy S26 Ultra",
-    "aliases": ["S26 Ultra", "Galaxy S26U", "Samsung S26 Ultra"],
+    "aliases": ["S26 Ultra", "Galaxy S26U", "S26U", "Samsung S26 Ultra"],
     "valid_options": {
       "storage_gb": [256, 512, 1024],
       "memory_gb": [12, 16],

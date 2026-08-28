@@ -1,10 +1,12 @@
-"""String similarity helpers for fuzzy catalog matching."""
+"""String similarity helpers for fuzzy catalog matching (rapidfuzz-backed)."""
 
 from __future__ import annotations
 
 import re
 import unicodedata
-from difflib import SequenceMatcher
+from dataclasses import dataclass
+
+from rapidfuzz import fuzz
 
 # Stripped from product-name residue before family matching.
 SPEC_TOKEN_PATTERN = re.compile(
@@ -34,6 +36,19 @@ STOPWORDS = frozenset(
     }
 )
 
+# Compact-alias hits below this length (after normalizing) are "farfetch" — confirm via popup.
+COMPACT_QUERY_MAX_LEN = 8
+COMPACT_ALIAS_MATCH_THRESHOLD = 80  # rapidfuzz 0–100 scale
+
+
+@dataclass(frozen=True)
+class FamilyMatchScore:
+    """Score for one catalog family, plus whether the hit is a stretch abbreviation."""
+
+    score: float  # 0–1
+    farfetch: bool
+    matched_label: str | None = None
+
 
 def normalize_text(text: str) -> str:
     """Lowercase, strip accents, collapse whitespace."""
@@ -41,6 +56,11 @@ def normalize_text(text: str) -> str:
     decomposed = unicodedata.normalize("NFKD", lowered)
     without_accents = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
     return re.sub(r"\s+", " ", without_accents)
+
+
+def compact_form(text: str) -> str:
+    """Remove spaces for compact alias matching (s26u ↔ S26U)."""
+    return normalize_text(text).replace(" ", "")
 
 
 def strip_spec_tokens(text: str) -> str:
@@ -66,61 +86,19 @@ def tokenize(text: str) -> list[str]:
 def token_similarity(left: str, right: str) -> float:
     if left == right:
         return 1.0
-    # Short model codes (s26, m3) must match exactly or very closely.
-    if len(left) <= 3 or len(right) <= 3:
-        return 1.0 if left == right else SequenceMatcher(None, left, right).ratio()
-    return SequenceMatcher(None, left, right).ratio()
+    return _to_unit_score(fuzz.ratio(left, right))
 
 
-def token_set_ratio(left: str, right: str) -> float:
-    """
-    Fuzzy token-set match — robust to word order and extra words in the query.
-
-    "ultra s26 samsung 512gb" vs "samsung galaxy s26 ultra" scores well because
-    most catalog tokens find a partner in the query.
-    """
-    left_tokens = tokenize(left)
-    right_tokens = tokenize(right)
-    if not left_tokens or not right_tokens:
-        return 0.0
-
-    left_hits = [max(token_similarity(lt, rt) for rt in right_tokens) for lt in left_tokens]
-    right_hits = [max(token_similarity(rt, lt) for lt in left_tokens) for rt in right_tokens]
-
-    left_coverage = sum(left_hits) / len(left_hits)
-    right_coverage = sum(right_hits) / len(right_hits)
-    if left_coverage + right_coverage == 0:
-        return 0.0
-    return 2 * left_coverage * right_coverage / (left_coverage + right_coverage)
-
-
-def partial_ratio(left: str, right: str) -> float:
-    """Best local alignment — catches substring and near-substring matches."""
-    left_norm, right_norm = normalize_text(left), normalize_text(right)
-    if not left_norm or not right_norm:
-        return 0.0
-    if left_norm in right_norm or right_norm in left_norm:
-        return 0.95
-
-    short, long = (left_norm, right_norm) if len(left_norm) <= len(right_norm) else (right_norm, left_norm)
-    if not short:
-        return 0.0
-
-    best = 0.0
-    short_len = len(short)
-    for window in range(short_len, min(len(long), short_len + 4) + 1):
-        for index in range(len(long) - window + 1):
-            chunk = long[index : index + window]
-            best = max(best, SequenceMatcher(None, short, chunk).ratio())
-    return best
+def _to_unit_score(rapidfuzz_score: float) -> float:
+    return rapidfuzz_score / 100.0
 
 
 def similarity(left: str, right: str) -> float:
     """
-    Combined fuzzy score in 0–1.
+    Combined fuzzy score in 0–1 using rapidfuzz.
 
-    Uses the best of token-set (word order / extra words), partial (substring),
-    and full-string ratio so typos and messy queries still match catalog labels.
+    token_set_ratio handles word order / extra tokens; partial_ratio handles
+    near-substrings; WRatio blends both for messy product names.
     """
     if not left or not right:
         return 0.0
@@ -129,11 +107,12 @@ def similarity(left: str, right: str) -> float:
     if left_norm == right_norm:
         return 1.0
 
-    token_score = token_set_ratio(left, right)
-    partial_score = partial_ratio(left, right)
-    sequence_score = SequenceMatcher(None, left_norm, right_norm).ratio()
-
-    return max(token_score, partial_score, sequence_score * 0.85)
+    scores = [
+        _to_unit_score(fuzz.token_set_ratio(left_norm, right_norm)),
+        _to_unit_score(fuzz.partial_ratio(left_norm, right_norm)),
+        _to_unit_score(fuzz.WRatio(left_norm, right_norm)),
+    ]
+    return max(scores)
 
 
 def best_fuzzy_match(query: str, candidates: list[str]) -> tuple[str | None, float]:
@@ -144,14 +123,66 @@ def best_fuzzy_match(query: str, candidates: list[str]) -> tuple[str | None, flo
     return max(scored, key=lambda item: item[1])
 
 
-def score_label_against_query(query: str, label: str) -> float:
+def is_compact_alias(label: str) -> bool:
+    """Labels like S26U or MBA — short, no spaces — are stretch abbreviations."""
+    stripped = label.strip()
+    return " " not in stripped and len(stripped) <= 12
+
+
+def score_compact_alias(query: str, label: str) -> tuple[float, bool]:
+    """
+    Match compressed query text against a catalog alias.
+
+    Returns (score 0–1, is_farfetch). Farfetch when the alias itself is compact
+    (S26U) or the query is very short (s26u).
+    """
+    query_compact = compact_form(strip_spec_tokens(query))
+    label_compact = compact_form(label)
+    if not query_compact or not label_compact:
+        return 0.0, False
+
+    ratio = _to_unit_score(fuzz.ratio(query_compact, label_compact))
+    if ratio * 100 < COMPACT_ALIAS_MATCH_THRESHOLD:
+        # Also accept if one compact form contains the other (s26u in galaxys26u).
+        if query_compact not in label_compact and label_compact not in query_compact:
+            return 0.0, False
+
+    farfetch = is_compact_alias(label) or len(query_compact) <= COMPACT_QUERY_MAX_LEN
+    return max(ratio, 0.85 if query_compact == label_compact else ratio), farfetch
+
+
+def score_label_against_query(query: str, label: str) -> FamilyMatchScore:
     """Score one catalog label; strips specs from query first."""
     residue = strip_spec_tokens(query)
-    return similarity(residue, label)
+    fuzzy = similarity(residue, label)
+    compact_score, compact_farfetch = score_compact_alias(query, label)
+
+    if compact_farfetch and compact_score >= _to_unit_score(COMPACT_ALIAS_MATCH_THRESHOLD):
+        return FamilyMatchScore(
+            score=max(fuzzy, compact_score),
+            farfetch=True,
+            matched_label=label,
+        )
+
+    return FamilyMatchScore(score=max(fuzzy, compact_score), farfetch=False, matched_label=None)
 
 
-def score_query_against_labels(query: str, labels: list[str]) -> float:
+def score_query_against_labels(query: str, labels: list[str]) -> FamilyMatchScore:
     """Best score across all labels/aliases for one catalog family."""
     if not labels:
-        return 0.0
-    return max(score_label_against_query(query, label) for label in labels)
+        return FamilyMatchScore(score=0.0, farfetch=False)
+
+    results = [score_label_against_query(query, label) for label in labels]
+    best = max(results, key=lambda item: item.score)
+    # If any alias was a stretch hit (e.g. s26u), the whole family match is farfetch.
+    farfetch = any(result.farfetch for result in results)
+    return FamilyMatchScore(
+        score=best.score,
+        farfetch=farfetch,
+        matched_label=next((r.matched_label for r in results if r.farfetch), best.matched_label),
+    )
+
+
+# Back-compat for tests that import token_set_ratio directly.
+def token_set_ratio(left: str, right: str) -> float:
+    return _to_unit_score(fuzz.token_set_ratio(normalize_text(left), normalize_text(right)))

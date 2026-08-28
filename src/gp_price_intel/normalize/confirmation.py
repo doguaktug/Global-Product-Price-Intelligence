@@ -73,18 +73,28 @@ def resolve_search_scope(
     if not normalized.candidate_family_id:
         raise ConfirmationError("No catalog family matched the query.")
 
-    family = catalog.get_family(normalized.candidate_family_id)
+    choice_by_key = {choice.property_key: choice for choice in choices}
+    family_id = normalized.candidate_family_id
+    family_choice = choice_by_key.get("family_id")
+    if family_choice is not None:
+        if family_choice.kind != PropertyChoiceKind.VALUE or family_choice.value is None:
+            raise ConfirmationError("Family confirmation requires a catalog family id.")
+        family_id = str(family_choice.value)
+
+    family = catalog.get_family(family_id)
     category = catalog.get_category(family.category_id) if family else None
     if family is None or category is None:
         raise ConfirmationError("Matched family is not in the catalog.")
 
     pending_by_key = {prompt.property_key: prompt for prompt in normalized.pending_properties}
-    choice_by_key = {choice.property_key: choice for choice in choices}
 
     constraints = {**variant_constraints(normalized.extracted)}
     unconstrained_keys: list[str] = []
 
     for prompt in normalized.pending_properties:
+        if prompt.property_key == "family_id":
+            continue  # handled above
+
         choice = choice_by_key.get(prompt.property_key)
         if choice is None:
             if prompt.role == PropertyRole.IDENTITY:

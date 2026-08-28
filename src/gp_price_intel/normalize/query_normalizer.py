@@ -19,12 +19,7 @@ from gp_price_intel.normalize.attribute_parser import (
     parse_region_version,
     parse_storage_gb,
 )
-from gp_price_intel.normalize.similarity import (
-    score_query_against_labels,
-    similarity,
-    strip_spec_tokens,
-    token_set_ratio,
-)
+from gp_price_intel.normalize.similarity import FamilyMatchScore, score_query_against_labels
 
 FAMILY_MATCH_THRESHOLD = 0.45
 FAMILY_AMBIGUITY_GAP = 0.06
@@ -41,7 +36,7 @@ class QueryNormalizer:
         if not text:
             return NormalizedQuery(raw_text=text, needs_confirmation=True)
 
-        family, family_score, family_ambiguous = self._match_family(text)
+        family, family_score, family_ambiguous, family_farfetch = self._match_family(text)
         if family is None:
             return NormalizedQuery(
                 raw_text=text,
@@ -67,6 +62,7 @@ class QueryNormalizer:
             "family_id": family.id,
             "family_name": family.family_name,
             "match_score": round(family_score, 3),
+            "match_farfetch": family_farfetch,
         }
 
         variants = self.catalog.list_variants(family.id)
@@ -79,6 +75,16 @@ class QueryNormalizer:
                     property_key="family_id",
                     role=PropertyRole.IDENTITY,
                     reason=ConfirmationReason.AMBIGUOUS,
+                    options=self._family_option_ids(text),
+                    allow_not_important=False,
+                )
+            )
+        elif family_farfetch:
+            pending.append(
+                ConfirmationPrompt(
+                    property_key="family_id",
+                    role=PropertyRole.IDENTITY,
+                    reason=ConfirmationReason.FARFETCH,
                     options=self._family_option_ids(text),
                     allow_not_important=False,
                 )
@@ -132,7 +138,7 @@ class QueryNormalizer:
         extracted.update(constraints)
         candidate_variant_ids = [v.id for v in candidate_variants]
 
-        needs_confirmation = bool(pending) or family_ambiguous
+        needs_confirmation = bool(pending) or family_ambiguous or family_farfetch
 
         return NormalizedQuery(
             raw_text=text,
@@ -143,29 +149,37 @@ class QueryNormalizer:
             pending_properties=pending,
         )
 
-    def _match_family(self, text: str) -> tuple[ProductFamily | None, float, bool]:
-        scored: list[tuple[ProductFamily, float]] = []
+    def _match_family(
+        self, text: str
+    ) -> tuple[ProductFamily | None, float, bool, bool]:
+        scored: list[tuple[ProductFamily, FamilyMatchScore]] = []
         for family in self.catalog.list_families():
             labels = [
                 f"{family.brand} {family.family_name}",
                 family.family_name,
                 *family.aliases,
             ]
-            best = score_query_against_labels(text, labels)
-            scored.append((family, best))
+            result = score_query_against_labels(text, labels)
+            scored.append((family, result))
 
-        scored.sort(key=lambda item: item[1], reverse=True)
-        if not scored or scored[0][1] < FAMILY_MATCH_THRESHOLD:
-            return None, 0.0, False
+        scored.sort(key=lambda item: item[1].score, reverse=True)
+        if not scored or scored[0][1].score < FAMILY_MATCH_THRESHOLD:
+            return None, 0.0, False, False
 
-        top_family, top_score = scored[0]
-        ambiguous = len(scored) > 1 and (top_score - scored[1][1]) < FAMILY_AMBIGUITY_GAP
-        return top_family, top_score, ambiguous
+        top_family, top_result = scored[0]
+        ambiguous = len(scored) > 1 and (top_result.score - scored[1][1].score) < FAMILY_AMBIGUITY_GAP
+        farfetch = top_result.farfetch and not ambiguous
+        return top_family, top_result.score, ambiguous, farfetch
 
     def _family_option_ids(self, text: str) -> list[str]:
-        """Rank families by similarity for ambiguous family picker."""
+        """Rank families by similarity for family confirmation picker."""
         ranked = [
-            (family.id, score_query_against_labels(text, [f"{family.brand} {family.family_name}"]))
+            (
+                family.id,
+                score_query_against_labels(
+                    text, [f"{family.brand} {family.family_name}", *family.aliases]
+                ).score,
+            )
             for family in self.catalog.list_families()
         ]
         ranked.sort(key=lambda item: item[1], reverse=True)
