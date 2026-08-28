@@ -69,7 +69,7 @@ class ConfirmationReason(str, Enum):
     MISSING = "missing"
     INVALID = "invalid"
     AMBIGUOUS = "ambiguous"
-    FARFETCH = "farfetch"  # stretch abbreviation / compact alias — confirm before proceeding
+    SHORTHAND = "shorthand"  # compact/abbreviated match — confirm family before proceeding
 
 
 class PropertyChoiceKind(str, Enum):

@@ -36,17 +36,17 @@ STOPWORDS = frozenset(
     }
 )
 
-# Compact-alias hits below this length (after normalizing) are "farfetch" — confirm via popup.
+# Compact-alias hits below this length (after normalizing) are "shorthand" — confirm via popup.
 COMPACT_QUERY_MAX_LEN = 8
 COMPACT_ALIAS_MATCH_THRESHOLD = 80  # rapidfuzz 0–100 scale
 
 
 @dataclass(frozen=True)
 class FamilyMatchScore:
-    """Score for one catalog family, plus whether the hit is a stretch abbreviation."""
+    """Score for one catalog family, plus whether the hit is a shorthand/abbreviation."""
 
     score: float  # 0–1
-    farfetch: bool
+    shorthand: bool
     matched_label: str | None = None
 
 
@@ -133,8 +133,8 @@ def score_compact_alias(query: str, label: str) -> tuple[float, bool]:
     """
     Match compressed query text against a catalog alias.
 
-    Returns (score 0–1, is_farfetch). Farfetch when the alias itself is compact
-    (S26U) or the query is very short (s26u).
+    Returns (score 0–1, is_shorthand). Shorthand when the alias itself is compact
+    (S26U) or the query is very short (s26u) — family confirmation required.
     """
     query_compact = compact_form(strip_spec_tokens(query))
     label_compact = compact_form(label)
@@ -147,39 +147,39 @@ def score_compact_alias(query: str, label: str) -> tuple[float, bool]:
         if query_compact not in label_compact and label_compact not in query_compact:
             return 0.0, False
 
-    farfetch = is_compact_alias(label) or len(query_compact) <= COMPACT_QUERY_MAX_LEN
-    return max(ratio, 0.85 if query_compact == label_compact else ratio), farfetch
+    shorthand = is_compact_alias(label) or len(query_compact) <= COMPACT_QUERY_MAX_LEN
+    return max(ratio, 0.85 if query_compact == label_compact else ratio), shorthand
 
 
 def score_label_against_query(query: str, label: str) -> FamilyMatchScore:
     """Score one catalog label; strips specs from query first."""
     residue = strip_spec_tokens(query)
     fuzzy = similarity(residue, label)
-    compact_score, compact_farfetch = score_compact_alias(query, label)
+    compact_score, compact_shorthand = score_compact_alias(query, label)
 
-    if compact_farfetch and compact_score >= _to_unit_score(COMPACT_ALIAS_MATCH_THRESHOLD):
+    if compact_shorthand and compact_score >= _to_unit_score(COMPACT_ALIAS_MATCH_THRESHOLD):
         return FamilyMatchScore(
             score=max(fuzzy, compact_score),
-            farfetch=True,
+            shorthand=True,
             matched_label=label,
         )
 
-    return FamilyMatchScore(score=max(fuzzy, compact_score), farfetch=False, matched_label=None)
+    return FamilyMatchScore(score=max(fuzzy, compact_score), shorthand=False, matched_label=None)
 
 
 def score_query_against_labels(query: str, labels: list[str]) -> FamilyMatchScore:
     """Best score across all labels/aliases for one catalog family."""
     if not labels:
-        return FamilyMatchScore(score=0.0, farfetch=False)
+        return FamilyMatchScore(score=0.0, shorthand=False)
 
     results = [score_label_against_query(query, label) for label in labels]
     best = max(results, key=lambda item: item.score)
-    # If any alias was a stretch hit (e.g. s26u), the whole family match is farfetch.
-    farfetch = any(result.farfetch for result in results)
+    # If any alias was a shorthand hit (e.g. s26u), the whole family match is shorthand.
+    shorthand = any(result.shorthand for result in results)
     return FamilyMatchScore(
         score=best.score,
-        farfetch=farfetch,
-        matched_label=next((r.matched_label for r in results if r.farfetch), best.matched_label),
+        shorthand=shorthand,
+        matched_label=next((r.matched_label for r in results if r.shorthand), best.matched_label),
     )
 
 

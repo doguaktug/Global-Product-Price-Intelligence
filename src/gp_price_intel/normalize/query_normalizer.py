@@ -36,7 +36,7 @@ class QueryNormalizer:
         if not text:
             return NormalizedQuery(raw_text=text, needs_confirmation=True)
 
-        family, family_score, family_ambiguous, family_farfetch = self._match_family(text)
+        family, family_score, family_ambiguous, family_shorthand = self._match_family(text)
         if family is None:
             return NormalizedQuery(
                 raw_text=text,
@@ -62,7 +62,7 @@ class QueryNormalizer:
             "family_id": family.id,
             "family_name": family.family_name,
             "match_score": round(family_score, 3),
-            "match_farfetch": family_farfetch,
+            "match_shorthand": family_shorthand,
         }
 
         variants = self.catalog.list_variants(family.id)
@@ -79,12 +79,12 @@ class QueryNormalizer:
                     allow_not_important=False,
                 )
             )
-        elif family_farfetch:
+        elif family_shorthand:
             pending.append(
                 ConfirmationPrompt(
                     property_key="family_id",
                     role=PropertyRole.IDENTITY,
-                    reason=ConfirmationReason.FARFETCH,
+                    reason=ConfirmationReason.SHORTHAND,
                     options=self._family_option_ids(text),
                     allow_not_important=False,
                 )
@@ -138,7 +138,7 @@ class QueryNormalizer:
         extracted.update(constraints)
         candidate_variant_ids = [v.id for v in candidate_variants]
 
-        needs_confirmation = bool(pending) or family_ambiguous or family_farfetch
+        needs_confirmation = bool(pending) or family_ambiguous or family_shorthand
 
         return NormalizedQuery(
             raw_text=text,
@@ -168,8 +168,8 @@ class QueryNormalizer:
 
         top_family, top_result = scored[0]
         ambiguous = len(scored) > 1 and (top_result.score - scored[1][1].score) < FAMILY_AMBIGUITY_GAP
-        farfetch = top_result.farfetch and not ambiguous
-        return top_family, top_result.score, ambiguous, farfetch
+        shorthand = top_result.shorthand and not ambiguous
+        return top_family, top_result.score, ambiguous, shorthand
 
     def _family_option_ids(self, text: str) -> list[str]:
         """Rank families by similarity for family confirmation picker."""

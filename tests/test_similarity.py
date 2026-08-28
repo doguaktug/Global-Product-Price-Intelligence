@@ -40,20 +40,20 @@ def test_similarity_does_not_confuse_unrelated_products() -> None:
     assert macbook > iphone
 
 
-def test_s26u_compact_alias_is_farfetch() -> None:
+def test_s26u_compact_alias_is_shorthand() -> None:
     result = score_query_against_labels("s26u", ["S26U", "Galaxy S26 Ultra"])
     assert result.score >= 0.85
-    assert result.farfetch is True
+    assert result.shorthand is True
 
 
 def test_s26u_normalizer_matches_with_family_confirmation() -> None:
     normalizer = QueryNormalizer(CatalogRepository())
     result = normalizer.normalize("s26u")
     assert result.candidate_family_id == "samsung-galaxy-s26-ultra"
-    assert result.extracted.get("match_farfetch") is True
+    assert result.extracted.get("match_shorthand") is True
     assert result.needs_confirmation is True
     family_prompt = next(p for p in result.pending_properties if p.property_key == "family_id")
-    assert family_prompt.reason.value == "farfetch"
+    assert family_prompt.reason.value == "shorthand"
     assert family_prompt.options[0] == "samsung-galaxy-s26-ultra"
 
 def test_normalizer_matches_with_specs_and_reordered_words() -> None:
