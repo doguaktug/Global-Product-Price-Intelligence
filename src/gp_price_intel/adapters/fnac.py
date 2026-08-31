@@ -1,12 +1,10 @@
-"""Fnac Spain (fnac.es) source adapter — reference implementation."""
+"""Fnac Spain (fnac.es) source adapter — live API only."""
 
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal
-from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -29,10 +27,6 @@ from gp_price_intel.domain.models import (
 
 logger = logging.getLogger(__name__)
 
-# Demo fixture used when FNAC_API_KEY is not set (Fnac has no public consumer API).
-DEFAULT_FNAC_ES_FIXTURE_NAME = "fnac_es_search_sample.json"
-
-# Map Fnac availability strings → our StockStatus.
 _AVAILABILITY_MAP: dict[str, StockStatus] = {
     "in_stock": StockStatus.IN_STOCK,
     "instock": StockStatus.IN_STOCK,
@@ -53,22 +47,16 @@ def default_fnac_es_source() -> Source:
         reliability=0.88,
         acquisition_method=AcquisitionMethod.API,
         base_url="https://www.fnac.es",
-        notes="Live when FNAC_API_KEY is set; otherwise demo fixture JSON.",
+        notes="Requires FNAC_API_KEY and FNAC_API_BASE_URL (partner/aggregator API).",
     )
 
 
 class FnacEsAdapter(SourceAdapter):
     """
-    Fetch offers from Fnac Spain.
+    Fetch live offers from Fnac Spain via a partner/aggregator API.
 
-    **Important:** Fnac does not offer a free public product-search API like Best Buy.
-    Real integrations usually go through a partner/aggregator feed or marketplace seller API.
-
-    This adapter shows the pattern:
-    1. Build a search query from ``SearchScope`` + catalog family name
-    2. ``_fetch_raw_results`` — HTTP when configured, else pinned fixture JSON
-    3. ``_parse_listing`` — map each row to our ``Offer`` model
-    4. Soft-fail — errors log and return ``[]``
+    Fnac does not publish a free public consumer search API. Set credentials in
+    ``.env``; without them this adapter soft-fails and returns no offers.
     """
 
     def __init__(
@@ -78,22 +66,27 @@ class FnacEsAdapter(SourceAdapter):
         settings: Settings | None = None,
         *,
         client: httpx.AsyncClient | None = None,
-        fixture_path: Path | None = None,
     ) -> None:
         self.source = source or default_fnac_es_source()
         self.catalog = catalog or CatalogRepository()
         self.settings = settings or get_settings()
         self._client = client
-        self._fixture_path = fixture_path
         self._owns_client = client is None
 
+    def is_configured(self) -> bool:
+        return bool(self.settings.fnac_api_key and self.settings.fnac_api_base_url)
+
     async def search(self, scope: SearchScope, destination_country: str) -> list[Offer]:
+        if not self.is_configured():
+            logger.info("Fnac ES adapter skipped — FNAC_API_KEY or FNAC_API_BASE_URL not set.")
+            return []
+
         query = self._build_search_query(scope)
         if not query:
             return []
 
         try:
-            raw_results = await self._fetch_raw_results(query)
+            raw_results = await self._fetch_live_search(query)
         except Exception:
             logger.exception("Fnac ES adapter failed for query=%r", query)
             return []
@@ -101,20 +94,17 @@ class FnacEsAdapter(SourceAdapter):
         offers: list[Offer] = []
         for raw in raw_results:
             offer = self._parse_listing(raw)
-            if offer is None:
-                continue
-            if offer.stock_status == StockStatus.OUT_OF_STOCK:
+            if offer is None or offer.stock_status == StockStatus.OUT_OF_STOCK:
                 continue
             offers.append(offer)
         return offers
 
     async def check_availability(self, offer: Offer) -> dict[str, Any]:
-        """Re-fetch a single product when the user clicks through (live mode only)."""
-        if not self.settings.fnac_api_key:
+        if not self.is_configured():
             return {
                 "available": offer.stock_status != StockStatus.OUT_OF_STOCK,
                 "verified": False,
-                "message": "Demo fixture mode — live re-check needs FNAC_API_KEY.",
+                "message": "Fnac credentials not configured.",
             }
 
         product_id = offer.id.removeprefix("fnac-es-")
@@ -166,23 +156,8 @@ class FnacEsAdapter(SourceAdapter):
 
         return " ".join(str(part) for part in parts)
 
-    async def _fetch_raw_results(self, query: str) -> list[dict[str, Any]]:
-        if self.settings.fnac_api_key:
-            return await self._fetch_live_search(query)
-        return self._load_fixture_results(query)
-
     async def _fetch_live_search(self, query: str) -> list[dict[str, Any]]:
-        """
-        Call your partner/aggregator Fnac search endpoint.
-
-        Configure ``FNAC_API_BASE_URL`` to the base URL your provider documents
-        (not fnac.es HTML — that is out of scope for this project).
-        """
-        base_url = (self.settings.fnac_api_base_url or "").rstrip("/")
-        if not base_url:
-            logger.warning("FNAC_API_KEY set but FNAC_API_BASE_URL missing — using fixture.")
-            return self._load_fixture_results(query)
-
+        base_url = self.settings.fnac_api_base_url.rstrip("/")  # type: ignore[union-attr]
         client = await self._get_client()
         response = await client.get(
             f"{base_url}/search",
@@ -195,10 +170,7 @@ class FnacEsAdapter(SourceAdapter):
         return list(payload.get("results", payload.get("products", [])))
 
     async def _fetch_product_by_id(self, product_id: str) -> dict[str, Any] | None:
-        base_url = (self.settings.fnac_api_base_url or "").rstrip("/")
-        if not base_url:
-            return None
-
+        base_url = self.settings.fnac_api_base_url.rstrip("/")  # type: ignore[union-attr]
         client = await self._get_client()
         response = await client.get(
             f"{base_url}/products/{product_id}",
@@ -209,31 +181,6 @@ class FnacEsAdapter(SourceAdapter):
             return None
         response.raise_for_status()
         return response.json()
-
-    def _fixture_file(self) -> Path:
-        if self._fixture_path is not None:
-            return self._fixture_path
-        return self.settings.data_dir / "fixtures" / DEFAULT_FNAC_ES_FIXTURE_NAME
-
-    def _load_fixture_results(self, query: str) -> list[dict[str, Any]]:
-        fixture_path = self._fixture_file()
-        if not fixture_path.exists():
-            logger.warning("Fnac fixture missing at %s", fixture_path)
-            return []
-
-        payload = json.loads(fixture_path.read_text(encoding="utf-8"))
-        results: list[dict[str, Any]] = list(payload.get("results", []))
-        query_tokens = {token.casefold() for token in query.split() if len(token) > 2}
-
-        if not query_tokens:
-            return results
-
-        def matches(row: dict[str, Any]) -> bool:
-            title = str(row.get("title", "")).casefold()
-            return any(token in title for token in query_tokens)
-
-        filtered = [row for row in results if matches(row)]
-        return filtered or results[:2]
 
     def _parse_listing(self, raw: dict[str, Any]) -> Offer | None:
         title = raw.get("title")

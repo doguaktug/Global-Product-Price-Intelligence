@@ -17,7 +17,7 @@
     "reliability": 0.88,
     "acquisition_method": "api",
     "base_url": "https://www.fnac.es",
-    "notes": "Partner/aggregator API when FNAC_API_KEY is set; demo fixture otherwise."
+    "notes": "Requires FNAC_API_KEY and FNAC_API_BASE_URL in .env (partner API)."
   },
   {
     "id": "fixture-tr",
