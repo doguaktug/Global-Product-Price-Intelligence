@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     offer_cache_ttl_seconds: int = 900
     bestbuy_api_key: str | None = None
     ebay_app_id: str | None = None
+    fnac_api_key: str | None = None
+    fnac_api_base_url: str | None = None
     data_dir: Path = DATA_DIR
 
 

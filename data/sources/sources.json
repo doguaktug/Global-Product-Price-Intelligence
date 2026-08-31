@@ -10,14 +10,14 @@
     "notes": "Official Products API when key is set; otherwise fixture."
   },
   {
-    "id": "fixture-de",
-    "display_name": "DE Electronics (fixture)",
-    "country": "DE",
+    "id": "fnac-es",
+    "display_name": "Fnac España",
+    "country": "ES",
     "kind": "authorized_retailer",
-    "reliability": 0.85,
-    "acquisition_method": "fixture",
-    "base_url": null,
-    "notes": "Demo fixture for Germany / EUR."
+    "reliability": 0.88,
+    "acquisition_method": "api",
+    "base_url": "https://www.fnac.es",
+    "notes": "Partner/aggregator API when FNAC_API_KEY is set; demo fixture otherwise."
   },
   {
     "id": "fixture-tr",
