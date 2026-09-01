@@ -23,4 +23,4 @@ data/
 tests/            # pytest smoke tests
 ```
 
-Week 2 progress: **normalize/** implements fuzzy catalog matching + confirmation popups. Next: adapters/FX → matcher → landed cost → ranking.
+Week 2 progress: **normalize/** implements fuzzy catalog matching + confirmation popups; **matching/** implements SKU/GTIN/model identity matching. Next: adapters/FX → landed cost → ranking.
