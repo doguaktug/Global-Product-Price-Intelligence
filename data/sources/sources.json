@@ -1,13 +1,13 @@
 [
   {
-    "id": "bestbuy-us",
-    "display_name": "Best Buy",
+    "id": "ebay",
+    "display_name": "eBay",
     "country": "US",
-    "kind": "authorized_retailer",
-    "reliability": 0.9,
+    "kind": "marketplace",
+    "reliability": 0.72,
     "acquisition_method": "api",
-    "base_url": "https://www.bestbuy.com",
-    "notes": "Official Products API when key is set; otherwise fixture."
+    "base_url": "https://www.ebay.com",
+    "notes": "eBay Browse API — set EBAY_APP_ID and EBAY_CERT_ID in .env."
   },
   {
     "id": "fixture-de",

@@ -3,6 +3,12 @@
     "id": "samsung-galaxy-s26-ultra-512-12-eu-black",
     "family_id": "samsung-galaxy-s26-ultra",
     "model_name": "Galaxy S26 Ultra",
+    "model_number": "SM-S928BZKG",
+    "gtin": "8806095123456",
+    "retailer_skus": {
+      "bestbuy-us": "6575028",
+      "ebay": "v1|123456789|0"
+    },
     "storage_gb": 512,
     "memory_gb": 12,
     "region_version": "EU",
@@ -29,6 +35,11 @@
     "id": "samsung-galaxy-s26-ultra-1024-12-eu-black",
     "family_id": "samsung-galaxy-s26-ultra",
     "model_name": "Galaxy S26 Ultra",
+    "model_number": "SM-S928BZKH",
+    "gtin": "8806095987654",
+    "retailer_skus": {
+      "bestbuy-us": "6575099"
+    },
     "storage_gb": 1024,
     "memory_gb": 12,
     "region_version": "EU",
@@ -42,6 +53,11 @@
     "id": "apple-iphone-16-pro-256-8-eu-black",
     "family_id": "apple-iphone-16-pro",
     "model_name": "iPhone 16 Pro",
+    "model_number": "MYND3ZD/A",
+    "gtin": "0194253491234",
+    "retailer_skus": {
+      "bestbuy-us": "6502341"
+    },
     "storage_gb": 256,
     "memory_gb": 8,
     "region_version": "EU",

@@ -183,6 +183,7 @@ class ProductVariant(BaseModel):
     model_name: str
     model_number: str | None = None
     gtin: str | None = None
+    retailer_skus: dict[str, str] = Field(default_factory=dict)
     storage_gb: int | None = None
     memory_gb: int | None = None
     region_version: str | None = None
@@ -225,6 +226,9 @@ class Offer(BaseModel):
     delivery_time: str | None = None
     warranty: str | None = None
     return_policy: str | None = None
+    retailer_sku: str | None = None
+    gtin: str | None = None
+    model_number: str | None = None
     raw_specs: list[NormalizedSpec] = Field(default_factory=list)
     matched_variant_id: str | None = None
     match_kind: MatchKind = MatchKind.UNMATCHED

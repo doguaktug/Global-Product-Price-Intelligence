@@ -20,8 +20,10 @@ class Settings(BaseSettings):
     default_reference_currency: str = "TRY"
     fx_provider: str = "frankfurter"
     offer_cache_ttl_seconds: int = 900
-    bestbuy_api_key: str | None = None
     ebay_app_id: str | None = None
+    ebay_dev_id: str | None = None
+    ebay_cert_id: str | None = None
+    ebay_sandbox: bool = False
     data_dir: Path = DATA_DIR
 
 
