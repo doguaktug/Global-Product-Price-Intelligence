@@ -1,4 +1,4 @@
-"""Fixture adapter tests."""
+"""Fixture adapter structural tests."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from gp_price_intel.domain.models import SearchScope
 
 
 @pytest.mark.asyncio
-async def test_fixture_adapter_returns_seed_offers(tmp_path: Path) -> None:
+async def test_fixture_adapter_returns_scoped_offers_with_source_metadata(tmp_path: Path) -> None:
     fixture = tmp_path / "offers.json"
     fixture.write_text(
         json.dumps(
@@ -30,7 +30,18 @@ async def test_fixture_adapter_returns_seed_offers(tmp_path: Path) -> None:
                         "price": 1000,
                         "currency": "EUR",
                         "country": "DE",
-                    }
+                    },
+                    {
+                        "id": "x-out",
+                        "source_id": "fixture-de",
+                        "family_id": "other-family",
+                        "variant_id": "other",
+                        "listing_title": "Other",
+                        "listing_url": "https://example.com/other",
+                        "price": 10,
+                        "currency": "EUR",
+                        "country": "DE",
+                    },
                 ]
             }
         ),
@@ -50,5 +61,8 @@ async def test_fixture_adapter_returns_seed_offers(tmp_path: Path) -> None:
     offers = await adapter.search(scope, "TR")
 
     assert len(offers) == 1
+    assert offers[0].id == "x1"
     assert offers[0].source_id == "fixture-de"
     assert offers[0].country == "DE"
+    assert offers[0].list_price.currency == "EUR"
+    assert 0.0 <= offers[0].data_confidence <= 1.0

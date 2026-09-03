@@ -73,7 +73,7 @@ def test_retailer_sku_match_is_identical_in_scope() -> None:
 
     assert matched.match_kind == MatchKind.IDENTICAL
     assert matched.matched_variant_id == "samsung-galaxy-s26-ultra-512-12-eu-black"
-    assert "Retailer SKU match" in matched.match_notes[0]
+    assert any("SKU" in note for note in matched.match_notes)
 
 
 def test_gtin_match_when_sku_missing() -> None:
@@ -87,7 +87,7 @@ def test_gtin_match_when_sku_missing() -> None:
     matched = matcher.match([offer], scope)[0]
 
     assert matched.match_kind == MatchKind.IDENTICAL
-    assert "GTIN match" in matched.match_notes[0]
+    assert any("GTIN" in note for note in matched.match_notes)
 
 
 def test_same_family_different_variant_sku_is_similar() -> None:

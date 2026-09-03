@@ -24,6 +24,7 @@ from gp_price_intel.domain.models import (
     SourceKind,
     StockStatus,
 )
+from gp_price_intel.ranking.confidence import compute_data_confidence_from
 
 logger = logging.getLogger(__name__)
 
@@ -106,14 +107,22 @@ class FixtureAdapter(SourceAdapter):
         stock_status = StockStatus(stock) if stock in StockStatus._value2member_map_ else StockStatus.UNKNOWN
 
         seller_name = str(row.get("seller_name") or source.display_name)
+        review_count = row.get("review_count")
+        seller = Seller(
+            name=seller_name,
+            reliability=row.get("seller_reliability", source.reliability),
+            review_count=int(review_count) if review_count is not None else None,
+            is_official=row.get("seller_is_official"),
+        )
+        if "data_confidence" in row:
+            confidence = float(row["data_confidence"])
+        else:
+            confidence = compute_data_confidence_from(source, seller)
+
         return Offer(
             id=offer_id,
             source_id=source.id,
-            seller=Seller(
-                name=seller_name,
-                reliability=row.get("seller_reliability", source.reliability),
-                is_official=row.get("seller_is_official"),
-            ),
+            seller=seller,
             country=str(row.get("country") or source.country),
             listing_title=str(row["listing_title"]),
             listing_url=str(row["listing_url"]),
@@ -135,5 +144,5 @@ class FixtureAdapter(SourceAdapter):
                 ],
             ],
             collected_at=datetime.now(timezone.utc),
-            data_confidence=float(row.get("data_confidence", 0.9)),
+            data_confidence=confidence,
         )

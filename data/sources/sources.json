@@ -24,7 +24,7 @@
     "display_name": "TR Electronics (fixture)",
     "country": "TR",
     "kind": "marketplace",
-    "reliability": 0.7,
+    "reliability": 0.78,
     "acquisition_method": "fixture",
     "base_url": null,
     "notes": "Demo fixture for Türkiye / TRY."
@@ -44,9 +44,19 @@
     "display_name": "JP Electronics (fixture)",
     "country": "JP",
     "kind": "marketplace",
-    "reliability": 0.65,
+    "reliability": 0.55,
     "acquisition_method": "fixture",
     "base_url": null,
-    "notes": "Demo fixture for Japan / JPY."
+    "notes": "Demo fixture for Japan / JPY — thinner marketplace signal."
+  },
+  {
+    "id": "fixture-obscure",
+    "display_name": "Obscure Deals (fixture)",
+    "country": "DE",
+    "kind": "marketplace",
+    "reliability": 0.32,
+    "acquisition_method": "fixture",
+    "base_url": null,
+    "notes": "Low-reputation marketplace for confidence-gate demos."
   }
 ]

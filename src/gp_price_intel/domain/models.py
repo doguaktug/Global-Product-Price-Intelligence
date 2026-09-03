@@ -208,6 +208,7 @@ class Source(BaseModel):
 class Seller(BaseModel):
     name: str
     reliability: float | None = Field(default=None, ge=0, le=1)
+    review_count: int | None = Field(default=None, ge=0)
     is_official: bool | None = None
 
 
@@ -316,6 +317,7 @@ class ScoreBreakdown(BaseModel):
     missing_criteria: list[str] = Field(default_factory=list)
     confidence_penalty: float = 0.0
     final_score: float = 0.0
+    reliability_warning: str | None = None
     explanation: Explanation | None = None
 
 
@@ -337,6 +339,7 @@ class DecisionPage(BaseModel):
     session_id: str
     confirmed_variant: ProductVariant | None = None
     offers: list[Offer] = Field(default_factory=list)
+    offer_scores: dict[str, ScoreBreakdown] = Field(default_factory=dict)
     highlights: list[DecisionHighlight] = Field(default_factory=list)
     alternatives: list[Alternative] = Field(default_factory=list)
     generated_at: datetime

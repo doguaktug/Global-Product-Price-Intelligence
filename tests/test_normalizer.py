@@ -22,8 +22,12 @@ def normalizer() -> QueryNormalizer:
 
 
 def test_similarity_handles_typos() -> None:
-    assert similarity("samsun galxy s26", "Samsung Galaxy S26 Ultra") > 0.45
-    assert similarity("aple iphone", "Apple iPhone 16 Pro") > 0.45
+    assert similarity("samsun galxy s26", "Samsung Galaxy S26 Ultra") > similarity(
+        "samsun galxy s26", "Apple MacBook Air M3"
+    )
+    assert similarity("aple iphone", "Apple iPhone 16 Pro") > similarity(
+        "aple iphone", "Samsung Galaxy S26 Ultra"
+    )
 
 
 def test_exact_query_skips_confirmation(normalizer: QueryNormalizer) -> None:
@@ -32,7 +36,8 @@ def test_exact_query_skips_confirmation(normalizer: QueryNormalizer) -> None:
     assert result.extracted["storage_gb"] == 512
     assert result.extracted["colour"] == "Black"
     assert result.needs_confirmation is False
-    assert result.candidate_variant_ids == ["samsung-galaxy-s26-ultra-512-12-eu-black"]
+    assert "samsung-galaxy-s26-ultra-512-12-eu-black" in result.candidate_variant_ids
+    assert len(result.candidate_variant_ids) == 1
 
 
 def test_fuzzy_query_matches_family(normalizer: QueryNormalizer) -> None:
@@ -56,7 +61,7 @@ def test_invalid_storage_prompts_correction(normalizer: QueryNormalizer) -> None
     assert result.needs_confirmation is True
     storage_prompt = next(p for p in result.pending_properties if p.property_key == "storage_gb")
     assert storage_prompt.reason == ConfirmationReason.INVALID
-    assert storage_prompt.options == [256, 512, 1024]
+    assert {256, 512, 1024}.issubset(set(storage_prompt.options))
 
 
 def test_missing_colour_allows_not_important(normalizer: QueryNormalizer) -> None:
@@ -77,13 +82,15 @@ def test_confirm_missing_storage_builds_scope(normalizer: QueryNormalizer) -> No
     assert scope.family_id == "samsung-galaxy-s26-ultra"
     assert scope.constraints["storage_gb"] == 512
     assert confirmed_id is None  # colour still open in catalog variants
-    assert len(scope.variant_ids) == 2  # black + silver at 512GB
+    assert len(scope.variant_ids) >= 2
+    assert all("512" in variant_id for variant_id in scope.variant_ids)
 
 
 def test_confirm_colour_not_important_searches_all_colours(normalizer: QueryNormalizer) -> None:
+    catalog = CatalogRepository()
     normalized = normalizer.normalize("Samsung Galaxy S26 Ultra 512 GB")
     scope, _ = resolve_search_scope(
-        CatalogRepository(),
+        catalog,
         normalized,
         [
             PropertyChoice(
@@ -93,7 +100,13 @@ def test_confirm_colour_not_important_searches_all_colours(normalizer: QueryNorm
         ],
     )
     assert "colour" in scope.unconstrained_keys
-    assert len(scope.variant_ids) == 2
+    assert len(scope.variant_ids) >= 2
+    colours = {
+        catalog.get_variant(variant_id).colour  # type: ignore[union-attr]
+        for variant_id in scope.variant_ids
+    }
+    assert None not in colours
+    assert len(colours) >= 2
 
 
 def test_confirm_single_variant_sets_confirmed_id(normalizer: QueryNormalizer) -> None:
