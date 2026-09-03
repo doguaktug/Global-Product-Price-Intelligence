@@ -65,7 +65,7 @@ Chosen for currency spread and import-cost contrast, from the assignment list:
 | --- | --- | --- |
 | Türkiye | TRY | User-home / destination default; local marketplaces |
 | Germany | EUR | EU retailer + VAT / intra-EU vs import contrast |
-| United States | USD | Official retailer API candidate; US vs EU version |
+| United States | USD | Marketplace coverage via eBay Browse API |
 | United Kingdom | GBP | Post-Brexit fees vs EU |
 | Japan | JPY | Region/version + large FX move vs TRY |
 
@@ -84,23 +84,33 @@ A **small** set that hits these types across the five countries is enough. Count
 
 ---
 
-## Proposed MVP adapters
+## Shipped and planned adapters
 
-Concrete starting set. Keys/ToS must be checked before any live call; if a row cannot be used legally, drop it and keep the interface.
+Concrete set. Keys/ToS must be checked before any live call; if a row cannot be used legally, drop it and keep the interface.
 
-| Adapter | Country | Kind | Method (preferred) | What we take |
+### Shipped in the prototype
+
+| Adapter | Country | Kind | Method | Status |
 | --- | --- | --- | --- | --- |
-| Official brand store (e.g. Apple or Samsung regional) | US / DE / TR if a public page or API exists | Manufacturer | API or structured page | List price, SKU, warranty, specs |
-| Best Buy Products API | US | Major retailer | Official REST API | Price, availability, specs, image |
-| A TR major retailer or marketplace (e.g. authorized electronics chain / Hepsiburada-class) | TR | E-commerce | API if any; else permitted page **or fixture** | Local TRY offer |
-| A DE electronics retailer (MediaMarkt/Saturn-class or Amazon.de *only* if an official API/partner path exists) | DE | E-commerce | Same rule | EUR offer |
-| A UK retailer (Currys-class) | UK | Authorized / e-commerce | Same rule | GBP offer |
-| A JP retailer or marketplace | JP | E-commerce / marketplace | Same rule | JPY offer |
-| eBay Browse API (optional) | Multi | Marketplace | Official API | 3rd-party price; **low seller reliability** |
+| eBay Browse API | Multi (US marketplace default) | Marketplace | Official API (`EBAY_APP_ID` + `EBAY_CERT_ID`) | **Live** when keys are set |
+| Frankfurter FX | — | FX provider | Public HTTP API | **Live** (no key) |
+| DE / TR / UK / JP fixtures | DE, TR, GB, JP | Authorized retailer or marketplace | Pinned `data/fixtures/offers.json` | **Demo** — same `Offer` shape as live |
+| Obscure-deals fixture | DE | Low-reputation marketplace | Fixture | **Demo** — confidence-gate example |
 
-Amazon storefront scraping is **out** unless an official product advertising / partner API is available and licensed. Same for Trendyol/Hepsiburada if ToS forbids bots: use fixture or skip.
+Source reputation is the hand-set `reliability` field in `data/sources/sources.json`. Adapters combine that with seller rating and review volume into `Offer.dataConfidence`.
 
-**Week 2 practical cut:** ship **≥2 live adapters** (FX + Best Buy or eBay + one more) and **fixtures** for the remaining countries so the five-country Decision Page still has offers. Replace fixtures with live adapters as keys/ToS allow.
+### Deferred / not using
+
+| Adapter | Why deferred |
+| --- | --- |
+| Best Buy Products API | Dropped — no usable public API path for this prototype |
+| Fnac / other FR retailers | No public API; not scraping behind ToS |
+| Official brand stores (Apple / Samsung regional) | Optional later if a clean API or structured page exists |
+| TR / DE / UK / JP live retailers (Hepsiburada-, MediaMarkt-, Currys-class) | Prefer API or permitted page; until then fixtures cover those countries |
+| Amazon storefront HTML | **Out** unless an official partner API is licensed |
+| Trendyol / Hepsiburada bots | Skip or fixture if ToS forbids automated access |
+
+**Week 2 cut (done):** live **eBay + Frankfurter FX**, plus **fixtures** for the remaining MVP countries so the five-country Decision Page still has offers. Replace fixtures with live adapters as keys/ToS allow.
 
 ---
 
@@ -156,13 +166,15 @@ This is also what lets confirmation stay quiet: if the user types a variant that
 
 | Signal | Source |
 | --- | --- |
-| Source reliability | `Source.kind` + static score (manufacturer > authorized > marketplace) |
-| Seller reliability | Adapter field when present; else inherit source; marketplace 3rd party stays lower |
+| Source reliability | Hand-set `Source.reliability` in `sources.json` (manufacturer > authorized > marketplace > obscure) |
+| Seller reliability | Adapter field when present (e.g. eBay feedback %); else inherit source |
+| Review volume | `Seller.reviewCount` when the source exposes it (e.g. eBay `feedbackScore`) |
+| `dataConfidence` | Weighted mix of source reliability, seller reliability, and review volume |
 | Freshness | `Offer.collectedAt`; optional TTL cache (e.g. 15–30 min) |
-| Missing fields | Leave null; `dataConfidence` down; `ScoreBreakdown.missingCriteria` |
+| Missing fields | Leave null; `ScoreBreakdown.missingCriteria`; may also lower confidence |
 | Conflicts | Same variant, different spec strings → keep both `rawText`, prefer manufacturer/catalog canonical spec for comparison |
 
-Adapters must not invent stock, warranty, or shipping to look complete.
+Offers whose **effective confidence** (`dataConfidence × landed-cost completeness multiplier`) is below **0.7** stay in the full ranked list with a reliability warning, but are **excluded from Decision Page highlights**.
 
 ---
 
@@ -228,6 +240,8 @@ Each successful listing should fill, as far as the source allows:
 - `country`, `seller`
 - `stockStatus`, `deliveryTime`, `warranty`, `returnPolicy` when visible
 - `rawSpecs` (`NormalizedSpec` with `rawText`)
+- `retailerSku` / `gtin` / `modelNumber` when available (identity matching)
+- `seller.reliability` / `seller.reviewCount` when available
 - `collectedAt`
 
 FX, landed cost, `matchKind`, and scores are **not** the adapter’s job.
@@ -240,4 +254,4 @@ FX, landed cost, `matchKind`, and scores are **not** the adapter’s job.
 - **Currency** from a real FX provider with visible rate + time.
 - **Decision quality** still works when some commercial fields are missing (explicit incompleteness).
 - Legal/ethical story is defensible in the writeup.
-- Week 2 can go end-to-end with two live adapters + fixtures; Week 3 deepens ranking, not site count.
+- Week 2 backend is end-to-end with **eBay + Frankfurter + fixtures**; Week 3 focuses on Decision Page UI, explanation polish, and deeper ranking — not site count.

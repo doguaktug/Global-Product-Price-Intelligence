@@ -46,7 +46,7 @@ Health check: `GET http://127.0.0.1:8000/health`
 | `data/sources/` | Source registry |
 | `data/fixtures/` | Demo offer snapshots |
 
-Most pipeline modules are **stubs** ready to implement in Week 2. Catalog seed data and the API shell already load.
+Most pipeline modules are implemented end-to-end on the API (normalize → fetch → match → FX → landed cost → rank → Decision Page payload). **Next:** basic comparison UI. Catalog seed data and FastAPI routes load today.
 
 ## Process (high level)
 
@@ -71,4 +71,4 @@ Most pipeline modules are **stubs** ready to implement in Week 2. Catalog seed d
 - [Initial UI concept](docs/ui-concept.md) — welcome, confirm popup, loading, Decision Page
 - [Proposed algorithm](docs/proposed-algorithm.md) — weighted scoring, missing-data handling, explanations, alternative guardrails
 - [Process framework](docs/process-framework-and-algorithm.md) — STEP flow from first page to Decision Page
-- [Project layout](docs/project-layout.md) — Python package map for Week 2
+- [Project layout](docs/project-layout.md) — Python package map and current backend status

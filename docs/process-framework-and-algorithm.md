@@ -78,14 +78,16 @@ final score = confidence × (w_price × price score + w_seller × seller score +
 
 Only the criteria that exist for that offer enter the sum. If warranty is missing, the system drops that weight and scales the rest so they still sum to 1. The offer stays in the ranking. The explanation later states what was missing.
 
-Unreliable data also lowers the score. Partial landed cost multiplies the result by 0.90. Unknown landed cost multiplies it by 0.75. Low source confidence lowers it further.
+Unreliable data also lowers the score. Partial landed cost multiplies the result by 0.90. Unknown landed cost multiplies it by 0.75. Low source confidence (lesser-known sites, sparse reviews) lowers it further.
 
 ## STEP 7 – Select highlights and close alternatives
 
-The system does not only sort by the final score. It also labels offers by separate tests:
+The system does not only sort by the final score. It also labels offers by separate tests — **but only among offers whose effective confidence is at least 0.7**. A cheaper low-confidence listing can still sit at the top of the full ranked list with a reliability warning; it is not shown as a Decision Page recommendation.
+
+Highlight lenses on the eligible pool:
 
 - lowest list price
-- lowest landed cost (only among complete cost estimates)
+- lowest landed cost (among usable cost estimates)
 - best seller
 - best warranty
 - best specification

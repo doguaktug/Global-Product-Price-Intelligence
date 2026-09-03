@@ -159,7 +159,7 @@ The exact product the user confirms. Offers match **to** this, or are tagged sim
 | `country` | ISO country | Offer country (assignment: TR, DE, US, UK, AE, FR, IT, JP — MVP 4–5) |
 | `kind` | enum | `manufacturer` \| `authorized_retailer` \| `marketplace` \| `local_retailer` \| `other` |
 | `reliability` | 0–1 | Official manufacturer > unknown marketplace seller |
-| `acquisitionMethod` | enum | `api` \| `html` \| `headless` |
+| `acquisitionMethod` | enum | `api` \| `html` \| `headless` \| `fixture` |
 | `baseUrl` | string? | |
 | `notes` | string? | ToS / robots / rate-limit reminders |
 
@@ -238,7 +238,8 @@ If a line is `unavailable`, `completeness` is not `complete`. Ranking must not p
 | Field | Type | Notes |
 | --- | --- | --- |
 | `name` | string | |
-| `reliability` | 0–1? | Especially on marketplaces |
+| `reliability` | 0–1? | Especially on marketplaces (e.g. feedback %) |
+| `reviewCount` | int? | Feedback / review volume when the source exposes it |
 | `isOfficial` | bool? | Manufacturer / authorized vs 3rd party |
 
 ### `Offer`
@@ -261,12 +262,15 @@ One listing, at collection time. This is the unit of comparison.
 | `deliveryTime` | string? | Keep source phrasing + optional normalized days |
 | `warranty` | string? | |
 | `returnPolicy` | string? | |
+| `retailerSku` | string? | Per-source SKU when available |
+| `gtin` | string? | EAN/UPC when available |
+| `modelNumber` | string? | Manufacturer model code when available |
 | `rawSpecs` | list of `NormalizedSpec` | From this listing |
 | `matchedVariantId` | string? | Set after matching |
 | `matchKind` | enum | `identical` \| `similar` \| `different` \| `unmatched` |
 | `matchNotes` | list of strings | e.g. “same family, storage 1TB vs 512GB” |
 | `collectedAt` | datetime | Freshness; shown visibly on Decision Page cards. Cache TTL 15–30 min |
-| `dataConfidence` | 0–1 | Missing/conflicting fields pull this down |
+| `dataConfidence` | 0–1 | From source reliability × seller rating × review volume (adapters); missing/conflicting fields may also pull this down |
 
 **Matching rule in the model:** two offers may share a `matchedVariantId` only when `matchKind = identical`. Similar SKUs (1 TB vs 512 GB, US vs EU version) stay separate offers and may become **alternatives**, not merged rows.
 
@@ -279,7 +283,8 @@ Attached after ranking; does not replace commercial fields.
 | `criterionScores` | map | `price`, `seller`, `warranty`, `specs`, `delivery`, … → 0–1 |
 | `weightsUsed` | map | Copy of user weights |
 | `missingCriteria` | list | What was unavailable |
-| `confidencePenalty` | 0–1 | Unreliable / partial landed cost |
+| `confidencePenalty` | 0–1 | `1 − (dataConfidence × completenessMultiplier)` — display/metadata; ranking already applied the multiplier to `finalScore` |
+| `reliabilityWarning` | string? | Set when effective confidence is below the highlight floor (0.7) |
 | `finalScore` | 0–1 | |
 | `explanation` | `Explanation` | Built before presentation |
 
@@ -367,8 +372,9 @@ What the UI renders.
 | --- | --- | --- |
 | `sessionId` | string | |
 | `confirmedVariant` | `ProductVariant` | Reference product |
-| `offers` | list of `Offer` | Matched + scored |
-| `highlights` | list of `DecisionHighlight` | |
+| `offers` | list of `Offer` | Matched + ranked by `finalScore` (full list) |
+| `offerScores` | map `offerId` → `ScoreBreakdown` | Parallel scores / warnings for the full list UI |
+| `highlights` | list of `DecisionHighlight` | Only offers with effective confidence ≥ 0.7 |
 | `alternatives` | list of `Alternative` | Cap ~3; omit if none pass |
 | `generatedAt` | datetime | |
 
