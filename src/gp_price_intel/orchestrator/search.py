@@ -131,6 +131,21 @@ class SearchOrchestrator:
             enriched.append(offer.model_copy(update={"landed_cost": landed}))
 
         scored = self.ranking.score(enriched, session.preferences)
+        scored_with_explanations: list = []
+        for offer, breakdown in scored:
+            explanation = self.explanations.build(offer, breakdown, "Ranked offer")
+            scored_with_explanations.append(
+                (
+                    offer,
+                    breakdown.model_copy(
+                        update={
+                            "explanation": explanation,
+                            "reliability_warning": breakdown.reliability_warning,
+                        }
+                    ),
+                )
+            )
+        scored = scored_with_explanations
         highlights = pick_highlights(scored, session.preferences, self.explanations)
 
         best_offer = scored[0][0] if scored else None
@@ -145,6 +160,7 @@ class SearchOrchestrator:
             session_id=session.id,
             confirmed_variant=confirmed_variant,
             offers=[offer for offer, _ in scored],
+            offer_scores={offer.id: breakdown for offer, breakdown in scored},
             highlights=highlights,
             alternatives=alt_list,
             generated_at=datetime.now(timezone.utc),

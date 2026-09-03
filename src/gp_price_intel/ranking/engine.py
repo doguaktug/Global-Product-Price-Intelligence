@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
-
 from gp_price_intel.domain.models import (
     LandedCostCompleteness,
-    MatchKind,
     Offer,
     ScoreBreakdown,
     UserPreferences,
+)
+from gp_price_intel.ranking.confidence import (
+    reliability_warning,
+    review_volume_score,
 )
 
 _COMPLETENESS_MULTIPLIER = {
@@ -39,6 +40,14 @@ def _inverse_min_max(values: list[float]) -> dict[int, float]:
     return {index: 1.0 - ((value - low) / (high - low)) for index, value in enumerate(values)}
 
 
+def _review_signal(offer: Offer) -> float:
+    if offer.seller.review_count is not None:
+        return review_volume_score(offer.seller.review_count)
+    if offer.seller.reliability is not None:
+        return offer.seller.reliability
+    return offer.data_confidence
+
+
 class RankingEngine:
     def score(
         self,
@@ -58,7 +67,7 @@ class RankingEngine:
             for offer in offers
         ]
         seller_values = [offer.seller.reliability or offer.data_confidence for offer in offers]
-        review_values = [offer.data_confidence for offer in offers]
+        review_values = [_review_signal(offer) for offer in offers]
         delivery_values = [
             1.0 if offer.delivery_time else 0.5 for offer in offers
         ]
@@ -92,19 +101,15 @@ class RankingEngine:
             confidence_multiplier = offer.data_confidence * _COMPLETENESS_MULTIPLIER[completeness]
             penalty = 1.0 - confidence_multiplier
             final_score = base_score * confidence_multiplier
-
-            scored.append(
-                (
-                    offer,
-                    ScoreBreakdown(
-                        criterion_scores=criterion_scores,
-                        weights_used=normalized_weights,
-                        missing_criteria=missing,
-                        confidence_penalty=penalty,
-                        final_score=final_score,
-                    ),
-                )
+            breakdown = ScoreBreakdown(
+                criterion_scores=criterion_scores,
+                weights_used=normalized_weights,
+                missing_criteria=missing,
+                confidence_penalty=penalty,
+                final_score=final_score,
             )
+            breakdown.reliability_warning = reliability_warning(breakdown)
+            scored.append((offer, breakdown))
 
         scored.sort(key=lambda item: item[1].final_score, reverse=True)
         return scored

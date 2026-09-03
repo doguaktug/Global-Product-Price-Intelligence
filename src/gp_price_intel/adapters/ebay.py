@@ -25,6 +25,7 @@ from gp_price_intel.domain.models import (
     SourceKind,
     StockStatus,
 )
+from gp_price_intel.ranking.confidence import compute_data_confidence_from
 
 logger = logging.getLogger(__name__)
 
@@ -214,9 +215,12 @@ class EbayAdapter(SourceAdapter):
         seller_block = item.get("seller") or {}
         feedback = seller_block.get("feedbackPercentage")
         seller_score = float(feedback) / 100 if feedback is not None else None
+        feedback_score = seller_block.get("feedbackScore")
+        review_count = int(feedback_score) if feedback_score is not None else None
         seller = Seller(
             name=str(seller_block.get("username") or "eBay seller"),
             reliability=seller_score,
+            review_count=review_count,
             is_official=False,
         )
 
@@ -231,9 +235,7 @@ class EbayAdapter(SourceAdapter):
                     gtin = str(values[0])
                     break
 
-        confidence = 0.75
-        if seller_score is not None:
-            confidence = min(1.0, 0.55 + seller_score * 0.45)
+        confidence = compute_data_confidence_from(self.source, seller)
 
         return Offer(
             id=f"ebay-{item_id}",

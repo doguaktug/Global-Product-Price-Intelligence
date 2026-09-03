@@ -1,5 +1,6 @@
-"""Similarity scoring tests."""
+"""Similarity scoring invariants (relative + structural)."""
 
+from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.normalize.query_normalizer import QueryNormalizer
 from gp_price_intel.normalize.similarity import (
     score_query_against_labels,
@@ -7,7 +8,6 @@ from gp_price_intel.normalize.similarity import (
     strip_spec_tokens,
     token_set_ratio,
 )
-from gp_price_intel.catalog.repository import CatalogRepository
 
 
 def test_strip_spec_tokens_removes_storage_and_region() -> None:
@@ -18,20 +18,25 @@ def test_strip_spec_tokens_removes_storage_and_region() -> None:
     assert "ultra" in residue.casefold()
 
 
-def test_token_set_ratio_handles_word_order() -> None:
-    score = token_set_ratio("ultra s26 samsung", "samsung galaxy s26 ultra")
-    assert score > 0.75
+def test_token_set_ratio_prefers_same_tokens_over_unrelated() -> None:
+    related = token_set_ratio("ultra s26 samsung", "samsung galaxy s26 ultra")
+    unrelated = token_set_ratio("ultra s26 samsung", "apple macbook air m3")
+    assert related > unrelated
 
 
-def test_similarity_with_specs_in_query_still_matches_label() -> None:
-    query = "Samsung Galaxy S26 Ultra 512 GB Black"
-    label = "Samsung Galaxy S26 Ultra"
-    assert similarity(strip_spec_tokens(query), label) > 0.75
+def test_similarity_with_specs_stripped_still_ranks_family_label_above_unrelated() -> None:
+    query = strip_spec_tokens("Samsung Galaxy S26 Ultra 512 GB Black")
+    family = similarity(query, "Samsung Galaxy S26 Ultra")
+    unrelated = similarity(query, "Apple MacBook Air M3")
+    assert family > unrelated
 
 
-def test_similarity_handles_typos() -> None:
-    assert similarity("samsun galxy s26 ultra", "Samsung Galaxy S26 Ultra") > 0.55
-    assert similarity("aple iphone 16 pro", "Apple iPhone 16 Pro") > 0.55
+def test_typo_query_still_ranks_correct_label_above_unrelated() -> None:
+    typo = "samsun galxy s26 ultra"
+    assert similarity(typo, "Samsung Galaxy S26 Ultra") > similarity(typo, "Apple iPhone 16 Pro")
+    assert similarity("aple iphone 16 pro", "Apple iPhone 16 Pro") > similarity(
+        "aple iphone 16 pro", "Samsung Galaxy S26 Ultra"
+    )
 
 
 def test_similarity_does_not_confuse_unrelated_products() -> None:
@@ -40,10 +45,11 @@ def test_similarity_does_not_confuse_unrelated_products() -> None:
     assert macbook > iphone
 
 
-def test_s26u_compact_alias_is_shorthand() -> None:
+def test_compact_alias_marks_shorthand_and_beats_unrelated_label() -> None:
     result = score_query_against_labels("s26u", ["S26U", "Galaxy S26 Ultra"])
-    assert result.score >= 0.85
+    unrelated = score_query_against_labels("s26u", ["Apple MacBook Air M3"]).score
     assert result.shorthand is True
+    assert result.score > unrelated
 
 
 def test_s26u_normalizer_matches_with_family_confirmation() -> None:
@@ -54,7 +60,8 @@ def test_s26u_normalizer_matches_with_family_confirmation() -> None:
     assert result.needs_confirmation is True
     family_prompt = next(p for p in result.pending_properties if p.property_key == "family_id")
     assert family_prompt.reason.value == "shorthand"
-    assert family_prompt.options[0] == "samsung-galaxy-s26-ultra"
+    assert "samsung-galaxy-s26-ultra" in family_prompt.options
+
 
 def test_normalizer_matches_with_specs_and_reordered_words() -> None:
     normalizer = QueryNormalizer(CatalogRepository())

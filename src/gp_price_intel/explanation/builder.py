@@ -9,6 +9,7 @@ from gp_price_intel.domain.models import (
     Offer,
     ScoreBreakdown,
 )
+from gp_price_intel.ranking.confidence import HIGHLIGHT_MIN_CONFIDENCE, effective_confidence
 
 
 class ExplanationBuilder:
@@ -54,7 +55,14 @@ class ExplanationBuilder:
         if score.missing_criteria:
             caveats.append(f"Missing data: {', '.join(score.missing_criteria)}.")
 
-        if offer.data_confidence < 0.8:
+        if score.reliability_warning:
+            caveats.append(score.reliability_warning)
+        elif effective_confidence(score) < HIGHLIGHT_MIN_CONFIDENCE:
+            caveats.append(
+                "Not reliable enough for a top recommendation — "
+                "lesser-known source or limited review history."
+            )
+        elif offer.data_confidence < 0.8:
             caveats.append("Listing data confidence is limited.")
 
         if offer.match_notes:
