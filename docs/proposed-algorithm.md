@@ -142,12 +142,26 @@ FinalScore = confidence × (
 
 ## Step 5 — Highlight selection
 
-After scoring, pick highlights. These are **not** just sorted-by-score; each lens has its own rule:
+After scoring, pick highlights **only from offers that clear the confidence floor**.
 
-| Highlight | Selection rule |
+```
+HIGHLIGHT_MIN_CONFIDENCE = 0.7
+effectiveConfidence = dataConfidence × completenessMultiplier
+                     = 1 − confidencePenalty
+```
+
+If `effectiveConfidence < 0.7`, the offer:
+
+- **stays** in the full ranked `offers` list (sorted by `finalScore`)
+- gets a `reliabilityWarning` / explanation caveat
+- is **excluded** from Decision Page recommendation lenses
+
+Eligible offers are then selected by lens (not only by overall score):
+
+| Highlight | Selection rule (eligible pool only) |
 | --- | --- |
 | **Lowest list price** | Min `convertedListPrice.reference.amount` (sticker, ignoring fees) |
-| **Lowest total cost** | Min `landedCost.total.amount` among offers with `completeness = complete` (prefer full estimates) |
+| **Lowest total cost** | Min `landedCost.total.amount` among offers with usable landed-cost completeness |
 | **Best seller / trust** | Max `sellerScore` (composite of seller + source reliability) |
 | **Best warranty** | Max `warrantyScore` |
 | **Best specification** | Max `specScore` — strongest specs vs confirmed variant |
@@ -247,7 +261,8 @@ The explanation must not be a score dump. It must read like a short purchasing a
 | Parameter | Default | Purpose |
 | --- | --- | --- |
 | `DEFAULT_WEIGHTS` | `{ price: 0.50, seller: 0.25, reviews: 0.15, delivery: 0.10 }` | Applied when user does not move sliders |
-| `COMPLETENESS_MULTIPLIER` | `{ complete: 1.0, partial: 0.90, unknown: 0.75 }` | Landed-cost confidence penalty |
+| `COMPLETENESS_MULTIPLIER` | `{ complete: 1.0, partial: 0.90, unknown: 0.75 }` | Landed-cost confidence factor |
+| `HIGHLIGHT_MIN_CONFIDENCE` | `0.7` | Effective-confidence floor for Decision Page recommendations |
 | `UPGRADE_MIN_SPEC_GAIN` | `0.25` | Min relative spec improvement for an upgrade alternative |
 | `UPGRADE_MAX_COST_INCREASE` | `0.10` | Max relative cost increase for an upgrade alternative |
 | `DOWNGRADE_MIN_COST_SAVING` | `0.15` | Min relative cost saving for a downgrade alternative |
@@ -266,9 +281,9 @@ The explanation must not be a score dump. It must read like a short purchasing a
 | Which variables? | Landed cost, seller trust, warranty, specs, reviews, delivery — extensible |
 | How normalized? | Min–max within the offer set per criterion; bounded 0–1 |
 | How weighted? | User-chosen sliders (or published defaults); weights re-normalize per offer for missing criteria |
-| How is the final ranking calculated? | `finalScore = confidenceMultiplier × Σ(w × score)` then pick highlights by lens |
+| How is the final ranking calculated? | `finalScore = confidenceMultiplier × Σ(w × score)`; full list sorted by that score; highlights use lenses on the eligible pool only |
 | Missing information? | Criterion excluded for that offer; weights re-normalized; `missingCriteria` in explanation |
-| Unreliable information? | `confidenceMultiplier` from `dataConfidence` × completeness; explanation caveat |
+| Unreliable information? | `confidenceMultiplier` from `dataConfidence` × completeness; below 0.7 → warning on full list, excluded from highlights |
 | How does it explain? | Headline + reasons (decisive factors with values) + caveats (gaps/estimates) |
 
 ---
@@ -293,26 +308,21 @@ def decide(offers, near_offers, preferences):
         offer.final_score = raw_score * offer.confidence
         offer.missing = [c for c in preferences.weights if c not in available]
 
-    # 4. Pick highlights
-    highlights = {
-        "lowest_list_price":  min(offers, key=lambda o: o.converted_list_price),
-        "lowest_total_cost":  min(complete_offers, key=lambda o: o.landed_cost_total),
-        "best_seller":        max(offers, key=lambda o: o.criteria.get("seller", 0)),
-        "best_warranty":      max(offers, key=lambda o: o.criteria.get("warranty", 0)),
-        "best_specification": max(offers, key=lambda o: o.criteria.get("specs", 0)),
-        "best_for_you":       max(offers, key=lambda o: o.final_score),
-    }
+    # 4. Pick highlights from confidence-eligible pool only
+    eligible = [o for o in offers if o.confidence >= HIGHLIGHT_MIN_CONFIDENCE]
+    highlights = pick_highlights_by_lens(eligible)
 
     # 5. Scout alternatives (guarded)
-    alternatives = select_alternatives(near_offers, highlights["best_for_you"], preferences)
+    alternatives = select_alternatives(near_offers, highlights.get("best_for_you"), preferences)
 
     # 6. Build explanations
     for label, offer in highlights.items():
         offer.explanation = build_explanation(offer, label, offers, preferences)
     for alt in alternatives:
-        alt.explanation = build_alt_explanation(alt, highlights["best_for_you"], preferences)
+        alt.explanation = build_alt_explanation(alt, highlights.get("best_for_you"), preferences)
 
-    return DecisionPage(highlights=highlights, alternatives=alternatives)
+    return DecisionPage(offers=sorted(offers, key=lambda o: o.final_score, reverse=True),
+                        highlights=highlights, alternatives=alternatives)
 ```
 
 Implementation in Python (dataclasses, no heavy ML needed for v1). The ranking engine, explanation builder, and alternative scout are separate modules matching the architecture's service boundaries.

@@ -7,20 +7,20 @@ src/gp_price_intel/
   domain/         # Pydantic domain model
   catalog/        # Seed catalog repository
   normalize/      # Query → confirmation prompts
-  adapters/       # SourceAdapter interface + fixture stub
-  fx/             # FX (original Money never overwritten)
-  landed_cost/    # Landed-cost estimates
-  matching/       # Offer ↔ product matching
-  ranking/        # Weighted scoring
-  explanation/    # Why text
+  adapters/       # SourceAdapter + eBay + fixtures + registry
+  fx/             # Frankfurter FX (original Money never overwritten)
+  landed_cost/    # Shipping / duty estimates
+  matching/       # Offer ↔ product matching (SKU / GTIN / attributes)
+  ranking/        # Weighted scoring, confidence, highlights
+  explanation/    # Why text + reliability caveats
   alternatives/   # Guarded alternatives
   orchestrator/   # Search session pipeline
   api/            # FastAPI
 data/
   catalog/        # categories.json, families.json, variants.json
-  sources/        # sources.json
-  fixtures/       # offer snapshots for demos
-tests/            # pytest smoke tests
+  sources/        # sources.json (reliability registry)
+  fixtures/       # offer snapshots for non-API markets
+tests/            # pytest (invariants + pipeline)
 ```
 
-Week 2 progress: **normalize/** fuzzy matching + confirmation; **matching/** SKU/GTIN identity; **adapters/** eBay + fixtures; pipeline wired through FX, landed cost, ranking, highlights.
+**Backend status (Week 2 core):** normalize + confirmation; SKU/GTIN matching; eBay Browse API + multi-country fixtures; Frankfurter FX; landed cost; ranking with confidence floor for highlights; explanations. **Next:** basic comparison / Decision Page UI.

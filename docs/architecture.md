@@ -162,13 +162,15 @@ Goal is not only cheapest list price — it is the best fit for this user. Use t
 Normalize each criterion to a comparable scale, then:
 
 ```
-FinalScore = w_price × PriceScore
-           + w_seller × SellerScore
-           + w_review × ReviewScore
-           + w_delivery × DeliveryScore
+FinalScore = confidenceMultiplier × (
+    w_price × PriceScore
+  + w_seller × SellerScore
+  + w_review × ReviewScore
+  + w_delivery × DeliveryScore
+)
 ```
 
-Lower landed cost → higher PriceScore. Uncertain landed-cost offers carry a confidence penalty. Missing criteria are excluded per offer with weight re-normalization.
+Lower landed cost → higher PriceScore. Uncertain landed-cost offers carry a confidence multiplier. Offers below the **0.7** effective-confidence floor stay in the ranked list with a warning but are excluded from highlight recommendations. Missing criteria are excluded per offer with weight re-normalization.
 
 Full algorithm: [proposed-algorithm.md](proposed-algorithm.md) — normalization, missing-data rules, confidence, highlight selection, alternative guardrails, and explanation generation.
 
