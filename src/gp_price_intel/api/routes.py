@@ -14,7 +14,7 @@ from gp_price_intel.domain.models import (
     UserPreferences,
 )
 from gp_price_intel.normalize.confirmation import ConfirmationError
-from gp_price_intel.orchestrator.search import SearchOrchestrator
+from gp_price_intel.orchestrator.search import SearchFailed, SearchOrchestrator
 
 router = APIRouter(prefix="/api")
 _catalog = CatalogRepository()
@@ -76,4 +76,9 @@ async def run_search(session: SearchSession) -> DecisionPage:
             status_code=409,
             detail="Session still needs confirmation before live search.",
         )
-    return await _orchestrator.run(session)
+    try:
+        return await _orchestrator.run(session)
+    except ConfirmationError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except SearchFailed as exc:
+        raise HTTPException(status_code=422, detail=exc.reason) from exc

@@ -12,9 +12,9 @@ from gp_price_intel.adapters.fixture import FixtureAdapter
 from gp_price_intel.adapters.registry import load_sources
 from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.config import Settings
-from gp_price_intel.domain.models import HighlightKind, MatchKind, UserPreferences
+from gp_price_intel.domain.models import HighlightKind, MatchKind, SessionStatus, UserPreferences
 from gp_price_intel.fx.service import FxService
-from gp_price_intel.orchestrator.search import SearchOrchestrator
+from gp_price_intel.orchestrator.search import SearchFailed, SearchOrchestrator
 from gp_price_intel.ranking.confidence import HIGHLIGHT_MIN_CONFIDENCE, effective_confidence, is_highlight_eligible
 
 _RATES_TO_TRY = {
@@ -163,3 +163,44 @@ async def test_conversion_failure_drops_that_offer_not_the_search(
     assert all(offer.id != "fixture-uk-s26-512-black" for offer in page.offers)
     assert all(offer.converted_list_price is not None for offer in page.offers)
     assert any(offer.list_price.currency == "EUR" for offer in page.offers)
+    assert session.status == SessionStatus.RANKED
+    assert session.failure_reason is None
+
+
+@pytest.mark.asyncio
+async def test_all_conversion_failures_fail_the_search_with_reason(
+    pipeline_orchestrator: SearchOrchestrator,
+) -> None:
+    class DeadFx:
+        async def convert(self, money, reference_currency):
+            raise RuntimeError(f"no rate for {money.currency}→{reference_currency}")
+
+    pipeline_orchestrator.fx = DeadFx()  # type: ignore[assignment]
+    session = pipeline_orchestrator.start_session(
+        "Samsung Galaxy S26 Ultra 512 GB Black",
+        UserPreferences(destination_country="TR", reference_currency="TRY"),
+    )
+    with pytest.raises(SearchFailed) as caught:
+        await pipeline_orchestrator.run(session)
+
+    assert session.status == SessionStatus.FAILED
+    assert session.failure_reason is not None
+    assert "currency conversion" in session.failure_reason
+    assert "TRY" in session.failure_reason
+    assert "no rate" in session.failure_reason
+    assert str(caught.value) == session.failure_reason
+
+
+@pytest.mark.asyncio
+async def test_no_offers_fails_the_search_with_reason(
+    pipeline_orchestrator: SearchOrchestrator,
+) -> None:
+    pipeline_orchestrator.adapters = []
+    session = pipeline_orchestrator.start_session(
+        "Samsung Galaxy S26 Ultra 512 GB Black",
+        UserPreferences(destination_country="TR", reference_currency="TRY"),
+    )
+    with pytest.raises(SearchFailed, match="No offer sources are configured"):
+        await pipeline_orchestrator.run(session)
+    assert session.status == SessionStatus.FAILED
+    assert session.failure_reason is not None

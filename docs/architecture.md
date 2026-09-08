@@ -128,7 +128,7 @@ Matching must distinguish:
 
 ### 8. FX conversion
 
-Convert offer list prices into a common currency via a live exchange-rate provider (no custom FX engine). Example: USD/EUR offers → TRY (or user’s preferred currency) using current rates, then pass amounts into landed-cost and ranking on the same scale. If conversion fails for a single offer, drop that offer and continue ranking the rest.
+Convert offer list prices into a common currency via a live exchange-rate provider (no custom FX engine). Example: USD/EUR offers → TRY (or user’s preferred currency) using current rates, then pass amounts into landed-cost and ranking on the same scale. If conversion fails for a single offer, drop that offer and continue ranking the rest. If every offer is dropped (conversion or another pipeline step), fail the search with a reason instead of returning an empty Decision Page.
 
 ### 9. Landed cost (after FX)
 

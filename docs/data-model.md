@@ -327,6 +327,7 @@ Orchestrator aggregate: one user search.
 | `confirmedVariantId` | string? | Set immediately on a unique valid catalog hit, or after the user confirms |
 | `preferences` | `UserPreferences` | Captured as an explicit user step at session start (defaults if unchanged) |
 | `status` | enum | `received` \| `needs_confirmation` \| `fetching` \| `ranked` \| `failed` |
+| `failureReason` | string? | Set when `status` is `failed` — why no Decision Page could be built (e.g. all FX conversions failed) |
 | `createdAt` | datetime | |
 
 Live fetch starts when there is a confirmed variant. Unique catalog matches skip `needs_confirmation`.

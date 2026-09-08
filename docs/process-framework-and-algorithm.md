@@ -51,7 +51,7 @@ The system does not treat a similar SKU as the same offer. It also drops offers 
 
 The system keeps the original list price. A live FX rate converts that price into the reference currency. The Decision Page shows the original amount, the rate, and the rate time.
 
-If conversion fails for one offer (unsupported currency, FX provider error), that offer is dropped and the rest of the search continues.
+If conversion fails for one offer (unsupported currency, FX provider error), that offer is dropped and the rest of the search continues. If every remaining offer fails conversion — or the search otherwise ends with no usable offers (no sources, none in stock, none matched) — the session is marked failed and the caller gets the reason instead of an empty Decision Page.
 
 List price is not the full cost for a foreign offer. After FX, the system adds shipping, border tax, and other destination fees. That sum is the landed cost.
 

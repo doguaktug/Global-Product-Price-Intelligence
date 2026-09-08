@@ -295,6 +295,7 @@ class SearchSession(BaseModel):
     confirmed_variant_id: str | None = None
     preferences: UserPreferences = Field(default_factory=UserPreferences)
     status: SessionStatus = SessionStatus.RECEIVED
+    failure_reason: str | None = None
     created_at: datetime
 
 
