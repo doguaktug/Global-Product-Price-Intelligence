@@ -69,3 +69,21 @@ def test_normalizer_matches_with_specs_and_reordered_words() -> None:
     assert result.candidate_family_id == "samsung-galaxy-s26-ultra"
     assert result.extracted.get("storage_gb") == 512
     assert result.extracted.get("colour") == "Black"
+
+
+def test_distinctive_tokens_separate_ultra_from_base() -> None:
+    ultra = score_query_against_labels(
+        "Samsung Galaxy S26 Ultra",
+        ["Samsung Galaxy S26 Ultra", "S26 Ultra"],
+    ).score
+    base = score_query_against_labels(
+        "Samsung Galaxy S26 Ultra",
+        ["Samsung Galaxy S26", "Galaxy S26"],
+    ).score
+    assert ultra > base
+
+
+def test_distinctive_tokens_separate_iphone_pro_from_base() -> None:
+    pro = score_query_against_labels("Apple iPhone 16 Pro", ["Apple iPhone 16 Pro"]).score
+    base = score_query_against_labels("Apple iPhone 16 Pro", ["Apple iPhone 16"]).score
+    assert pro > base

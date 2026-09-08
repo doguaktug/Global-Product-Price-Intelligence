@@ -120,7 +120,16 @@ class SearchOrchestrator:
 
         enriched: list = []
         for offer in eligible:
-            converted = await self.fx.convert(offer.list_price, ref_currency)
+            try:
+                converted = await self.fx.convert(offer.list_price, ref_currency)
+            except Exception:
+                logger.exception(
+                    "Dropping offer %s after FX conversion failure (%s→%s)",
+                    offer.id,
+                    offer.list_price.currency,
+                    ref_currency,
+                )
+                continue
             offer = offer.model_copy(update={"converted_list_price": converted})
             landed = await self.landed_cost.estimate(
                 converted,

@@ -303,7 +303,7 @@ Missing data: skip or down-weight that criterion; record it in `missingCriteria`
 | `origin` | enum | `default` \| `geolocation` \| `manual` — which step last set country/currency |
 | `weights` | map of criterion → 0–1 | Set by sliders; must sum to 1. Defaults if sliders unchanged |
 
-Example: `{ price: 0.50, seller: 0.25, warranty: 0.15, specs: 0.10 }`.
+Example: `{ price: 0.40, seller: 0.20, reviews: 0.15, delivery: 0.10, warranty: 0.15 }`.
 
 ### `NormalizedQuery`
 
@@ -347,10 +347,9 @@ Assignment Decision Page “best of” lenses:
 | --- | --- |
 | `lowest_list_price` | Cheapest **original** list, after FX only (sticker) |
 | `lowest_total_cost` | Cheapest **landed** cost |
-| `best_specification` | Strongest specs vs confirmed variant |
-| `best_warranty` | |
+| `best_warranty` | Longest / strongest warranty (optional lens) |
 | `best_seller` | Reliability / official status |
-| `best_overall` | Highest `finalScore` for this user’s weights |
+| `best_overall` | Highest `finalScore` for this user’s weights (“best for you”). If this offer also wins another lens, the other highlight is dropped. |
 
 Each highlight: `{ kind, offerId, explanation }`.
 

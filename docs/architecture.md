@@ -64,7 +64,7 @@ This is a first-class user step, not a hidden ranking default. On the **welcome 
 - **Destination country** and **reference currency** — optional controls next to the sliders
 - Optional **catalogue browse** if they want to explore instead of typing
 
-If they do not move the sliders, **published defaults** apply (e.g. price 50%, seller 25%, reviews 15%, delivery 10%) and the session still records `UserPreferences` — ranking never invents weights after the fact. The user can change weights later and re-rank without re-fetching offers.
+If they do not move the sliders, **published defaults** apply (price 40%, seller 20%, reviews 15%, delivery 10%, warranty 15%) and the session still records `UserPreferences` — ranking never invents weights after the fact. The user can change weights later and re-rank without re-fetching offers.
 
 **Country / currency waterfall** (each later step overwrites the one before):
 
@@ -128,7 +128,7 @@ Matching must distinguish:
 
 ### 8. FX conversion
 
-Convert offer list prices into a common currency via a live exchange-rate provider (no custom FX engine). Example: USD/EUR offers → TRY (or user’s preferred currency) using current rates, then pass amounts into landed-cost and ranking on the same scale.
+Convert offer list prices into a common currency via a live exchange-rate provider (no custom FX engine). Example: USD/EUR offers → TRY (or user’s preferred currency) using current rates, then pass amounts into landed-cost and ranking on the same scale. If conversion fails for a single offer, drop that offer and continue ranking the rest.
 
 ### 9. Landed cost (after FX)
 
@@ -154,10 +154,11 @@ Ranking and “best price” should prefer **landed cost**, not raw list price, 
 
 Goal is not only cheapest list price — it is the best fit for this user. Use the **weights already chosen in step 2** (including defaults if the user left them unchanged), e.g.:
 
-- price (landed) 50%
-- seller trust 25%
+- price (landed) 40%
+- seller trust 20%
 - review score 15%
 - delivery 10%
+- warranty 15%
 
 Normalize each criterion to a comparable scale, then:
 
@@ -167,6 +168,7 @@ FinalScore = confidenceMultiplier × (
   + w_seller × SellerScore
   + w_review × ReviewScore
   + w_delivery × DeliveryScore
+  + w_warranty × WarrantyScore
 )
 ```
 

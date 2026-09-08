@@ -14,6 +14,14 @@ from gp_price_intel.domain.models import (
 
 
 class AlternativeScout:
+    """
+    Pick close (same-family spec variant) and far (comparable product) alternatives.
+
+    Spec comparison uses matcher output (`match_kind` / `match_notes`), not a
+    Decision Page "best specifications" highlight — identical-product offers
+    share the same specs, so that lens is not a ranking highlight.
+    """
+
     def select(
         self,
         near_offers: list[Offer],

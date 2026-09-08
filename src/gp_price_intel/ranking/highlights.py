@@ -38,7 +38,9 @@ def pick_highlights(
     used_offer_ids: set[str] = set()
 
     def add_highlight(kind: HighlightKind, label: str, offer: Offer, breakdown: ScoreBreakdown) -> None:
-        if offer.id in used_offer_ids and kind != HighlightKind.BEST_OVERALL:
+        # One offer, one highlight. "Best for you" is added first, so any other
+        # lens that would reuse that offer is dropped.
+        if offer.id in used_offer_ids:
             return
         highlights.append(
             DecisionHighlight(
@@ -48,6 +50,9 @@ def pick_highlights(
             )
         )
         used_offer_ids.add(offer.id)
+
+    best_for_you = max(eligible, key=lambda item: item[1].final_score)
+    add_highlight(HighlightKind.BEST_OVERALL, "Best for you", best_for_you[0], best_for_you[1])
 
     lowest_list = min(
         eligible,
@@ -78,8 +83,5 @@ def pick_highlights(
 
     best_seller = max(eligible, key=lambda item: item[1].criterion_scores.get("seller", 0.0))
     add_highlight(HighlightKind.BEST_SELLER, "Most trusted seller", best_seller[0], best_seller[1])
-
-    best_for_you = max(eligible, key=lambda item: item[1].final_score)
-    add_highlight(HighlightKind.BEST_OVERALL, "Best for you", best_for_you[0], best_for_you[1])
 
     return highlights

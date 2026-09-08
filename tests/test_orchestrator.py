@@ -23,3 +23,5 @@ def test_start_session_creates_received_or_confirm_status() -> None:
     assert session.normalized_query is not None
     assert session.preferences.destination_country == "TR"
     assert session.preferences.reference_currency == "TRY"
+    assert session.preferences.weights["warranty"] == 0.15
+    assert session.preferences.weights["price"] == 0.40

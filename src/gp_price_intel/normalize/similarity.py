@@ -18,6 +18,28 @@ REGION_TOKEN_PATTERN = re.compile(
     re.IGNORECASE,
 )
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
+GENERATION_TOKEN_PATTERN = re.compile(r"^(?:s\d{2}|m\d|[ga]\d{2}|\d{2})$")
+
+# Tokens that distinguish close catalog families (Pro vs base, Ultra vs Plus, M3 vs M4).
+MODIFIER_TOKENS = frozenset(
+    {
+        "ultra",
+        "pro",
+        "plus",
+        "max",
+        "air",
+        "mini",
+        "lite",
+        "fe",
+        "oled",
+        "gaming",
+        "zephyrus",
+        "zenbook",
+        "vivobook",
+        "tuf",
+        "rog",
+    }
+)
 
 STOPWORDS = frozenset(
     {
@@ -151,10 +173,36 @@ def score_compact_alias(query: str, label: str) -> tuple[float, bool]:
     return max(ratio, 0.85 if query_compact == label_compact else ratio), shorthand
 
 
+def _is_generation_token(token: str) -> bool:
+    return bool(GENERATION_TOKEN_PATTERN.fullmatch(token))
+
+
+def distinctive_token_adjustment(query: str, label: str) -> float:
+    """
+    Down-rank a label when Pro/Ultra/generation tokens disagree with the query.
+
+    token_set_ratio treats "iPhone 16" as a perfect subset of "iPhone 16 Pro".
+    This penalty keeps those families separable once both exist in the catalog.
+    """
+    query_tokens = set(tokenize(query))
+    label_tokens = set(tokenize(label))
+    distinctive = {
+        token
+        for token in query_tokens | label_tokens
+        if token in MODIFIER_TOKENS or _is_generation_token(token)
+    }
+    if not distinctive:
+        return 1.0
+    mismatch = (query_tokens ^ label_tokens) & distinctive
+    if not mismatch:
+        return 1.0
+    return max(0.35, 1.0 - 0.14 * len(mismatch))
+
+
 def score_label_against_query(query: str, label: str) -> FamilyMatchScore:
     """Score one catalog label; strips specs from query first."""
     residue = strip_spec_tokens(query)
-    fuzzy = similarity(residue, label)
+    fuzzy = similarity(residue, label) * distinctive_token_adjustment(residue, label)
     compact_score, compact_shorthand = score_compact_alias(query, label)
 
     if compact_shorthand and compact_score >= _to_unit_score(COMPACT_ALIAS_MATCH_THRESHOLD):
