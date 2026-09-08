@@ -165,6 +165,7 @@ Eligible offers are then selected by lens (not only by overall score):
 | **Lowest list price** | Min `convertedListPrice.reference.amount` (sticker, ignoring fees) |
 | **Lowest total cost** | Min `landedCost.total.amount` among offers with usable landed-cost completeness |
 | **Best seller / trust** | Max `sellerScore` (composite of seller + source reliability) |
+| **Best warranty** | Max parsed warranty duration among eligible offers that have warranty data |
 
 If “best for you” is the same offer as another lens, **drop the other highlight**. Identical-product offers share the same specs, so there is no “best specification” Decision Page lens. AlternativeScout still compares specs when choosing close (same-family variant) or far (comparable product) alternatives.
 

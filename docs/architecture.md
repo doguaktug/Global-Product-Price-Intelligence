@@ -217,6 +217,7 @@ The main UI. Show **why**, original price + FX (rate and timestamp), landed-cost
 | --- | --- |
 | Best landed price | Lowest estimated total cost in the common currency (FX + fees). |
 | Best rated / trust | Strong on reviews and related quality signals. |
+| Best warranty | Longest / strongest warranty among confidence-eligible offers. |
 | Best for you | Highest final score under the user’s weights. |
 | Close alternatives | Up to ~3: same model different specs and/or comparable products, each with rationale. |
 

@@ -88,6 +88,7 @@ class SessionStatus(str, Enum):
 class HighlightKind(str, Enum):
     LOWEST_LIST_PRICE = "lowest_list_price"
     LOWEST_TOTAL_COST = "lowest_total_cost"
+    BEST_WARRANTY = "best_warranty"
     BEST_SELLER = "best_seller"
     BEST_OVERALL = "best_overall"
 

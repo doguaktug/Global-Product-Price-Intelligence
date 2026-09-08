@@ -91,6 +91,7 @@ Highlight lenses on the eligible pool:
 - lowest list price
 - lowest landed cost (among usable cost estimates)
 - best seller
+- best warranty (longest parsed warranty among eligible offers)
 
 If “best for you” is the same offer as another lens, that other highlight is dropped. Specs do not vary across identical-product offers, so there is no “best specification” highlight. AlternativeScout still compares specs when it picks close (same-family) or far (comparable product) alternatives.
 

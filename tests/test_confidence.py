@@ -197,7 +197,7 @@ def test_highlight_kinds_are_from_eligible_pool_only() -> None:
     # Sole eligible offer is "best for you"; overlapping lenses are dropped.
     assert kinds == {HighlightKind.BEST_OVERALL}
     assert "best_specification" not in {k.value for k in HighlightKind}
-    assert "best_warranty" not in {k.value for k in HighlightKind}
+    assert HighlightKind.BEST_WARRANTY.value == "best_warranty"
 
 
 def test_default_weights_include_warranty() -> None:
@@ -290,3 +290,27 @@ def test_distinct_best_for_you_keeps_other_highlights() -> None:
     assert HighlightKind.LOWEST_LIST_PRICE in by_kind
     assert by_kind[HighlightKind.BEST_OVERALL] != by_kind[HighlightKind.LOWEST_LIST_PRICE]
     assert "best_specification" not in {h.kind.value for h in highlights}
+
+
+def test_best_warranty_highlight_picks_longest_warranty() -> None:
+    cheap = _offer(
+        offer_id="cheap-short-warranty",
+        price="100",
+        data_confidence=1.0,
+        seller_reliability=1.0,
+        warranty="6 months",
+    )
+    covered = _offer(
+        offer_id="long-warranty",
+        price="800",
+        data_confidence=1.0,
+        seller_reliability=0.4,
+        warranty="24 months",
+    )
+    scored = RankingEngine().score([cheap, covered], UserPreferences())
+    highlights = pick_highlights(scored, UserPreferences())
+    by_kind = {h.kind: h.offer_id for h in highlights}
+
+    assert by_kind[HighlightKind.BEST_OVERALL] == "cheap-short-warranty"
+    assert by_kind[HighlightKind.BEST_WARRANTY] == "long-warranty"
+    assert HighlightKind.BEST_WARRANTY in HighlightKind
