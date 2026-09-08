@@ -347,7 +347,6 @@ Assignment Decision Page “best of” lenses:
 | --- | --- |
 | `lowest_list_price` | Cheapest **original** list, after FX only (sticker) |
 | `lowest_total_cost` | Cheapest **landed** cost |
-| `best_warranty` | Longest / strongest warranty (optional lens) |
 | `best_seller` | Reliability / official status |
 | `best_overall` | Highest `finalScore` for this user’s weights (“best for you”). If this offer also wins another lens, the other highlight is dropped. |
 

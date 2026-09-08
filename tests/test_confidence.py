@@ -197,6 +197,7 @@ def test_highlight_kinds_are_from_eligible_pool_only() -> None:
     # Sole eligible offer is "best for you"; overlapping lenses are dropped.
     assert kinds == {HighlightKind.BEST_OVERALL}
     assert "best_specification" not in {k.value for k in HighlightKind}
+    assert "best_warranty" not in {k.value for k in HighlightKind}
 
 
 def test_default_weights_include_warranty() -> None:
