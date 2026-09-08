@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 from gp_price_intel.domain.models import (
-    ConvertedMoney,
     DEFAULT_WEIGHTS,
+    ConvertedMoney,
     FxQuote,
     HighlightKind,
     LandedCost,

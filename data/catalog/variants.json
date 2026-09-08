@@ -78,13 +78,13 @@
     ]
   },
   {
-    "id": "samsung-galaxy-s26-256-8-eu-black",
+    "id": "samsung-galaxy-s26-256-12-eu-black",
     "family_id": "samsung-galaxy-s26",
     "model_name": "Galaxy S26",
     "model_number": "SM-S921BZKDE",
     "gtin": "8806095260202",
     "storage_gb": 256,
-    "memory_gb": 8,
+    "memory_gb": 12,
     "region_version": "EU",
     "colour": "Black",
     "canonical_specs": [
