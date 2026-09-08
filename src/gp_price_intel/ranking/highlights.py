@@ -12,6 +12,7 @@ from gp_price_intel.domain.models import (
 )
 from gp_price_intel.explanation.builder import ExplanationBuilder
 from gp_price_intel.ranking.confidence import is_highlight_eligible
+from gp_price_intel.ranking.engine import warranty_months
 
 
 def pick_highlights(
@@ -38,7 +39,9 @@ def pick_highlights(
     used_offer_ids: set[str] = set()
 
     def add_highlight(kind: HighlightKind, label: str, offer: Offer, breakdown: ScoreBreakdown) -> None:
-        if offer.id in used_offer_ids and kind != HighlightKind.BEST_OVERALL:
+        # One offer, one highlight. "Best for you" is added first, so any other
+        # lens that would reuse that offer is dropped.
+        if offer.id in used_offer_ids:
             return
         highlights.append(
             DecisionHighlight(
@@ -48,6 +51,9 @@ def pick_highlights(
             )
         )
         used_offer_ids.add(offer.id)
+
+    best_for_you = max(eligible, key=lambda item: item[1].final_score)
+    add_highlight(HighlightKind.BEST_OVERALL, "Best for you", best_for_you[0], best_for_you[1])
 
     lowest_list = min(
         eligible,
@@ -79,7 +85,19 @@ def pick_highlights(
     best_seller = max(eligible, key=lambda item: item[1].criterion_scores.get("seller", 0.0))
     add_highlight(HighlightKind.BEST_SELLER, "Most trusted seller", best_seller[0], best_seller[1])
 
-    best_for_you = max(eligible, key=lambda item: item[1].final_score)
-    add_highlight(HighlightKind.BEST_OVERALL, "Best for you", best_for_you[0], best_for_you[1])
+    with_warranty = [
+        item for item in eligible if warranty_months(item[0].warranty) is not None
+    ]
+    if with_warranty:
+        best_warranty = max(
+            with_warranty,
+            key=lambda item: warranty_months(item[0].warranty) or 0.0,
+        )
+        add_highlight(
+            HighlightKind.BEST_WARRANTY,
+            "Best warranty",
+            best_warranty[0],
+            best_warranty[1],
+        )
 
     return highlights

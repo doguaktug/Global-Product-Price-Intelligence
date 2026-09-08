@@ -88,10 +88,18 @@ class SessionStatus(str, Enum):
 class HighlightKind(str, Enum):
     LOWEST_LIST_PRICE = "lowest_list_price"
     LOWEST_TOTAL_COST = "lowest_total_cost"
-    BEST_SPECIFICATION = "best_specification"
     BEST_WARRANTY = "best_warranty"
     BEST_SELLER = "best_seller"
     BEST_OVERALL = "best_overall"
+
+
+DEFAULT_WEIGHTS: dict[str, float] = {
+    "price": 0.40,
+    "seller": 0.20,
+    "reviews": 0.15,
+    "delivery": 0.10,
+    "warranty": 0.15,
+}
 
 
 class AlternativeKind(str, Enum):
@@ -245,14 +253,7 @@ class UserPreferences(BaseModel):
     destination_country: str = "TR"
     reference_currency: str = "TRY"
     origin: PreferenceOrigin = PreferenceOrigin.DEFAULT
-    weights: dict[str, float] = Field(
-        default_factory=lambda: {
-            "price": 0.50,
-            "seller": 0.25,
-            "reviews": 0.15,
-            "delivery": 0.10,
-        }
-    )
+    weights: dict[str, float] = Field(default_factory=lambda: dict(DEFAULT_WEIGHTS))
 
 
 class ConfirmationPrompt(BaseModel):
@@ -294,6 +295,7 @@ class SearchSession(BaseModel):
     confirmed_variant_id: str | None = None
     preferences: UserPreferences = Field(default_factory=UserPreferences)
     status: SessionStatus = SessionStatus.RECEIVED
+    failure_reason: str | None = None
     created_at: datetime
 
 

@@ -13,6 +13,58 @@
     }
   },
   {
+    "id": "samsung-galaxy-s26-plus",
+    "category_id": "smartphone",
+    "brand": "Samsung",
+    "family_name": "Galaxy S26 Plus",
+    "aliases": ["Galaxy S26+", "S26 Plus", "S26+", "Samsung S26 Plus"],
+    "valid_options": {
+      "storage_gb": [256, 512],
+      "memory_gb": [12],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Black", "Navy", "White"]
+    }
+  },
+  {
+    "id": "samsung-galaxy-s26",
+    "category_id": "smartphone",
+    "brand": "Samsung",
+    "family_name": "Galaxy S26",
+    "aliases": ["Galaxy S26", "Samsung S26", "Samsung Galaxy S26"],
+    "valid_options": {
+      "storage_gb": [128, 256, 512],
+      "memory_gb": [8, 12],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Black", "Green", "White"]
+    }
+  },
+  {
+    "id": "samsung-galaxy-s25-ultra",
+    "category_id": "smartphone",
+    "brand": "Samsung",
+    "family_name": "Galaxy S25 Ultra",
+    "aliases": ["S25 Ultra", "Galaxy S25U", "S25U", "Samsung S25 Ultra"],
+    "valid_options": {
+      "storage_gb": [256, 512, 1024],
+      "memory_gb": [12],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Black", "Silver", "Blue"]
+    }
+  },
+  {
+    "id": "samsung-galaxy-s25",
+    "category_id": "smartphone",
+    "brand": "Samsung",
+    "family_name": "Galaxy S25",
+    "aliases": ["Galaxy S25", "Samsung S25", "Samsung Galaxy S25"],
+    "valid_options": {
+      "storage_gb": [128, 256, 512],
+      "memory_gb": [8, 12],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Black", "Navy", "Mint"]
+    }
+  },
+  {
     "id": "apple-iphone-16-pro",
     "category_id": "smartphone",
     "brand": "Apple",
@@ -26,6 +78,71 @@
     }
   },
   {
+    "id": "apple-iphone-16-pro-max",
+    "category_id": "smartphone",
+    "brand": "Apple",
+    "family_name": "iPhone 16 Pro Max",
+    "aliases": ["iPhone 16 ProMax", "IPHONE 16 PRO MAX"],
+    "valid_options": {
+      "storage_gb": [256, 512, 1024],
+      "memory_gb": [8],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Black Titanium", "Natural Titanium", "White Titanium", "Desert Titanium"]
+    }
+  },
+  {
+    "id": "apple-iphone-16",
+    "category_id": "smartphone",
+    "brand": "Apple",
+    "family_name": "iPhone 16",
+    "aliases": ["IPHONE 16", "Apple iPhone 16"],
+    "valid_options": {
+      "storage_gb": [128, 256, 512],
+      "memory_gb": [8],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Black", "White", "Pink", "Teal", "Ultramarine"]
+    }
+  },
+  {
+    "id": "apple-iphone-16-plus",
+    "category_id": "smartphone",
+    "brand": "Apple",
+    "family_name": "iPhone 16 Plus",
+    "aliases": ["iPhone 16Plus", "IPHONE 16 PLUS"],
+    "valid_options": {
+      "storage_gb": [128, 256, 512],
+      "memory_gb": [8],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Black", "White", "Pink", "Teal", "Ultramarine"]
+    }
+  },
+  {
+    "id": "apple-iphone-15-pro",
+    "category_id": "smartphone",
+    "brand": "Apple",
+    "family_name": "iPhone 15 Pro",
+    "aliases": ["iPhone 15Pro", "IPHONE 15 PRO"],
+    "valid_options": {
+      "storage_gb": [128, 256, 512, 1024],
+      "memory_gb": [8],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Black Titanium", "White Titanium", "Blue Titanium", "Natural Titanium"]
+    }
+  },
+  {
+    "id": "apple-iphone-15",
+    "category_id": "smartphone",
+    "brand": "Apple",
+    "family_name": "iPhone 15",
+    "aliases": ["IPHONE 15", "Apple iPhone 15"],
+    "valid_options": {
+      "storage_gb": [128, 256, 512],
+      "memory_gb": [6],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Black", "Blue", "Green", "Yellow", "Pink"]
+    }
+  },
+  {
     "id": "apple-macbook-air-m3",
     "category_id": "laptop",
     "brand": "Apple",
@@ -36,6 +153,97 @@
       "memory_gb": [8, 16, 24],
       "region_version": ["EU", "US", "TR"],
       "colour": ["Midnight", "Starlight", "Space Gray", "Silver"]
+    }
+  },
+  {
+    "id": "apple-macbook-air-m4",
+    "category_id": "laptop",
+    "brand": "Apple",
+    "family_name": "MacBook Air M4",
+    "aliases": ["MBA M4", "MacBook Air 13 M4"],
+    "valid_options": {
+      "storage_gb": [256, 512, 1024],
+      "memory_gb": [16, 24, 32],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Midnight", "Starlight", "Sky Blue", "Silver"]
+    }
+  },
+  {
+    "id": "apple-macbook-pro-14-m4",
+    "category_id": "laptop",
+    "brand": "Apple",
+    "family_name": "MacBook Pro 14 M4",
+    "aliases": ["MBP 14 M4", "MacBook Pro 14-inch M4"],
+    "valid_options": {
+      "storage_gb": [512, 1024, 2048],
+      "memory_gb": [16, 24, 32],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Space Black", "Silver"]
+    }
+  },
+  {
+    "id": "apple-macbook-pro-16-m4",
+    "category_id": "laptop",
+    "brand": "Apple",
+    "family_name": "MacBook Pro 16 M4",
+    "aliases": ["MBP 16 M4", "MacBook Pro 16-inch M4"],
+    "valid_options": {
+      "storage_gb": [512, 1024, 2048],
+      "memory_gb": [24, 36, 48],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Space Black", "Silver"]
+    }
+  },
+  {
+    "id": "asus-zenbook-14-oled",
+    "category_id": "laptop",
+    "brand": "ASUS",
+    "family_name": "Zenbook 14 OLED",
+    "aliases": ["Zenbook 14", "ASUS Zenbook 14 OLED", "UX3405"],
+    "valid_options": {
+      "storage_gb": [512, 1024],
+      "memory_gb": [16, 32],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Basalt Gray", "Foggy Silver"]
+    }
+  },
+  {
+    "id": "asus-vivobook-16",
+    "category_id": "laptop",
+    "brand": "ASUS",
+    "family_name": "Vivobook 16",
+    "aliases": ["ASUS Vivobook 16", "VivoBook 16", "X1605"],
+    "valid_options": {
+      "storage_gb": [512, 1024],
+      "memory_gb": [8, 16],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Quiet Blue", "Cool Silver"]
+    }
+  },
+  {
+    "id": "asus-rog-zephyrus-g14",
+    "category_id": "laptop",
+    "brand": "ASUS",
+    "family_name": "ROG Zephyrus G14",
+    "aliases": ["Zephyrus G14", "ASUS ROG G14", "GA403"],
+    "valid_options": {
+      "storage_gb": [1024, 2048],
+      "memory_gb": [16, 32],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Eclipse Gray", "Platinum White"]
+    }
+  },
+  {
+    "id": "asus-tuf-gaming-a15",
+    "category_id": "laptop",
+    "brand": "ASUS",
+    "family_name": "TUF Gaming A15",
+    "aliases": ["TUF A15", "ASUS TUF A15", "FA507"],
+    "valid_options": {
+      "storage_gb": [512, 1024],
+      "memory_gb": [16, 32],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Jaeger Gray", "Graphite Black"]
     }
   }
 ]

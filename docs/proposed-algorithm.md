@@ -90,10 +90,10 @@ Real-world offers will have gaps. The algorithm does not guess; it penalizes and
 
 ### Weight re-normalization (per offer)
 
-If an offer is missing warranty and the user weights are `{ price: 0.50, seller: 0.25, warranty: 0.15, specs: 0.10 }`:
+If an offer is missing warranty and the user weights are `{ price: 0.40, seller: 0.20, warranty: 0.15, reviews: 0.15, delivery: 0.10 }`:
 
-- Drop warranty → remaining `{ price: 0.50, seller: 0.25, specs: 0.10 }` sum = 0.85
-- Re-normalize: `{ price: 0.588, seller: 0.294, specs: 0.118 }`
+- Drop warranty → remaining `{ price: 0.40, seller: 0.20, reviews: 0.15, delivery: 0.10 }` sum = 0.85
+- Re-normalize: `{ price: 0.471, seller: 0.235, reviews: 0.176, delivery: 0.118 }`
 
 The offer is **not** kicked out — but it competes with less information, and `missingCriteria` records what was absent (for the explanation).
 
@@ -131,10 +131,11 @@ Example with all criteria present and default weights:
 
 ```
 FinalScore = confidence × (
-    0.50 × PriceScore
-  + 0.25 × SellerScore
+    0.40 × PriceScore
+  + 0.20 × SellerScore
   + 0.15 × ReviewScore
   + 0.10 × DeliveryScore
+  + 0.15 × WarrantyScore
 )
 ```
 
@@ -160,16 +161,15 @@ Eligible offers are then selected by lens (not only by overall score):
 
 | Highlight | Selection rule (eligible pool only) |
 | --- | --- |
+| **Best for you** | Max `finalScore` — the weighted composite. Selected first. |
 | **Lowest list price** | Min `convertedListPrice.reference.amount` (sticker, ignoring fees) |
 | **Lowest total cost** | Min `landedCost.total.amount` among offers with usable landed-cost completeness |
 | **Best seller / trust** | Max `sellerScore` (composite of seller + source reliability) |
-| **Best warranty** | Max `warrantyScore` |
-| **Best specification** | Max `specScore` — strongest specs vs confirmed variant |
-| **Best for you** | Max `finalScore` — the weighted composite |
+| **Best warranty** | Max parsed warranty duration among eligible offers that have warranty data |
 
-One offer can hold **multiple** highlight labels (e.g. best price AND best for you).
+If “best for you” is the same offer as another lens, **drop the other highlight**. Identical-product offers share the same specs, so there is no “best specification” Decision Page lens. AlternativeScout still compares specs when choosing close (same-family variant) or far (comparable product) alternatives.
 
-If "lowest total cost" and "lowest list price" are the **same** offer, show it once with both labels — do not duplicate.
+One offer holds at most one highlight label.
 
 ---
 
@@ -260,7 +260,7 @@ The explanation must not be a score dump. It must read like a short purchasing a
 
 | Parameter | Default | Purpose |
 | --- | --- | --- |
-| `DEFAULT_WEIGHTS` | `{ price: 0.50, seller: 0.25, reviews: 0.15, delivery: 0.10 }` | Applied when user does not move sliders |
+| `DEFAULT_WEIGHTS` | `{ price: 0.40, seller: 0.20, reviews: 0.15, delivery: 0.10, warranty: 0.15 }` | Applied when user does not move sliders |
 | `COMPLETENESS_MULTIPLIER` | `{ complete: 1.0, partial: 0.90, unknown: 0.75 }` | Landed-cost confidence factor |
 | `HIGHLIGHT_MIN_CONFIDENCE` | `0.7` | Effective-confidence floor for Decision Page recommendations |
 | `UPGRADE_MIN_SPEC_GAIN` | `0.25` | Min relative spec improvement for an upgrade alternative |
@@ -278,7 +278,7 @@ The explanation must not be a score dump. It must read like a short purchasing a
 | Assignment question | Answer |
 | --- | --- |
 | Why this methodology? | Weighted multi-criteria scoring: transparent, explainable, user-controllable, handles missing data |
-| Which variables? | Landed cost, seller trust, warranty, specs, reviews, delivery — extensible |
+| Which variables? | Landed cost, seller trust, warranty, reviews, delivery — extensible |
 | How normalized? | Min–max within the offer set per criterion; bounded 0–1 |
 | How weighted? | User-chosen sliders (or published defaults); weights re-normalize per offer for missing criteria |
 | How is the final ranking calculated? | `finalScore = confidenceMultiplier × Σ(w × score)`; full list sorted by that score; highlights use lenses on the eligible pool only |

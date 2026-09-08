@@ -18,7 +18,7 @@ The sliders, the country, and the currency are optional. If the user does not se
 
 Default country is TR. Default currency is TRY. If the user permits location, the system may replace that default with the inferred country and its usual currency. If the user selects a country or a currency, that choice replaces the default and the location guess.
 
-Default weights are price 0.50, seller 0.25, reviews 0.15, and delivery 0.10. The user can also raise warranty or specifications with the sliders. The weights always sum to 1.
+Default weights are price 0.40, seller 0.20, reviews 0.15, delivery 0.10, and warranty 0.15. The weights always sum to 1.
 
 The user types a product in the search bar. The name does not need to be exact.
 
@@ -51,6 +51,8 @@ The system does not treat a similar SKU as the same offer. It also drops offers 
 
 The system keeps the original list price. A live FX rate converts that price into the reference currency. The Decision Page shows the original amount, the rate, and the rate time.
 
+If conversion fails for one offer (unsupported currency, FX provider error), that offer is dropped and the rest of the search continues. If every remaining offer fails conversion — or the search otherwise ends with no usable offers (no sources, none in stock, none matched) — the session is marked failed and the caller gets the reason instead of an empty Decision Page.
+
 List price is not the full cost for a foreign offer. After FX, the system adds shipping, border tax, and other destination fees. That sum is the landed cost.
 
 If a fee is not known with enough reliability, the system marks the total as partial or unknown. It does not invent a precise number.
@@ -64,7 +66,6 @@ For each identical offer, the system reads:
 - price, as landed cost (or converted list price if landed cost is missing)
 - seller reliability
 - warranty
-- specification closeness
 - reviews
 - delivery time
 
@@ -86,14 +87,13 @@ The system does not only sort by the final score. It also labels offers by separ
 
 Highlight lenses on the eligible pool:
 
+- best for you (highest final score under the user weights) — selected first
 - lowest list price
 - lowest landed cost (among usable cost estimates)
 - best seller
-- best warranty
-- best specification
-- best for you (highest final score under the user weights)
+- best warranty (longest parsed warranty among eligible offers)
 
-One offer may receive more than one label. If two labels point to the same offer, the page shows that offer once.
+If “best for you” is the same offer as another lens, that other highlight is dropped. Specs do not vary across identical-product offers, so there is no “best specification” highlight. AlternativeScout still compares specs when it picks close (same-family) or far (comparable product) alternatives.
 
 Close alternatives come from the similar and different offers in STEP 4. They are not random similar titles.
 

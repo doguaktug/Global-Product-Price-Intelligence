@@ -52,6 +52,14 @@ class ExplanationBuilder:
                 )
             )
 
+        if offer.warranty and score.criterion_scores.get("warranty", 0) >= 0.7:
+            reasons.append(
+                ExplanationReason(
+                    factor="warranty",
+                    detail=f"Warranty: {offer.warranty}.",
+                )
+            )
+
         if score.missing_criteria:
             caveats.append(f"Missing data: {', '.join(score.missing_criteria)}.")
 

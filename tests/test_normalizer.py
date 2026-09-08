@@ -40,6 +40,19 @@ def test_exact_query_skips_confirmation(normalizer: QueryNormalizer) -> None:
     assert len(result.candidate_variant_ids) == 1
 
 
+def test_base_s26_query_does_not_select_ultra(normalizer: QueryNormalizer) -> None:
+    result = normalizer.normalize("Samsung Galaxy S26 256 GB Black")
+    assert result.candidate_family_id == "samsung-galaxy-s26"
+    assert result.candidate_family_id != "samsung-galaxy-s26-ultra"
+
+
+def test_base_iphone_query_does_not_select_pro(normalizer: QueryNormalizer) -> None:
+    result = normalizer.normalize("Apple iPhone 16 128 GB Black")
+    assert result.candidate_family_id == "apple-iphone-16"
+    pro = normalizer.normalize("Apple iPhone 16 Pro 256 GB")
+    assert pro.candidate_family_id == "apple-iphone-16-pro"
+
+
 def test_fuzzy_query_matches_family(normalizer: QueryNormalizer) -> None:
     result = normalizer.normalize("samsun s26 ultra 512gb")
     assert result.candidate_family_id == "samsung-galaxy-s26-ultra"
@@ -79,7 +92,7 @@ def test_confirm_missing_storage_builds_scope(normalizer: QueryNormalizer) -> No
         normalized,
         [PropertyChoice(property_key="storage_gb", kind=PropertyChoiceKind.VALUE, value=512)],
     )
-    assert scope.family_id == "samsung-galaxy-s26-ultra"
+    assert scope.family_id == "samsung-galaxy-s26"
     assert scope.constraints["storage_gb"] == 512
     assert confirmed_id is None  # colour still open in catalog variants
     assert len(scope.variant_ids) >= 2
@@ -124,6 +137,15 @@ def test_confirm_single_variant_sets_confirmed_id(normalizer: QueryNormalizer) -
     )
     assert confirmed_id == "samsung-galaxy-s26-ultra-512-12-eu-silver"
     assert len(scope.variant_ids) == 1
+
+
+def test_asus_and_macbook_pro_queries_match_new_families(normalizer: QueryNormalizer) -> None:
+    zenbook = normalizer.normalize("ASUS Zenbook 14 OLED 1TB")
+    assert zenbook.candidate_family_id == "asus-zenbook-14-oled"
+    mbp = normalizer.normalize("MacBook Pro 14 M4 1TB")
+    assert mbp.candidate_family_id == "apple-macbook-pro-14-m4"
+    air_m4 = normalizer.normalize("MacBook Air M4 512GB")
+    assert air_m4.candidate_family_id == "apple-macbook-air-m4"
 
 
 def test_orchestrator_session_needs_confirmation_for_incomplete_query() -> None:
