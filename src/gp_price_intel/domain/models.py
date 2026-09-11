@@ -70,6 +70,8 @@ class ConfirmationReason(str, Enum):
     INVALID = "invalid"
     AMBIGUOUS = "ambiguous"
     SHORTHAND = "shorthand"  # compact/abbreviated match — confirm family before proceeding
+    NO_MATCH = "no_match"  # nothing in the catalog is close enough to search for
+    NO_EXACT_VARIANT = "no_exact_variant"  # family is known, the asked-for build is not stocked
 
 
 class PropertyChoiceKind(str, Enum):
@@ -196,7 +198,24 @@ class ProductVariant(BaseModel):
     memory_gb: int | None = None
     region_version: str | None = None
     colour: str | None = None
+    processor: str | None = None
+    connectivity: str | None = None
     canonical_specs: list[NormalizedSpec] = Field(default_factory=list)
+
+    def attribute(self, key: str) -> Any:
+        """
+        Read a spec by key from the declared fields, then from ``canonical_specs``.
+
+        Category spec keys (``display_inch``, ``battery_mah``) live only in
+        ``canonical_specs``, so callers must not use ``getattr`` directly.
+        """
+        value = getattr(self, key, None)
+        if value is not None:
+            return value
+        for spec in self.canonical_specs:
+            if spec.key == key:
+                return spec.value
+        return None
 
 
 # --- Sources & offers ---

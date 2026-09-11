@@ -8,13 +8,13 @@
   {
     "id": "laptop",
     "core_spec_keys": ["storage_gb", "memory_gb", "display_inch", "processor"],
-    "identity_keys": ["storage_gb", "memory_gb", "region_version"],
+    "identity_keys": ["processor", "storage_gb", "memory_gb", "region_version"],
     "optional_keys": ["colour"]
   },
   {
     "id": "tablet",
-    "core_spec_keys": ["storage_gb", "memory_gb", "display_inch"],
-    "identity_keys": ["storage_gb", "memory_gb", "region_version"],
+    "core_spec_keys": ["storage_gb", "memory_gb", "display_inch", "connectivity"],
+    "identity_keys": ["storage_gb", "connectivity", "region_version"],
     "optional_keys": ["colour"]
   }
 ]

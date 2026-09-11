@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.domain.models import (
     ConfirmationPrompt,
@@ -27,8 +29,14 @@ VARIANT_ATTRIBUTE_KEYS = frozenset(
         "memory_gb",
         "region_version",
         "colour",
+        "processor",
+        "connectivity",
+        "display_inch",
+        "battery_mah",
     }
 )
+
+VARIANT_CHOICE_KEY = "variant_id"
 
 
 def variant_constraints(constraints: dict) -> dict:
@@ -38,7 +46,7 @@ def variant_constraints(constraints: dict) -> dict:
 
 def variant_matches_constraints(variant: ProductVariant, constraints: dict) -> bool:
     for key, value in variant_constraints(constraints).items():
-        if getattr(variant, key, None) != value:
+        if variant.attribute(key) != value:
             return False
     return True
 
@@ -53,10 +61,73 @@ def filter_variants(
 def distinct_values(variants: list[ProductVariant], key: str) -> list:
     seen: list = []
     for variant in variants:
-        value = getattr(variant, key, None)
+        value = variant.attribute(key)
         if value is not None and value not in seen:
             seen.append(value)
     return seen
+
+
+def _distance(wanted: Any, actual: Any) -> float:
+    """0 for a match, 1 for a miss, in between for a near numeric build."""
+    if actual is None:
+        return 0.75
+    if actual == wanted:
+        return 0.0
+    if isinstance(wanted, (int, float)) and isinstance(actual, (int, float)) and wanted:
+        return min(1.0, abs(float(actual) - float(wanted)) / abs(float(wanted)))
+    return 1.0
+
+
+def rank_closest_variants(
+    variants: list[ProductVariant],
+    constraints: dict,
+    limit: int = 3,
+) -> list[ProductVariant]:
+    """Order catalog builds by how far they sit from what the user asked for."""
+    wanted = variant_constraints(constraints)
+    if not wanted:
+        return variants[:limit]
+
+    def total_distance(variant: ProductVariant) -> tuple[float, str]:
+        distance = sum(_distance(value, variant.attribute(key)) for key, value in wanted.items())
+        return distance, variant.id
+
+    return sorted(variants, key=total_distance)[:limit]
+
+
+def _chosen_family_id(
+    normalized: NormalizedQuery,
+    choice: PropertyChoice | None,
+    prompt: ConfirmationPrompt | None,
+) -> str | None:
+    if choice is None:
+        return normalized.candidate_family_id
+    if choice.kind != PropertyChoiceKind.VALUE or choice.value is None:
+        raise ConfirmationError("Family confirmation requires a catalog family id.")
+    family_id = str(choice.value)
+    # Never let a choice widen the search past the families the popup offered.
+    if prompt is None:
+        if family_id != normalized.candidate_family_id:
+            raise ConfirmationError("Family was not open for confirmation on this query.")
+    elif family_id not in prompt.options:
+        raise ConfirmationError(f"Family {family_id!r} was not one of the suggested matches.")
+    return family_id
+
+
+def _scope_from_variant(
+    variant: ProductVariant,
+    category_keys: list[str],
+) -> SearchScope:
+    constraints = {
+        key: variant.attribute(key)
+        for key in category_keys
+        if variant.attribute(key) is not None
+    }
+    return SearchScope(
+        family_id=variant.family_id,
+        constraints=constraints,
+        variant_ids=[variant.id],
+    )
 
 
 def resolve_search_scope(
@@ -70,23 +141,40 @@ def resolve_search_scope(
     Returns (scope, confirmed_variant_id) where confirmed_variant_id is set
     only when the scope collapses to exactly one catalog variant.
     """
-    if not normalized.candidate_family_id:
-        raise ConfirmationError("No catalog family matched the query.")
-
     choice_by_key = {choice.property_key: choice for choice in choices}
-    family_id = normalized.candidate_family_id
-    family_choice = choice_by_key.get("family_id")
-    if family_choice is not None:
-        if family_choice.kind != PropertyChoiceKind.VALUE or family_choice.value is None:
-            raise ConfirmationError("Family confirmation requires a catalog family id.")
-        family_id = str(family_choice.value)
+    pending_by_key = {prompt.property_key: prompt for prompt in normalized.pending_properties}
+
+    family_id = _chosen_family_id(
+        normalized,
+        choice_by_key.get("family_id"),
+        pending_by_key.get("family_id"),
+    )
+    if not family_id:
+        raise ConfirmationError(
+            "No catalog family matched the query — refine the search. "
+            "Offers are never taken from another product family."
+        )
 
     family = catalog.get_family(family_id)
     category = catalog.get_category(family.category_id) if family else None
     if family is None or category is None:
         raise ConfirmationError("Matched family is not in the catalog.")
 
-    pending_by_key = {prompt.property_key: prompt for prompt in normalized.pending_properties}
+    category_keys = list(category.identity_keys) + list(category.optional_keys)
+
+    # "Closest build" popup: the family is right, the exact build is not stocked.
+    variant_prompt = pending_by_key.get(VARIANT_CHOICE_KEY)
+    if variant_prompt is not None:
+        choice = choice_by_key.get(VARIANT_CHOICE_KEY)
+        if choice is None or choice.kind != PropertyChoiceKind.VALUE or choice.value is None:
+            raise ConfirmationError("Pick one of the suggested closest builds to search for.")
+        variant_id = str(choice.value)
+        if variant_id not in variant_prompt.options:
+            raise ConfirmationError(f"Variant {variant_id!r} was not one of the suggestions.")
+        variant = catalog.get_variant(variant_id)
+        if variant is None or variant.family_id != family.id:
+            raise ConfirmationError(f"Variant {variant_id!r} does not belong to {family.id}.")
+        return _scope_from_variant(variant, category_keys), variant.id
 
     constraints = {**variant_constraints(normalized.extracted)}
     unconstrained_keys: list[str] = []

@@ -34,11 +34,17 @@ class ProductMatcher:
         scope_variants = self._variants_in_scope(family_variants, scope)
         category = self.catalog.get_category(family.category_id)
         identity_keys = category.identity_keys if category else []
-        optional_keys = category.optional_keys if category else []
+        # Category spec keys (processor, display size, …) are corroborating evidence:
+        # they never create a match on their own, but a stated conflict blocks one.
+        comparison_keys = list(identity_keys) + [
+            key
+            for key in ((category.optional_keys + category.core_spec_keys) if category else [])
+            if key not in identity_keys
+        ]
 
         return [
             self._match_offer(
-                offer, family_variants, scope_variants, identity_keys, optional_keys
+                offer, family_variants, scope_variants, identity_keys, comparison_keys
             )
             for offer in offers
         ]
@@ -59,7 +65,7 @@ class ProductMatcher:
         family_variants: list[ProductVariant],
         scope_variants: list[ProductVariant],
         identity_keys: list[str],
-        optional_keys: list[str],
+        comparison_keys: list[str],
     ) -> Offer:
         by_identity = self._match_by_identifiers(offer, family_variants)
         if by_identity is not None:
@@ -78,7 +84,7 @@ class ProductMatcher:
             )
 
         by_attributes = self._match_by_attributes(
-            offer, family_variants, identity_keys, optional_keys, scope_variants
+            offer, family_variants, identity_keys, comparison_keys, scope_variants
         )
         if by_attributes is not None:
             variant, kind, notes = by_attributes
@@ -128,17 +134,19 @@ class ProductMatcher:
         offer: Offer,
         variants: list[ProductVariant],
         identity_keys: list[str],
-        optional_keys: list[str],
+        comparison_keys: list[str],
         scope_variants: list[ProductVariant],
     ) -> tuple[ProductVariant, MatchKind, list[str]] | None:
-        """Fallback when no strong ID — compare parsed specs in raw_specs to variant fields."""
+        """Fallback when no strong ID — compare parsed specs in raw_specs to variant specs."""
         spec_attrs = {
             spec.key: spec.value
             for spec in offer.raw_specs
             if spec.value is not None
         }
         keys_to_use = list(identity_keys) + [
-            key for key in optional_keys if key in spec_attrs
+            key
+            for key in comparison_keys
+            if key not in identity_keys and key in spec_attrs
         ]
         if not keys_to_use:
             return None
@@ -150,7 +158,7 @@ class ProductMatcher:
         candidates: list[ProductVariant] = []
 
         for variant in variants:
-            variant_values = {key: getattr(variant, key, None) for key in keys_to_use}
+            variant_values = {key: variant.attribute(key) for key in keys_to_use}
 
             conflicts = [
                 key

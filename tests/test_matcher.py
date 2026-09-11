@@ -125,6 +125,79 @@ def test_no_identifiers_falls_back_to_attribute_match() -> None:
     assert matched.matched_variant_id == "samsung-galaxy-s26-ultra-512-12-eu-black"
 
 
+def test_laptop_match_uses_the_processor_identity_key() -> None:
+    """M4 and M4 Pro are different products, so the chip has to separate them."""
+    matcher = ProductMatcher(CatalogRepository())
+    scope = SearchScope(
+        family_id="apple-macbook-pro-14-m4",
+        constraints={"processor": "M4 Pro", "storage_gb": 1024},
+        variant_ids=["apple-macbook-pro-14-m4-pro-1024-24-us-space-black"],
+    )
+    specs = [
+        NormalizedSpec(key="storage_gb", value=1024),
+        NormalizedSpec(key="memory_gb", value=24),
+        NormalizedSpec(key="region_version", value="US"),
+        NormalizedSpec(key="colour", value="Space Black"),
+    ]
+
+    m4_pro = matcher.match(
+        [_offer(raw_specs=[*specs, NormalizedSpec(key="processor", value="M4 Pro")])],
+        scope,
+    )[0]
+    plain_m4 = matcher.match(
+        [_offer(raw_specs=[*specs, NormalizedSpec(key="processor", value="M4")])],
+        scope,
+    )[0]
+
+    assert m4_pro.match_kind == MatchKind.IDENTICAL
+    assert m4_pro.matched_variant_id == "apple-macbook-pro-14-m4-pro-1024-24-us-space-black"
+    assert plain_m4.matched_variant_id == "apple-macbook-pro-14-m4-1024-24-us-space-black"
+    assert plain_m4.match_kind == MatchKind.SIMILAR
+
+
+def test_core_spec_conflict_blocks_a_match() -> None:
+    """display_inch lives only in canonical_specs, and a stated conflict must count."""
+    matcher = ProductMatcher(CatalogRepository())
+    scope = SearchScope(
+        family_id="apple-macbook-pro-16-m4",
+        variant_ids=["apple-macbook-pro-16-m4-1024-24-us-silver"],
+    )
+    offer = _offer(
+        raw_specs=[
+            NormalizedSpec(key="processor", value="M4 Pro"),
+            NormalizedSpec(key="storage_gb", value=1024),
+            NormalizedSpec(key="memory_gb", value=24),
+            NormalizedSpec(key="region_version", value="US"),
+            NormalizedSpec(key="colour", value="Silver"),
+            NormalizedSpec(key="display_inch", value=14.2),  # not a 16-inch machine
+        ]
+    )
+
+    assert matcher.match([offer], scope)[0].match_kind == MatchKind.UNMATCHED
+
+
+def test_tablet_match_uses_the_connectivity_identity_key() -> None:
+    matcher = ProductMatcher(CatalogRepository())
+    scope = SearchScope(
+        family_id="apple-ipad-air-11-m3",
+        constraints={"storage_gb": 256, "connectivity": "Wi-Fi"},
+        variant_ids=["apple-ipad-air-11-m3-256-8-wifi-eu-space-gray"],
+    )
+    cellular = _offer(
+        raw_specs=[
+            NormalizedSpec(key="storage_gb", value=256),
+            NormalizedSpec(key="region_version", value="EU"),
+            NormalizedSpec(key="colour", value="Starlight"),
+            NormalizedSpec(key="connectivity", value="Wi-Fi + Cellular"),
+        ]
+    )
+
+    matched = matcher.match([cellular], scope)[0]
+
+    assert matched.match_kind == MatchKind.SIMILAR
+    assert matched.matched_variant_id == "apple-ipad-air-11-m3-256-8-cellular-eu-starlight"
+
+
 def test_unmatched_when_nothing_aligns() -> None:
     matcher = ProductMatcher(CatalogRepository())
     scope = SearchScope(

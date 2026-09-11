@@ -99,10 +99,10 @@ class SearchOrchestrator:
         self.normalizer = QueryNormalizer(self.catalog)
         self.matcher = ProductMatcher(self.catalog)
         self.fx = fx or FxService()
-        self.landed_cost = LandedCostService()
+        self.landed_cost = LandedCostService(fx=self.fx)
         self.ranking = RankingEngine()
         self.explanations = ExplanationBuilder()
-        self.alternatives = AlternativeScout()
+        self.alternatives = AlternativeScout(catalog=self.catalog)
         self.adapters = adapters if adapters is not None else build_adapters(self.catalog)
 
     def start_session(
@@ -170,7 +170,11 @@ class SearchOrchestrator:
         unmatched = len(matched) - len(eligible)
 
         family = self.catalog.get_family(scope.family_id)
-        category_id = family.category_id if family else "smartphone"
+        if family is None:
+            # Duty, shipping and registration all key off the category — guessing one
+            # would price a laptop as a handset.
+            self._fail(session, f"Unknown product family {scope.family_id!r} in this search.")
+        category_id = family.category_id
 
         conversion_failures: list[str] = []
         landed_failures: list[str] = []
@@ -222,7 +226,9 @@ class SearchOrchestrator:
                 ),
             )
 
-        scored = self.ranking.score(enriched, session.preferences)
+        # Only the confirmed build is ranked; other builds of the family are alternatives.
+        identical = [offer for offer in enriched if offer.match_kind == MatchKind.IDENTICAL]
+        scored = self.ranking.score(identical or enriched, session.preferences)
         scored_with_explanations: list = []
         for offer, breakdown in scored:
             explanation = self.explanations.build(offer, breakdown, "Ranked offer")
@@ -240,12 +246,12 @@ class SearchOrchestrator:
         scored = scored_with_explanations
         highlights = pick_highlights(scored, session.preferences, self.explanations)
 
-        best_offer = scored[0][0] if scored else None
-        near_offers = [offer for offer in enriched if offer.match_kind != MatchKind.IDENTICAL]
-        alt_list = self.alternatives.select(near_offers, best_offer)
-
         variant_id = confirmed_variant_id or session.confirmed_variant_id
         confirmed_variant = self.catalog.get_variant(variant_id) if variant_id else None
+
+        best_offer = scored[0][0] if scored else None
+        near_offers = [offer for offer in enriched if offer.match_kind != MatchKind.IDENTICAL]
+        alt_list = self.alternatives.select(near_offers, best_offer, confirmed_variant)
 
         session.status = SessionStatus.RANKED
         session.failure_reason = None
