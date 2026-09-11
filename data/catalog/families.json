@@ -151,6 +151,7 @@
     "valid_options": {
       "storage_gb": [256, 512, 1024],
       "memory_gb": [8, 16, 24],
+      "processor": ["M3"],
       "region_version": ["EU", "US", "TR"],
       "colour": ["Midnight", "Starlight", "Space Gray", "Silver"]
     }
@@ -164,6 +165,7 @@
     "valid_options": {
       "storage_gb": [256, 512, 1024],
       "memory_gb": [16, 24, 32],
+      "processor": ["M4"],
       "region_version": ["EU", "US", "TR"],
       "colour": ["Midnight", "Starlight", "Sky Blue", "Silver"]
     }
@@ -177,6 +179,7 @@
     "valid_options": {
       "storage_gb": [512, 1024, 2048],
       "memory_gb": [16, 24, 32],
+      "processor": ["M4", "M4 Pro", "M4 Max"],
       "region_version": ["EU", "US", "TR"],
       "colour": ["Space Black", "Silver"]
     }
@@ -190,6 +193,7 @@
     "valid_options": {
       "storage_gb": [512, 1024, 2048],
       "memory_gb": [24, 36, 48],
+      "processor": ["M4 Pro", "M4 Max"],
       "region_version": ["EU", "US", "TR"],
       "colour": ["Space Black", "Silver"]
     }
@@ -203,6 +207,7 @@
     "valid_options": {
       "storage_gb": [512, 1024],
       "memory_gb": [16, 32],
+      "processor": ["Intel Core Ultra 7", "Intel Core Ultra 9"],
       "region_version": ["EU", "US", "TR"],
       "colour": ["Basalt Gray", "Foggy Silver"]
     }
@@ -216,6 +221,7 @@
     "valid_options": {
       "storage_gb": [512, 1024],
       "memory_gb": [8, 16],
+      "processor": ["Intel Core i5", "Intel Core i7"],
       "region_version": ["EU", "US", "TR"],
       "colour": ["Quiet Blue", "Cool Silver"]
     }
@@ -229,6 +235,7 @@
     "valid_options": {
       "storage_gb": [1024, 2048],
       "memory_gb": [16, 32],
+      "processor": ["AMD Ryzen 9"],
       "region_version": ["EU", "US", "TR"],
       "colour": ["Eclipse Gray", "Platinum White"]
     }
@@ -242,8 +249,79 @@
     "valid_options": {
       "storage_gb": [512, 1024],
       "memory_gb": [16, 32],
+      "processor": ["AMD Ryzen 7", "AMD Ryzen 9"],
       "region_version": ["EU", "US", "TR"],
       "colour": ["Jaeger Gray", "Graphite Black"]
+    }
+  },
+  {
+    "id": "apple-ipad-pro-13-m4",
+    "category_id": "tablet",
+    "brand": "Apple",
+    "family_name": "iPad Pro 13 M4",
+    "aliases": ["iPad Pro 13", "iPad Pro M4", "iPadPro13"],
+    "valid_options": {
+      "storage_gb": [256, 512, 1024, 2048],
+      "memory_gb": [8, 16],
+      "connectivity": ["Wi-Fi", "Wi-Fi + Cellular"],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Space Black", "Silver"]
+    }
+  },
+  {
+    "id": "apple-ipad-air-11-m3",
+    "category_id": "tablet",
+    "brand": "Apple",
+    "family_name": "iPad Air 11 M3",
+    "aliases": ["iPad Air 11", "iPad Air M3", "iPadAir11"],
+    "valid_options": {
+      "storage_gb": [128, 256, 512, 1024],
+      "memory_gb": [8],
+      "connectivity": ["Wi-Fi", "Wi-Fi + Cellular"],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Space Gray", "Starlight", "Purple", "Blue"]
+    }
+  },
+  {
+    "id": "apple-ipad-11-a16",
+    "category_id": "tablet",
+    "brand": "Apple",
+    "family_name": "iPad 11",
+    "aliases": ["iPad 11 A16", "Apple iPad 11", "iPad A16"],
+    "valid_options": {
+      "storage_gb": [128, 256, 512],
+      "memory_gb": [6],
+      "connectivity": ["Wi-Fi", "Wi-Fi + Cellular"],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Blue", "Pink", "Yellow", "Silver"]
+    }
+  },
+  {
+    "id": "samsung-galaxy-tab-s10-ultra",
+    "category_id": "tablet",
+    "brand": "Samsung",
+    "family_name": "Galaxy Tab S10 Ultra",
+    "aliases": ["Tab S10 Ultra", "Galaxy TabS10U", "TabS10U"],
+    "valid_options": {
+      "storage_gb": [256, 512, 1024],
+      "memory_gb": [12, 16],
+      "connectivity": ["Wi-Fi", "Wi-Fi + Cellular"],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Moonstone Gray", "Platinum Silver"]
+    }
+  },
+  {
+    "id": "samsung-galaxy-tab-s10-plus",
+    "category_id": "tablet",
+    "brand": "Samsung",
+    "family_name": "Galaxy Tab S10 Plus",
+    "aliases": ["Tab S10 Plus", "Galaxy Tab S10+", "Tab S10+"],
+    "valid_options": {
+      "storage_gb": [256, 512],
+      "memory_gb": [12],
+      "connectivity": ["Wi-Fi", "Wi-Fi + Cellular"],
+      "region_version": ["EU", "US", "TR"],
+      "colour": ["Moonstone Gray", "Platinum Silver"]
     }
   }
 ]

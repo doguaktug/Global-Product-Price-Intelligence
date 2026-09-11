@@ -110,6 +110,41 @@ async def test_ebay_sparse_reviews_reduce_confidence_vs_established_seller() -> 
 
 
 @pytest.mark.asyncio
+async def test_ebay_query_carries_the_category_identity_specs() -> None:
+    """RAM is the main laptop differentiator, so it cannot be dropped from the query."""
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/oauth2/token"):
+            return httpx.Response(200, json={"access_token": "t", "expires_in": 60})
+        seen.append(request.url.params.get("q", ""))
+        return httpx.Response(200, json={"itemSummaries": []})
+
+    adapter = _adapter(httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    await adapter.search(
+        SearchScope(
+            family_id="apple-macbook-air-m4",
+            constraints={"processor": "M4", "storage_gb": 512, "memory_gb": 16},
+        ),
+        "TR",
+    )
+    await adapter.search(
+        SearchScope(
+            family_id="apple-ipad-air-11-m3",
+            constraints={"storage_gb": 256, "connectivity": "Wi-Fi + Cellular"},
+        ),
+        "TR",
+    )
+
+    laptop, tablet = seen
+    assert "Apple MacBook Air M4" in laptop
+    assert "512GB" in laptop
+    assert "16GB RAM" in laptop
+    assert "256GB" in tablet
+    assert "Wi-Fi + Cellular" in tablet
+
+
+@pytest.mark.asyncio
 async def test_ebay_oauth_uses_basic_auth() -> None:
     seen_auth: list[str] = []
 

@@ -3,7 +3,9 @@
 from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.normalize.query_normalizer import QueryNormalizer
 from gp_price_intel.normalize.similarity import (
+    build_distinctive_vocabulary,
     score_query_against_labels,
+    shares_distinctive_token,
     similarity,
     strip_spec_tokens,
     token_set_ratio,
@@ -87,3 +89,45 @@ def test_distinctive_tokens_separate_iphone_pro_from_base() -> None:
     pro = score_query_against_labels("Apple iPhone 16 Pro", ["Apple iPhone 16 Pro"]).score
     base = score_query_against_labels("Apple iPhone 16 Pro", ["Apple iPhone 16"]).score
     assert pro > base
+
+
+def test_vocabulary_is_learned_from_the_catalog_not_hardcoded() -> None:
+    """A brand the code has never heard of still gets its model names separated."""
+    vocabulary = build_distinctive_vocabulary(
+        [
+            ("Dell", ["Dell XPS 14", "XPS 14"]),
+            ("Dell", ["Dell Inspiron 14", "Inspiron 14"]),
+            ("Dell", ["Dell Latitude 14", "Latitude 14"]),
+        ]
+    )
+
+    assert vocabulary.holds("xps")
+    assert vocabulary.holds("inspiron")
+    # Shared by every Dell family, so it separates nothing within the brand.
+    assert not vocabulary.holds("dell")
+
+    xps = score_query_against_labels("Dell XPS 14", ["Dell XPS 14"], vocabulary).score
+    inspiron = score_query_against_labels(
+        "Dell XPS 14", ["Dell Inspiron 14"], vocabulary
+    ).score
+    assert xps > inspiron
+
+
+def test_shorthand_needs_a_short_query_not_just_a_compact_alias() -> None:
+    typed_in_full = score_query_against_labels("iPad Air 11", ["iPadAir11", "iPad Air 11 M3"])
+    abbreviated = score_query_against_labels("ipadair11", ["iPadAir11", "iPad Air 11 M3"])
+
+    assert typed_in_full.shorthand is False
+    assert abbreviated.shorthand is True
+
+
+def test_generation_tokens_keep_screen_sizes_apart() -> None:
+    fourteen = score_query_against_labels("MacBook Pro 14", ["Apple MacBook Pro 14 M4"]).score
+    sixteen = score_query_against_labels("MacBook Pro 14", ["Apple MacBook Pro 16 M4"]).score
+    assert fourteen > sixteen
+
+
+def test_unrelated_query_shares_no_token_with_any_family() -> None:
+    labels = ["Apple iPhone 15", "iPhone 15"]
+    assert shares_distinctive_token("Apple iPhone 15 Pro", labels) is True
+    assert shares_distinctive_token("Dyson V15 vacuum cleaner", labels) is False

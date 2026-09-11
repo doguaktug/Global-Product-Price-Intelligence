@@ -108,10 +108,13 @@ These answer “what product could this be?” — not “what does it cost toda
 | Field | Type | Notes |
 | --- | --- | --- |
 | `id` | string | e.g. `smartphone`, `laptop`, `tablet` |
-| `coreSpecKeys` | list of spec keys | Specs that matter for this category (storage, RAM, display, battery, …) |
-| `identityKeys` | list of spec keys | Fields that distinguish identical vs similar (storage, memory, region) |
+| `coreSpecKeys` | list of spec keys | Specs that matter for this category (storage, RAM, display, processor, battery, …) |
+| `identityKeys` | list of spec keys | Fields that distinguish identical vs similar |
+| `optionalKeys` | list of spec keys | Nice-to-have; the user may answer “not important” |
 
 MVP categories: smartphones, laptops, tablets (assignment: 2–3 categories).
+
+**The keys differ per category, and the pipeline reads them.** A phone is identified by storage + memory + region; a laptop adds the `processor`, because an M4 and an M4 Pro are different products at different prices; a tablet adds `connectivity`, because Wi-Fi and cellular builds are sold at different prices. `coreSpecKeys` are corroborating evidence during matching: they never create a match on their own, but a listing that states a conflicting display size or chip is not the confirmed product. Category also drives landed cost — duty rates, parcel-size shipping and destination registration levies are looked up per `(destination, category)`.
 
 ### `ProductFamily`
 
@@ -142,9 +145,16 @@ The exact product the user confirms. Offers match **to** this, or are tagged sim
 | `storageGb` | number? | `512` |
 | `memoryGb` | number? | `12` |
 | `regionVersion` | string? | `EU`, `US`, `TR`, `JP`, … |
-| `canonicalSpecs` | list of `NormalizedSpec` | Battery, display, processor, … |
+| `colour` | string? | `Sky Blue` |
+| `processor` | string? | `M4 Pro`, `Intel Core Ultra 9` — laptop/tablet identity |
+| `connectivity` | string? | `Wi-Fi`, `Wi-Fi + Cellular` — tablet identity |
+| `canonicalSpecs` | list of `NormalizedSpec` | Battery, display size, … |
 
-**Identity rule:** same family + same identity keys (storage, memory, region/version, model number when present) ⇒ **identical**. Same family, different storage/region ⇒ **similar**, not mergeable as one offer group.
+Specs read through `variant.attribute(key)`, which falls back to `canonicalSpecs` — so `display_inch` is usable in matching without being promoted to a field.
+
+**Identity rule:** same family + same identity keys **for that category** (plus model number when present) ⇒ **identical**. Same family, different storage/region/chip/radio ⇒ **similar**: eligible as an alternative, never merged into the ranked list of the confirmed build.
+
+**Family rule:** a query that matches no family does not start a search. The user is asked to refine it, and the only families offered as “did you mean” are ones that both score close enough *and* share a naming token with the query — so an iPad search is never answered with iPhones. If the family is certain but the exact build is not stocked, the popup offers the closest catalog variants instead of widening the search.
 
 ---
 

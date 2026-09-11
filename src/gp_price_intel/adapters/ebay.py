@@ -37,6 +37,14 @@ MARKETPLACE_COUNTRY = {
     "EBAY_AU": "AU",
 }
 
+# Constraint keys worth putting in the keyword query, in the order buyers write them.
+_QUERY_TERMS: tuple[tuple[str, str], ...] = (
+    ("processor", "{}"),
+    ("storage_gb", "{}GB"),
+    ("memory_gb", "{}GB RAM"),
+    ("connectivity", "{}"),
+)
+
 
 def default_ebay_source() -> Source:
     return Source(
@@ -140,9 +148,12 @@ class EbayAdapter(SourceAdapter):
             return ""
 
         parts = [family.brand, family.family_name]
-        storage = scope.constraints.get("storage_gb")
-        if storage is not None:
-            parts.append(f"{storage}GB")
+        # Whatever the category made an identity key lands in constraints, so a laptop
+        # search carries its RAM and chip and a tablet search carries its radio.
+        for key, template in _QUERY_TERMS:
+            value = scope.constraints.get(key)
+            if value is not None:
+                parts.append(template.format(value))
         return " ".join(str(part) for part in parts)
 
     async def _access_token(self) -> str:

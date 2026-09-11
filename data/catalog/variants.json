@@ -134,6 +134,19 @@
     ]
   },
   {
+    "id": "samsung-galaxy-s25-ultra-512-12-eu-silver",
+    "family_id": "samsung-galaxy-s25-ultra",
+    "model_name": "Galaxy S25 Ultra",
+    "storage_gb": 512,
+    "memory_gb": 12,
+    "region_version": "EU",
+    "colour": "Silver",
+    "canonical_specs": [
+      {"key": "battery_mah", "value": 5000, "unit": "mAh", "raw_text": "5000 mAh"},
+      {"key": "display_inch", "value": 6.9, "unit": "in", "raw_text": "6.9-inch"}
+    ]
+  },
+  {
     "id": "samsung-galaxy-s25-256-8-eu-navy",
     "family_id": "samsung-galaxy-s25",
     "model_name": "Galaxy S25",
@@ -143,6 +156,19 @@
     "memory_gb": 8,
     "region_version": "EU",
     "colour": "Navy",
+    "canonical_specs": [
+      {"key": "battery_mah", "value": 4000, "unit": "mAh", "raw_text": "4000 mAh"},
+      {"key": "display_inch", "value": 6.2, "unit": "in", "raw_text": "6.2-inch"}
+    ]
+  },
+  {
+    "id": "samsung-galaxy-s25-512-12-eu-black",
+    "family_id": "samsung-galaxy-s25",
+    "model_name": "Galaxy S25",
+    "storage_gb": 512,
+    "memory_gb": 12,
+    "region_version": "EU",
+    "colour": "Black",
     "canonical_specs": [
       {"key": "battery_mah", "value": 4000, "unit": "mAh", "raw_text": "4000 mAh"},
       {"key": "display_inch", "value": 6.2, "unit": "in", "raw_text": "6.2-inch"}
@@ -167,6 +193,19 @@
     ]
   },
   {
+    "id": "apple-iphone-16-pro-512-8-eu-natural",
+    "family_id": "apple-iphone-16-pro",
+    "model_name": "iPhone 16 Pro",
+    "storage_gb": 512,
+    "memory_gb": 8,
+    "region_version": "EU",
+    "colour": "Natural Titanium",
+    "canonical_specs": [
+      {"key": "battery_mah", "value": 3582, "unit": "mAh", "raw_text": "3582 mAh"},
+      {"key": "display_inch", "value": 6.3, "unit": "in", "raw_text": "6.3-inch"}
+    ]
+  },
+  {
     "id": "apple-iphone-16-pro-max-256-8-us-natural",
     "family_id": "apple-iphone-16-pro-max",
     "model_name": "iPhone 16 Pro Max",
@@ -176,6 +215,19 @@
     "memory_gb": 8,
     "region_version": "US",
     "colour": "Natural Titanium",
+    "canonical_specs": [
+      {"key": "battery_mah", "value": 4685, "unit": "mAh", "raw_text": "4685 mAh"},
+      {"key": "display_inch", "value": 6.9, "unit": "in", "raw_text": "6.9-inch"}
+    ]
+  },
+  {
+    "id": "apple-iphone-16-pro-max-512-8-eu-black",
+    "family_id": "apple-iphone-16-pro-max",
+    "model_name": "iPhone 16 Pro Max",
+    "storage_gb": 512,
+    "memory_gb": 8,
+    "region_version": "EU",
+    "colour": "Black Titanium",
     "canonical_specs": [
       {"key": "battery_mah", "value": 4685, "unit": "mAh", "raw_text": "4685 mAh"},
       {"key": "display_inch", "value": 6.9, "unit": "in", "raw_text": "6.9-inch"}
@@ -225,6 +277,19 @@
     ]
   },
   {
+    "id": "apple-iphone-16-plus-128-8-eu-teal",
+    "family_id": "apple-iphone-16-plus",
+    "model_name": "iPhone 16 Plus",
+    "storage_gb": 128,
+    "memory_gb": 8,
+    "region_version": "EU",
+    "colour": "Teal",
+    "canonical_specs": [
+      {"key": "battery_mah", "value": 4674, "unit": "mAh", "raw_text": "4674 mAh"},
+      {"key": "display_inch", "value": 6.7, "unit": "in", "raw_text": "6.7-inch"}
+    ]
+  },
+  {
     "id": "apple-iphone-15-pro-256-8-eu-black",
     "family_id": "apple-iphone-15-pro",
     "model_name": "iPhone 15 Pro",
@@ -234,6 +299,19 @@
     "memory_gb": 8,
     "region_version": "EU",
     "colour": "Black Titanium",
+    "canonical_specs": [
+      {"key": "battery_mah", "value": 3274, "unit": "mAh", "raw_text": "3274 mAh"},
+      {"key": "display_inch", "value": 6.1, "unit": "in", "raw_text": "6.1-inch"}
+    ]
+  },
+  {
+    "id": "apple-iphone-15-pro-128-8-eu-white",
+    "family_id": "apple-iphone-15-pro",
+    "model_name": "iPhone 15 Pro",
+    "storage_gb": 128,
+    "memory_gb": 8,
+    "region_version": "EU",
+    "colour": "White Titanium",
     "canonical_specs": [
       {"key": "battery_mah", "value": 3274, "unit": "mAh", "raw_text": "3274 mAh"},
       {"key": "display_inch", "value": 6.1, "unit": "in", "raw_text": "6.1-inch"}
@@ -255,6 +333,32 @@
     ]
   },
   {
+    "id": "apple-iphone-15-256-6-eu-pink",
+    "family_id": "apple-iphone-15",
+    "model_name": "iPhone 15",
+    "storage_gb": 256,
+    "memory_gb": 6,
+    "region_version": "EU",
+    "colour": "Pink",
+    "canonical_specs": [
+      {"key": "battery_mah", "value": 3349, "unit": "mAh", "raw_text": "3349 mAh"},
+      {"key": "display_inch", "value": 6.1, "unit": "in", "raw_text": "6.1-inch"}
+    ]
+  },
+  {
+    "id": "apple-macbook-air-m3-256-8-us-midnight",
+    "family_id": "apple-macbook-air-m3",
+    "model_name": "MacBook Air M3",
+    "storage_gb": 256,
+    "memory_gb": 8,
+    "region_version": "US",
+    "colour": "Midnight",
+    "processor": "M3",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+    ]
+  },
+  {
     "id": "apple-macbook-air-m3-512-16-us-midnight",
     "family_id": "apple-macbook-air-m3",
     "model_name": "MacBook Air M3",
@@ -262,22 +366,109 @@
     "memory_gb": 16,
     "region_version": "US",
     "colour": "Midnight",
+    "processor": "M3",
     "canonical_specs": [
-      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"},
-      {"key": "processor", "value": "M3", "unit": null, "raw_text": "Apple M3"}
+      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+    ]
+  },
+  {
+    "id": "apple-macbook-air-m3-512-16-eu-starlight",
+    "family_id": "apple-macbook-air-m3",
+    "model_name": "MacBook Air M3",
+    "storage_gb": 512,
+    "memory_gb": 16,
+    "region_version": "EU",
+    "colour": "Starlight",
+    "processor": "M3",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+    ]
+  },
+  {
+    "id": "apple-macbook-air-m3-1024-24-us-space-gray",
+    "family_id": "apple-macbook-air-m3",
+    "model_name": "MacBook Air M3",
+    "storage_gb": 1024,
+    "memory_gb": 24,
+    "region_version": "US",
+    "colour": "Space Gray",
+    "processor": "M3",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+    ]
+  },
+  {
+    "id": "apple-macbook-air-m4-256-16-us-sky-blue",
+    "family_id": "apple-macbook-air-m4",
+    "model_name": "MacBook Air M4",
+    "model_number": "MC6T4LL/A",
+    "gtin": "0195949832001",
+    "storage_gb": 256,
+    "memory_gb": 16,
+    "region_version": "US",
+    "colour": "Sky Blue",
+    "processor": "M4",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
     ]
   },
   {
     "id": "apple-macbook-air-m4-512-16-us-sky-blue",
     "family_id": "apple-macbook-air-m4",
     "model_name": "MacBook Air M4",
+    "model_number": "MC6U4LL/A",
+    "gtin": "0195949832018",
+    "retailer_skus": {
+      "bestbuy-us": "6608701"
+    },
     "storage_gb": 512,
     "memory_gb": 16,
     "region_version": "US",
     "colour": "Sky Blue",
+    "processor": "M4",
     "canonical_specs": [
-      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"},
-      {"key": "processor", "value": "M4", "unit": null, "raw_text": "Apple M4"}
+      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+    ]
+  },
+  {
+    "id": "apple-macbook-air-m4-512-24-eu-midnight",
+    "family_id": "apple-macbook-air-m4",
+    "model_name": "MacBook Air M4",
+    "model_number": "MC6V4D/A",
+    "gtin": "0195949832025",
+    "storage_gb": 512,
+    "memory_gb": 24,
+    "region_version": "EU",
+    "colour": "Midnight",
+    "processor": "M4",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+    ]
+  },
+  {
+    "id": "apple-macbook-air-m4-1024-32-us-silver",
+    "family_id": "apple-macbook-air-m4",
+    "model_name": "MacBook Air M4",
+    "storage_gb": 1024,
+    "memory_gb": 32,
+    "region_version": "US",
+    "colour": "Silver",
+    "processor": "M4",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+    ]
+  },
+  {
+    "id": "apple-macbook-pro-14-m4-512-16-us-space-black",
+    "family_id": "apple-macbook-pro-14-m4",
+    "model_name": "MacBook Pro 14 M4",
+    "storage_gb": 512,
+    "memory_gb": 16,
+    "region_version": "US",
+    "colour": "Space Black",
+    "processor": "M4",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 14.2, "unit": "in", "raw_text": "14.2-inch"}
     ]
   },
   {
@@ -288,22 +479,88 @@
     "memory_gb": 24,
     "region_version": "US",
     "colour": "Space Black",
+    "processor": "M4",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.2, "unit": "in", "raw_text": "14.2-inch"},
-      {"key": "processor", "value": "M4", "unit": null, "raw_text": "Apple M4"}
+      {"key": "display_inch", "value": 14.2, "unit": "in", "raw_text": "14.2-inch"}
+    ]
+  },
+  {
+    "id": "apple-macbook-pro-14-m4-pro-1024-24-us-space-black",
+    "family_id": "apple-macbook-pro-14-m4",
+    "model_name": "MacBook Pro 14 M4 Pro",
+    "storage_gb": 1024,
+    "memory_gb": 24,
+    "region_version": "US",
+    "colour": "Space Black",
+    "processor": "M4 Pro",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 14.2, "unit": "in", "raw_text": "14.2-inch"}
+    ]
+  },
+  {
+    "id": "apple-macbook-pro-14-m4-max-2048-32-us-silver",
+    "family_id": "apple-macbook-pro-14-m4",
+    "model_name": "MacBook Pro 14 M4 Max",
+    "storage_gb": 2048,
+    "memory_gb": 32,
+    "region_version": "US",
+    "colour": "Silver",
+    "processor": "M4 Max",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 14.2, "unit": "in", "raw_text": "14.2-inch"}
     ]
   },
   {
     "id": "apple-macbook-pro-16-m4-1024-24-us-silver",
     "family_id": "apple-macbook-pro-16-m4",
-    "model_name": "MacBook Pro 16 M4",
+    "model_name": "MacBook Pro 16 M4 Pro",
     "storage_gb": 1024,
     "memory_gb": 24,
     "region_version": "US",
     "colour": "Silver",
+    "processor": "M4 Pro",
     "canonical_specs": [
-      {"key": "display_inch", "value": 16.2, "unit": "in", "raw_text": "16.2-inch"},
-      {"key": "processor", "value": "M4", "unit": null, "raw_text": "Apple M4"}
+      {"key": "display_inch", "value": 16.2, "unit": "in", "raw_text": "16.2-inch"}
+    ]
+  },
+  {
+    "id": "apple-macbook-pro-16-m4-pro-512-24-eu-space-black",
+    "family_id": "apple-macbook-pro-16-m4",
+    "model_name": "MacBook Pro 16 M4 Pro",
+    "storage_gb": 512,
+    "memory_gb": 24,
+    "region_version": "EU",
+    "colour": "Space Black",
+    "processor": "M4 Pro",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 16.2, "unit": "in", "raw_text": "16.2-inch"}
+    ]
+  },
+  {
+    "id": "apple-macbook-pro-16-m4-max-2048-48-us-space-black",
+    "family_id": "apple-macbook-pro-16-m4",
+    "model_name": "MacBook Pro 16 M4 Max",
+    "storage_gb": 2048,
+    "memory_gb": 48,
+    "region_version": "US",
+    "colour": "Space Black",
+    "processor": "M4 Max",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 16.2, "unit": "in", "raw_text": "16.2-inch"}
+    ]
+  },
+  {
+    "id": "asus-zenbook-14-oled-512-16-eu-foggy",
+    "family_id": "asus-zenbook-14-oled",
+    "model_name": "Zenbook 14 OLED",
+    "model_number": "UX3405MA",
+    "storage_gb": 512,
+    "memory_gb": 16,
+    "region_version": "EU",
+    "colour": "Foggy Silver",
+    "processor": "Intel Core Ultra 7",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 14.0, "unit": "in", "raw_text": "14-inch OLED"}
     ]
   },
   {
@@ -315,9 +572,37 @@
     "memory_gb": 32,
     "region_version": "EU",
     "colour": "Basalt Gray",
+    "processor": "Intel Core Ultra 7",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.0, "unit": "in", "raw_text": "14-inch OLED"},
-      {"key": "processor", "value": "Intel Core Ultra 7", "unit": null, "raw_text": "Intel Core Ultra 7"}
+      {"key": "display_inch", "value": 14.0, "unit": "in", "raw_text": "14-inch OLED"}
+    ]
+  },
+  {
+    "id": "asus-zenbook-14-oled-1024-32-eu-foggy-ultra9",
+    "family_id": "asus-zenbook-14-oled",
+    "model_name": "Zenbook 14 OLED",
+    "model_number": "UX3405CA",
+    "storage_gb": 1024,
+    "memory_gb": 32,
+    "region_version": "EU",
+    "colour": "Foggy Silver",
+    "processor": "Intel Core Ultra 9",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 14.0, "unit": "in", "raw_text": "14-inch OLED"}
+    ]
+  },
+  {
+    "id": "asus-vivobook-16-512-8-eu-cool-silver",
+    "family_id": "asus-vivobook-16",
+    "model_name": "Vivobook 16",
+    "model_number": "X1605VA",
+    "storage_gb": 512,
+    "memory_gb": 8,
+    "region_version": "EU",
+    "colour": "Cool Silver",
+    "processor": "Intel Core i5",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 16.0, "unit": "in", "raw_text": "16-inch"}
     ]
   },
   {
@@ -329,9 +614,37 @@
     "memory_gb": 16,
     "region_version": "EU",
     "colour": "Quiet Blue",
+    "processor": "Intel Core i7",
     "canonical_specs": [
-      {"key": "display_inch", "value": 16.0, "unit": "in", "raw_text": "16-inch"},
-      {"key": "processor", "value": "Intel Core i7", "unit": null, "raw_text": "Intel Core i7"}
+      {"key": "display_inch", "value": 16.0, "unit": "in", "raw_text": "16-inch"}
+    ]
+  },
+  {
+    "id": "asus-vivobook-16-1024-16-eu-cool-silver",
+    "family_id": "asus-vivobook-16",
+    "model_name": "Vivobook 16",
+    "model_number": "X1605VA",
+    "storage_gb": 1024,
+    "memory_gb": 16,
+    "region_version": "EU",
+    "colour": "Cool Silver",
+    "processor": "Intel Core i7",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 16.0, "unit": "in", "raw_text": "16-inch"}
+    ]
+  },
+  {
+    "id": "asus-rog-zephyrus-g14-1024-16-eu-eclipse",
+    "family_id": "asus-rog-zephyrus-g14",
+    "model_name": "ROG Zephyrus G14",
+    "model_number": "GA403UI",
+    "storage_gb": 1024,
+    "memory_gb": 16,
+    "region_version": "EU",
+    "colour": "Eclipse Gray",
+    "processor": "AMD Ryzen 9",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 14.0, "unit": "in", "raw_text": "14-inch"}
     ]
   },
   {
@@ -343,9 +656,37 @@
     "memory_gb": 32,
     "region_version": "US",
     "colour": "Eclipse Gray",
+    "processor": "AMD Ryzen 9",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.0, "unit": "in", "raw_text": "14-inch"},
-      {"key": "processor", "value": "AMD Ryzen 9", "unit": null, "raw_text": "AMD Ryzen 9"}
+      {"key": "display_inch", "value": 14.0, "unit": "in", "raw_text": "14-inch"}
+    ]
+  },
+  {
+    "id": "asus-rog-zephyrus-g14-2048-32-us-platinum",
+    "family_id": "asus-rog-zephyrus-g14",
+    "model_name": "ROG Zephyrus G14",
+    "model_number": "GA403UV",
+    "storage_gb": 2048,
+    "memory_gb": 32,
+    "region_version": "US",
+    "colour": "Platinum White",
+    "processor": "AMD Ryzen 9",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 14.0, "unit": "in", "raw_text": "14-inch"}
+    ]
+  },
+  {
+    "id": "asus-tuf-gaming-a15-512-16-eu-graphite",
+    "family_id": "asus-tuf-gaming-a15",
+    "model_name": "TUF Gaming A15",
+    "model_number": "FA507NV",
+    "storage_gb": 512,
+    "memory_gb": 16,
+    "region_version": "EU",
+    "colour": "Graphite Black",
+    "processor": "AMD Ryzen 7",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 15.6, "unit": "in", "raw_text": "15.6-inch"}
     ]
   },
   {
@@ -357,9 +698,235 @@
     "memory_gb": 16,
     "region_version": "EU",
     "colour": "Jaeger Gray",
+    "processor": "AMD Ryzen 7",
     "canonical_specs": [
-      {"key": "display_inch", "value": 15.6, "unit": "in", "raw_text": "15.6-inch"},
-      {"key": "processor", "value": "AMD Ryzen 7", "unit": null, "raw_text": "AMD Ryzen 7"}
+      {"key": "display_inch", "value": 15.6, "unit": "in", "raw_text": "15.6-inch"}
+    ]
+  },
+  {
+    "id": "asus-tuf-gaming-a15-1024-32-eu-jaeger-ryzen9",
+    "family_id": "asus-tuf-gaming-a15",
+    "model_name": "TUF Gaming A15",
+    "model_number": "FA507NU",
+    "storage_gb": 1024,
+    "memory_gb": 32,
+    "region_version": "EU",
+    "colour": "Jaeger Gray",
+    "processor": "AMD Ryzen 9",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 15.6, "unit": "in", "raw_text": "15.6-inch"}
+    ]
+  },
+  {
+    "id": "apple-ipad-pro-13-m4-512-16-wifi-us-space-black",
+    "family_id": "apple-ipad-pro-13-m4",
+    "model_name": "iPad Pro 13 M4",
+    "model_number": "MVX23LL/A",
+    "gtin": "0195949301001",
+    "storage_gb": 512,
+    "memory_gb": 16,
+    "region_version": "US",
+    "colour": "Space Black",
+    "processor": "M4",
+    "connectivity": "Wi-Fi",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 13.0, "unit": "in", "raw_text": "13-inch Ultra Retina XDR"}
+    ]
+  },
+  {
+    "id": "apple-ipad-pro-13-m4-512-16-cellular-eu-space-black",
+    "family_id": "apple-ipad-pro-13-m4",
+    "model_name": "iPad Pro 13 M4",
+    "model_number": "MVX24ZD/A",
+    "gtin": "0195949301018",
+    "storage_gb": 512,
+    "memory_gb": 16,
+    "region_version": "EU",
+    "colour": "Space Black",
+    "processor": "M4",
+    "connectivity": "Wi-Fi + Cellular",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 13.0, "unit": "in", "raw_text": "13-inch Ultra Retina XDR"}
+    ]
+  },
+  {
+    "id": "apple-ipad-pro-13-m4-1024-16-wifi-eu-silver",
+    "family_id": "apple-ipad-pro-13-m4",
+    "model_name": "iPad Pro 13 M4",
+    "storage_gb": 1024,
+    "memory_gb": 16,
+    "region_version": "EU",
+    "colour": "Silver",
+    "processor": "M4",
+    "connectivity": "Wi-Fi",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 13.0, "unit": "in", "raw_text": "13-inch Ultra Retina XDR"}
+    ]
+  },
+  {
+    "id": "apple-ipad-air-11-m3-128-8-wifi-eu-space-gray",
+    "family_id": "apple-ipad-air-11-m3",
+    "model_name": "iPad Air 11 M3",
+    "model_number": "MC2W4ZD/A",
+    "gtin": "0195949310010",
+    "storage_gb": 128,
+    "memory_gb": 8,
+    "region_version": "EU",
+    "colour": "Space Gray",
+    "processor": "M3",
+    "connectivity": "Wi-Fi",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 11.0, "unit": "in", "raw_text": "11-inch Liquid Retina"}
+    ]
+  },
+  {
+    "id": "apple-ipad-air-11-m3-256-8-wifi-eu-space-gray",
+    "family_id": "apple-ipad-air-11-m3",
+    "model_name": "iPad Air 11 M3",
+    "model_number": "MC2X4ZD/A",
+    "gtin": "0195949310027",
+    "retailer_skus": {
+      "bestbuy-us": "6591203"
+    },
+    "storage_gb": 256,
+    "memory_gb": 8,
+    "region_version": "EU",
+    "colour": "Space Gray",
+    "processor": "M3",
+    "connectivity": "Wi-Fi",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 11.0, "unit": "in", "raw_text": "11-inch Liquid Retina"}
+    ]
+  },
+  {
+    "id": "apple-ipad-air-11-m3-256-8-cellular-eu-starlight",
+    "family_id": "apple-ipad-air-11-m3",
+    "model_name": "iPad Air 11 M3",
+    "model_number": "MC2Y4ZD/A",
+    "gtin": "0195949310034",
+    "storage_gb": 256,
+    "memory_gb": 8,
+    "region_version": "EU",
+    "colour": "Starlight",
+    "processor": "M3",
+    "connectivity": "Wi-Fi + Cellular",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 11.0, "unit": "in", "raw_text": "11-inch Liquid Retina"}
+    ]
+  },
+  {
+    "id": "apple-ipad-air-11-m3-512-8-wifi-us-blue",
+    "family_id": "apple-ipad-air-11-m3",
+    "model_name": "iPad Air 11 M3",
+    "storage_gb": 512,
+    "memory_gb": 8,
+    "region_version": "US",
+    "colour": "Blue",
+    "processor": "M3",
+    "connectivity": "Wi-Fi",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 11.0, "unit": "in", "raw_text": "11-inch Liquid Retina"}
+    ]
+  },
+  {
+    "id": "apple-ipad-11-a16-128-6-wifi-eu-blue",
+    "family_id": "apple-ipad-11-a16",
+    "model_name": "iPad 11",
+    "model_number": "MD4A4ZD/A",
+    "gtin": "0195949320019",
+    "storage_gb": 128,
+    "memory_gb": 6,
+    "region_version": "EU",
+    "colour": "Blue",
+    "processor": "A16",
+    "connectivity": "Wi-Fi",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 11.0, "unit": "in", "raw_text": "11-inch Liquid Retina"}
+    ]
+  },
+  {
+    "id": "apple-ipad-11-a16-256-6-cellular-eu-silver",
+    "family_id": "apple-ipad-11-a16",
+    "model_name": "iPad 11",
+    "storage_gb": 256,
+    "memory_gb": 6,
+    "region_version": "EU",
+    "colour": "Silver",
+    "processor": "A16",
+    "connectivity": "Wi-Fi + Cellular",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 11.0, "unit": "in", "raw_text": "11-inch Liquid Retina"}
+    ]
+  },
+  {
+    "id": "samsung-galaxy-tab-s10-ultra-512-12-wifi-eu-moonstone",
+    "family_id": "samsung-galaxy-tab-s10-ultra",
+    "model_name": "Galaxy Tab S10 Ultra",
+    "model_number": "SM-X926BZAE",
+    "gtin": "8806095700101",
+    "storage_gb": 512,
+    "memory_gb": 12,
+    "region_version": "EU",
+    "colour": "Moonstone Gray",
+    "connectivity": "Wi-Fi",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 14.6, "unit": "in", "raw_text": "14.6-inch AMOLED"}
+    ]
+  },
+  {
+    "id": "samsung-galaxy-tab-s10-ultra-512-12-cellular-eu-moonstone",
+    "family_id": "samsung-galaxy-tab-s10-ultra",
+    "model_name": "Galaxy Tab S10 Ultra",
+    "model_number": "SM-X926BZAF",
+    "gtin": "8806095700118",
+    "storage_gb": 512,
+    "memory_gb": 12,
+    "region_version": "EU",
+    "colour": "Moonstone Gray",
+    "connectivity": "Wi-Fi + Cellular",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 14.6, "unit": "in", "raw_text": "14.6-inch AMOLED"}
+    ]
+  },
+  {
+    "id": "samsung-galaxy-tab-s10-ultra-1024-16-wifi-eu-platinum",
+    "family_id": "samsung-galaxy-tab-s10-ultra",
+    "model_name": "Galaxy Tab S10 Ultra",
+    "storage_gb": 1024,
+    "memory_gb": 16,
+    "region_version": "EU",
+    "colour": "Platinum Silver",
+    "connectivity": "Wi-Fi",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 14.6, "unit": "in", "raw_text": "14.6-inch AMOLED"}
+    ]
+  },
+  {
+    "id": "samsung-galaxy-tab-s10-plus-256-12-wifi-eu-moonstone",
+    "family_id": "samsung-galaxy-tab-s10-plus",
+    "model_name": "Galaxy Tab S10 Plus",
+    "model_number": "SM-X826BZAE",
+    "gtin": "8806095700201",
+    "storage_gb": 256,
+    "memory_gb": 12,
+    "region_version": "EU",
+    "colour": "Moonstone Gray",
+    "connectivity": "Wi-Fi",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 12.4, "unit": "in", "raw_text": "12.4-inch AMOLED"}
+    ]
+  },
+  {
+    "id": "samsung-galaxy-tab-s10-plus-512-12-cellular-eu-platinum",
+    "family_id": "samsung-galaxy-tab-s10-plus",
+    "model_name": "Galaxy Tab S10 Plus",
+    "storage_gb": 512,
+    "memory_gb": 12,
+    "region_version": "EU",
+    "colour": "Platinum Silver",
+    "connectivity": "Wi-Fi + Cellular",
+    "canonical_specs": [
+      {"key": "display_inch", "value": 12.4, "unit": "in", "raw_text": "12.4-inch AMOLED"}
     ]
   }
 ]

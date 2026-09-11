@@ -28,6 +28,18 @@ from gp_price_intel.ranking.confidence import compute_data_confidence_from
 
 logger = logging.getLogger(__name__)
 
+# Fixture columns carried into raw_specs so the matcher can compare them against
+# catalog variants — including the category-specific keys.
+_SPEC_ROW_KEYS = (
+    "storage_gb",
+    "memory_gb",
+    "region_version",
+    "colour",
+    "processor",
+    "connectivity",
+    "display_inch",
+)
+
 
 class FixtureAdapter(SourceAdapter):
     """Return curated offers from data/fixtures/offers.json."""
@@ -59,13 +71,11 @@ class FixtureAdapter(SourceAdapter):
     async def search(self, scope: SearchScope, destination_country: str) -> list[Offer]:
         rows = self._load_rows()
         offers: list[Offer] = []
-        allowed_variants = set(scope.variant_ids) if scope.variant_ids else None
 
         for row in rows:
+            # Family is a hard boundary; other builds of the same family come back so
+            # the matcher can offer them as close alternatives.
             if row.get("family_id") != scope.family_id:
-                continue
-            variant_id = row.get("variant_id")
-            if allowed_variants and variant_id not in allowed_variants:
                 continue
 
             source_id = str(row.get("source_id", "fixture-generic"))
@@ -139,7 +149,7 @@ class FixtureAdapter(SourceAdapter):
                 NormalizedSpec(key="title", value=row["listing_title"], raw_text=row["listing_title"]),
                 *[
                     NormalizedSpec(key=key, value=row[key])
-                    for key in ("storage_gb", "memory_gb", "region_version", "colour")
+                    for key in _SPEC_ROW_KEYS
                     if key in row
                 ],
             ],

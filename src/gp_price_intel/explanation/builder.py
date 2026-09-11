@@ -41,6 +41,17 @@ class ExplanationBuilder:
                     ),
                 )
             )
+            registration = offer.landed_cost.registration_fees
+            if registration is not None:
+                reasons.append(
+                    ExplanationReason(
+                        factor="registration",
+                        detail=(
+                            f"{registration.label}: {registration.amount.amount} "
+                            f"{registration.amount.currency} on top of the sticker price."
+                        ),
+                    )
+                )
             if offer.landed_cost.completeness != LandedCostCompleteness.COMPLETE:
                 caveats.append("Shipping or import fees are estimated, not quoted by the seller.")
 

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections import defaultdict
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from rapidfuzz import fuzz
@@ -17,11 +19,18 @@ REGION_TOKEN_PATTERN = re.compile(
     r"\b(?:eu|us|tr|uk|jp|europe|turkey|türkiye)\b",
     re.IGNORECASE,
 )
+CONNECTIVITY_TOKEN_PATTERN = re.compile(
+    r"\bwi[\s-]?fi\b|\bcellular\b|\b5g\b|\blte\b",
+    re.IGNORECASE,
+)
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
-GENERATION_TOKEN_PATTERN = re.compile(r"^(?:s\d{2}|m\d|[ga]\d{2}|\d{2})$")
+# Generation/model codes: s26, m4, a16, g14, i7, ux3405, 14. Short, and digit-bearing.
+GENERATION_TOKEN_PATTERN = re.compile(r"^[a-z]{0,3}\d{1,4}[a-z]?$")
 
-# Tokens that distinguish close catalog families (Pro vs base, Ultra vs Plus, M3 vs M4).
-MODIFIER_TOKENS = frozenset(
+# Generic tier words, used when no catalog vocabulary is supplied. Inventory-specific
+# tokens (zenbook, rog, ipad, …) are derived from the catalog by
+# ``build_distinctive_vocabulary`` so new brands need no code change.
+FALLBACK_MODIFIER_TOKENS = frozenset(
     {
         "ultra",
         "pro",
@@ -31,13 +40,6 @@ MODIFIER_TOKENS = frozenset(
         "mini",
         "lite",
         "fe",
-        "oled",
-        "gaming",
-        "zephyrus",
-        "zenbook",
-        "vivobook",
-        "tuf",
-        "rog",
     }
 )
 
@@ -72,6 +74,53 @@ class FamilyMatchScore:
     matched_label: str | None = None
 
 
+@dataclass(frozen=True)
+class DistinctiveVocabulary:
+    """Tokens that separate one family from its siblings, derived from the catalog."""
+
+    tokens: frozenset[str] = FALLBACK_MODIFIER_TOKENS
+
+    def holds(self, token: str) -> bool:
+        return token in self.tokens or bool(GENERATION_TOKEN_PATTERN.fullmatch(token))
+
+
+DEFAULT_VOCABULARY = DistinctiveVocabulary()
+
+
+def build_distinctive_vocabulary(
+    families: Iterable[tuple[str, Sequence[str]]],
+) -> DistinctiveVocabulary:
+    """
+    Learn the discriminating tokens from ``(brand, labels)`` pairs.
+
+    A token discriminates when it appears in some — but not all — of a brand's
+    families: "ultra" splits the Samsung line, "galaxy" and "apple" do not.
+    Adding a Dell XPS or an iPad Air to the catalog therefore needs no code edit.
+    """
+    per_brand: dict[str, list[set[str]]] = defaultdict(list)
+    for brand, labels in families:
+        family_tokens: set[str] = set()
+        for label in labels:
+            family_tokens.update(tokenize(label))
+        per_brand[normalize_text(brand)].append(family_tokens)
+
+    distinctive: set[str] = set()
+    for token_sets in per_brand.values():
+        if len(token_sets) < 2:
+            # A sole family for the brand: every token of it separates it from other brands.
+            distinctive.update(*token_sets)
+            continue
+        counts: dict[str, int] = defaultdict(int)
+        for tokens in token_sets:
+            for token in tokens:
+                counts[token] += 1
+        distinctive.update(
+            token for token, count in counts.items() if count < len(token_sets)
+        )
+
+    return DistinctiveVocabulary(tokens=frozenset(distinctive | FALLBACK_MODIFIER_TOKENS))
+
+
 def normalize_text(text: str) -> str:
     """Lowercase, strip accents, collapse whitespace."""
     lowered = text.casefold().strip()
@@ -93,6 +142,7 @@ def strip_spec_tokens(text: str) -> str:
     """
     cleaned = SPEC_TOKEN_PATTERN.sub(" ", text)
     cleaned = REGION_TOKEN_PATTERN.sub(" ", cleaned)
+    cleaned = CONNECTIVITY_TOKEN_PATTERN.sub(" ", cleaned)
     return re.sub(r"\s+", " ", cleaned).strip()
 
 
@@ -145,20 +195,39 @@ def best_fuzzy_match(query: str, candidates: list[str]) -> tuple[str | None, flo
     return max(scored, key=lambda item: item[1])
 
 
-def is_compact_alias(label: str) -> bool:
-    """Labels like S26U or MBA — short, no spaces — are stretch abbreviations."""
-    stripped = label.strip()
-    return " " not in stripped and len(stripped) <= 12
+def shares_distinctive_token(
+    query: str,
+    labels: Sequence[str],
+    vocabulary: DistinctiveVocabulary | None = None,
+) -> bool:
+    """
+    Whether the query and a family have a naming token in common.
+
+    Fuzzy scores alone will rank *something* first for any input — "Dyson V15"
+    drifts towards "iPhone 15". Requiring a shared distinctive token keeps an
+    unrelated query from being offered another family's products.
+    """
+    vocab = vocabulary or DEFAULT_VOCABULARY
+    query_tokens = {token for token in tokenize(strip_spec_tokens(query)) if vocab.holds(token)}
+    if not query_tokens:
+        return False
+    for label in labels:
+        if query_tokens & set(tokenize(label)):
+            return True
+    return False
 
 
 def score_compact_alias(query: str, label: str) -> tuple[float, bool]:
     """
     Match compressed query text against a catalog alias.
 
-    Returns (score 0–1, is_shorthand). Shorthand when the alias itself is compact
-    (S26U) or the query is very short (s26u) — family confirmation required.
+    Returns (score 0–1, is_shorthand). Shorthand is a property of what the user
+    typed — one token, or very short once compacted — not of the alias that
+    happened to match. "iPad Air 11" compacts onto the alias "iPadAir11" without
+    being an abbreviation, and must not trigger a family popup.
     """
-    query_compact = compact_form(strip_spec_tokens(query))
+    residue = strip_spec_tokens(query)
+    query_compact = compact_form(residue)
     label_compact = compact_form(label)
     if not query_compact or not label_compact:
         return 0.0, False
@@ -169,28 +238,25 @@ def score_compact_alias(query: str, label: str) -> tuple[float, bool]:
         if query_compact not in label_compact and label_compact not in query_compact:
             return 0.0, False
 
-    shorthand = is_compact_alias(label) or len(query_compact) <= COMPACT_QUERY_MAX_LEN
+    shorthand = len(tokenize(residue)) <= 1 or len(query_compact) <= COMPACT_QUERY_MAX_LEN
     return max(ratio, 0.85 if query_compact == label_compact else ratio), shorthand
 
 
-def _is_generation_token(token: str) -> bool:
-    return bool(GENERATION_TOKEN_PATTERN.fullmatch(token))
-
-
-def distinctive_token_adjustment(query: str, label: str) -> float:
+def distinctive_token_adjustment(
+    query: str,
+    label: str,
+    vocabulary: DistinctiveVocabulary | None = None,
+) -> float:
     """
-    Down-rank a label when Pro/Ultra/generation tokens disagree with the query.
+    Down-rank a label when tier/generation tokens disagree with the query.
 
     token_set_ratio treats "iPhone 16" as a perfect subset of "iPhone 16 Pro".
     This penalty keeps those families separable once both exist in the catalog.
     """
+    vocab = vocabulary or DEFAULT_VOCABULARY
     query_tokens = set(tokenize(query))
     label_tokens = set(tokenize(label))
-    distinctive = {
-        token
-        for token in query_tokens | label_tokens
-        if token in MODIFIER_TOKENS or _is_generation_token(token)
-    }
+    distinctive = {token for token in query_tokens | label_tokens if vocab.holds(token)}
     if not distinctive:
         return 1.0
     mismatch = (query_tokens ^ label_tokens) & distinctive
@@ -199,11 +265,19 @@ def distinctive_token_adjustment(query: str, label: str) -> float:
     return max(0.35, 1.0 - 0.14 * len(mismatch))
 
 
-def score_label_against_query(query: str, label: str) -> FamilyMatchScore:
+def score_label_against_query(
+    query: str,
+    label: str,
+    vocabulary: DistinctiveVocabulary | None = None,
+) -> FamilyMatchScore:
     """Score one catalog label; strips specs from query first."""
     residue = strip_spec_tokens(query)
-    fuzzy = similarity(residue, label) * distinctive_token_adjustment(residue, label)
-    compact_score, compact_shorthand = score_compact_alias(query, label)
+    adjustment = distinctive_token_adjustment(residue, label, vocabulary)
+    fuzzy = similarity(residue, label) * adjustment
+    # The compact form drops the spaces that separate "…pro14" from "…pro16", so it
+    # needs the same generation-token penalty as the token-based score.
+    compact_raw, compact_shorthand = score_compact_alias(query, label)
+    compact_score = compact_raw * adjustment
 
     if compact_shorthand and compact_score >= _to_unit_score(COMPACT_ALIAS_MATCH_THRESHOLD):
         return FamilyMatchScore(
@@ -215,12 +289,16 @@ def score_label_against_query(query: str, label: str) -> FamilyMatchScore:
     return FamilyMatchScore(score=max(fuzzy, compact_score), shorthand=False, matched_label=None)
 
 
-def score_query_against_labels(query: str, labels: list[str]) -> FamilyMatchScore:
+def score_query_against_labels(
+    query: str,
+    labels: list[str],
+    vocabulary: DistinctiveVocabulary | None = None,
+) -> FamilyMatchScore:
     """Best score across all labels/aliases for one catalog family."""
     if not labels:
         return FamilyMatchScore(score=0.0, shorthand=False)
 
-    results = [score_label_against_query(query, label) for label in labels]
+    results = [score_label_against_query(query, label, vocabulary) for label in labels]
     best = max(results, key=lambda item: item.score)
     # If any alias was a shorthand hit (e.g. s26u), the whole family match is shorthand.
     shorthand = any(result.shorthand for result in results)

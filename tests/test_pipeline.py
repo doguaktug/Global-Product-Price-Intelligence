@@ -192,6 +192,100 @@ async def test_all_conversion_failures_fail_the_search_with_reason(
 
 
 @pytest.mark.asyncio
+async def test_laptop_search_ranks_the_confirmed_build_and_offers_spec_variants(
+    pipeline_orchestrator: SearchOrchestrator,
+) -> None:
+    session = pipeline_orchestrator.start_session(
+        "MacBook Air M4 512GB 16GB RAM Sky Blue",
+        UserPreferences(destination_country="TR", reference_currency="TRY"),
+    )
+    assert session.normalized_query is not None
+    assert session.normalized_query.needs_confirmation is False
+
+    page = await pipeline_orchestrator.run(session)
+
+    assert page.confirmed_variant is not None
+    assert page.confirmed_variant.id == "apple-macbook-air-m4-512-16-us-sky-blue"
+    assert page.confirmed_variant.processor == "M4"
+    assert page.offers
+    # Only the confirmed build is ranked; the 256 GB and 1 TB machines are alternatives.
+    for offer in page.offers:
+        assert offer.match_kind == MatchKind.IDENTICAL
+        assert offer.matched_variant_id == page.confirmed_variant.id
+
+    assert page.alternatives
+    alternative_ids = {alt.offer_id for alt in page.alternatives}
+    assert alternative_ids & {"fixture-de-mba-m4-256", "fixture-de-mba-m4-1024"}
+    assert not alternative_ids & {offer.id for offer in page.offers}
+
+    upgrade = next(alt for alt in page.alternatives if alt.offer_id == "fixture-de-mba-m4-1024")
+    assert upgrade.kind.value == "spec_variant"
+    assert "storage_gb" in upgrade.differing_attributes
+    assert "memory_gb" in upgrade.differing_attributes
+    assert "processor" not in upgrade.differing_attributes  # same chip, bigger build
+    storage_reason = next(r for r in upgrade.explanation.reasons if r.factor == "storage_gb")
+    assert storage_reason.detail == "512 → 1024"
+    # The delta is a landed-cost figure, so it must be labelled in the reference currency.
+    assert any("TRY" in caveat for caveat in upgrade.explanation.caveats)
+
+
+@pytest.mark.asyncio
+async def test_tablet_search_produces_a_decision_page(
+    pipeline_orchestrator: SearchOrchestrator,
+) -> None:
+    session = pipeline_orchestrator.start_session(
+        "iPad Air 11 256GB Wi-Fi Space Gray",
+        UserPreferences(destination_country="TR", reference_currency="TRY"),
+    )
+    assert session.normalized_query is not None
+    assert session.normalized_query.extracted["connectivity"] == "Wi-Fi"
+
+    page = await pipeline_orchestrator.run(session)
+
+    assert page.confirmed_variant is not None
+    assert page.confirmed_variant.id == "apple-ipad-air-11-m3-256-8-wifi-eu-space-gray"
+    assert page.offers
+    assert page.highlights
+    assert page.alternatives
+
+
+@pytest.mark.asyncio
+async def test_import_costs_differ_by_category(
+    pipeline_orchestrator: SearchOrchestrator,
+) -> None:
+    """A phone into Türkiye is registered and dutied; a laptop is neither."""
+    preferences = UserPreferences(destination_country="TR", reference_currency="TRY")
+
+    phone_page = await pipeline_orchestrator.run(
+        pipeline_orchestrator.start_session(
+            "Samsung Galaxy S26 Ultra 512 GB Black", preferences
+        )
+    )
+    laptop_page = await pipeline_orchestrator.run(
+        pipeline_orchestrator.start_session(
+            "MacBook Air M4 512GB 16GB RAM Sky Blue", preferences
+        )
+    )
+
+    phone = next(o for o in phone_page.offers if o.id == "fixture-de-s26-512-black")
+    laptop = next(o for o in laptop_page.offers if o.id == "fixture-de-mba-m4-512")
+    assert phone.landed_cost is not None
+    assert laptop.landed_cost is not None
+
+    assert phone.landed_cost.registration_fees is not None
+    assert laptop.landed_cost.registration_fees is None
+
+    assert phone.landed_cost.import_duties is not None
+    assert laptop.landed_cost.import_duties is not None
+    assert phone.landed_cost.import_duties.amount.amount > Decimal("0")
+    assert laptop.landed_cost.import_duties.amount.amount == Decimal("0.00")
+
+    assert phone.landed_cost.shipping is not None
+    assert laptop.landed_cost.shipping is not None
+    assert laptop.landed_cost.shipping.amount.amount > phone.landed_cost.shipping.amount.amount
+
+
+@pytest.mark.asyncio
 async def test_no_offers_fails_the_search_with_reason(
     pipeline_orchestrator: SearchOrchestrator,
 ) -> None:
