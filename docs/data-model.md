@@ -280,7 +280,7 @@ One listing, at collection time. This is the unit of comparison.
 | `matchKind` | enum | `identical` \| `similar` \| `different` \| `unmatched` |
 | `matchNotes` | list of strings | e.g. “same family, storage 1TB vs 512GB” |
 | `collectedAt` | datetime | Freshness; shown visibly on Decision Page cards. Cache TTL 15–30 min |
-| `dataConfidence` | 0–1 | Weighted mix set by the adapter: `0.45 × source reliability + 0.30 × seller rating + 0.25 × review-volume score`. A weighted sum rather than a product, so one weak signal lowers confidence instead of collapsing it |
+| `dataConfidence` | 0–1 | Weighted mix set by the adapter: `0.45 × source reliability + 0.30 × seller rating + 0.25 × review-volume score`, then `×0.85` if `stockStatus` is `unknown`. A weighted sum rather than a product, so one weak signal lowers confidence instead of collapsing it |
 
 **Matching rule in the model:** two offers may share a `matchedVariantId` only when `matchKind = identical`. Similar SKUs (1 TB vs 512 GB, US vs EU version) stay separate offers and may become **alternatives**, not merged rows.
 

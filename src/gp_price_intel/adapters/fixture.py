@@ -132,7 +132,7 @@ class FixtureAdapter(SourceAdapter):
         if "data_confidence" in row:
             confidence = float(row["data_confidence"])
         else:
-            confidence = compute_data_confidence_from(source, seller)
+            confidence = compute_data_confidence_from(source, seller, stock_status)
 
         return Offer(
             id=offer_id,

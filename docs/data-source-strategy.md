@@ -188,7 +188,7 @@ Offers whose **effective confidence** (`dataConfidence × landed-cost completene
 
 - Adapters must capture `stockStatus` from the listing (not guess from "page exists").
 - `out_of_stock` offers are **excluded from ranking** entirely — they are not offers.
-- `unknown` stock is allowed but carries a lower `dataConfidence` and an explanation caveat.
+- `unknown` stock is allowed but carries a lower `dataConfidence` (a ×0.85 factor). Only `unknown` is discounted: `in_stock`, `limited` and `out_of_stock` are all facts the source reported, and confidence rates the **data**, not the attractiveness of the offer. No separate explanation caveat is raised for it — the planned freshness work, which surfaces `collectedAt` and warns on stale listings, is the right place to tell the user about purchasability.
 - `limited` stock is included with a visible warning on the card.
 
 ### 2. Cache TTL — don't serve stale offers

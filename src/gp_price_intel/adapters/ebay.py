@@ -246,7 +246,8 @@ class EbayAdapter(SourceAdapter):
                     gtin = str(values[0])
                     break
 
-        confidence = compute_data_confidence_from(self.source, seller)
+        stock_status = self._stock_status(item)
+        confidence = compute_data_confidence_from(self.source, seller, stock_status)
 
         return Offer(
             id=f"ebay-{item_id}",
@@ -259,7 +260,7 @@ class EbayAdapter(SourceAdapter):
             list_price=Money(amount=Decimal(str(amount)), currency=str(currency)),
             retailer_sku=str(item_id),
             gtin=gtin,
-            stock_status=self._stock_status(item),
+            stock_status=stock_status,
             warranty=None,
             return_policy=None,
             raw_specs=[

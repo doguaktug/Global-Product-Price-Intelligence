@@ -18,10 +18,12 @@ from gp_price_intel.domain.models import (
     Seller,
     Source,
     SourceKind,
+    StockStatus,
     UserPreferences,
 )
 from gp_price_intel.ranking.confidence import (
     HIGHLIGHT_MIN_CONFIDENCE,
+    UNKNOWN_STOCK_CONFIDENCE_FACTOR,
     compute_data_confidence,
     effective_confidence,
     is_highlight_eligible,
@@ -88,6 +90,26 @@ def _offer(
 
 def test_review_volume_is_monotonic() -> None:
     assert review_volume_score(0) < review_volume_score(10) < review_volume_score(1000)
+
+
+def test_unknown_stock_lowers_confidence() -> None:
+    """We could not establish the item is purchasable — that is missing data."""
+    signals = {"source_reliability": 0.9, "seller_reliability": 0.9, "review_count": 1000}
+    known = compute_data_confidence(**signals, stock_status=StockStatus.IN_STOCK)
+    unknown = compute_data_confidence(**signals, stock_status=StockStatus.UNKNOWN)
+
+    assert unknown < known
+    assert abs(unknown - known * UNKNOWN_STOCK_CONFIDENCE_FACTOR) < 1e-9
+
+
+def test_stock_states_the_source_actually_reported_are_not_discounted() -> None:
+    """Confidence rates the data, not the offer. 'Limited' is knowledge, not a gap."""
+    signals = {"source_reliability": 0.9, "seller_reliability": 0.9, "review_count": 1000}
+    in_stock = compute_data_confidence(**signals, stock_status=StockStatus.IN_STOCK)
+
+    assert compute_data_confidence(**signals, stock_status=StockStatus.LIMITED) == in_stock
+    assert compute_data_confidence(**signals, stock_status=StockStatus.OUT_OF_STOCK) == in_stock
+    assert compute_data_confidence(**signals) == in_stock
 
 
 def test_weaker_source_and_reviews_yield_lower_confidence() -> None:

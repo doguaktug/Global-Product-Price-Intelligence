@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import math
 
-from gp_price_intel.domain.models import ScoreBreakdown, Seller, Source
+from gp_price_intel.domain.models import ScoreBreakdown, Seller, Source, StockStatus
 
 # Effective confidence (1 - confidence_penalty) must meet this to appear
 # in Decision Page recommendations. Full ranked list still includes all offers.
 HIGHLIGHT_MIN_CONFIDENCE = 0.7
+
+# Confidence measures how much we trust the *data*, not how attractive the offer is.
+# Of the four stock states only `unknown` is missing information — in-stock, limited
+# and out-of-stock are all things the source actually told us. So only `unknown` is
+# discounted. (Out-of-stock offers are filtered out before ranking regardless.)
+UNKNOWN_STOCK_CONFIDENCE_FACTOR = 0.85
 
 
 def review_volume_score(review_count: int | None) -> float:
@@ -26,11 +32,14 @@ def compute_data_confidence(
     source_reliability: float,
     seller_reliability: float | None = None,
     review_count: int | None = None,
+    stock_status: StockStatus | None = None,
 ) -> float:
     """
-    Lesser-known sites and lightly reviewed sellers get lower confidence.
+    Lesser-known sites, lightly reviewed sellers and unknown stock get lower confidence.
 
-    Weights: source reputation dominates, then seller rating, then review volume.
+    Weights: source reputation dominates, then seller rating, then review volume. The
+    result is then discounted if we could not even establish whether the item is
+    purchasable.
     """
     seller = 0.5 if seller_reliability is None else seller_reliability
     reviews = review_volume_score(review_count)
@@ -39,17 +48,21 @@ def compute_data_confidence(
         + 0.30 * seller
         + 0.25 * reviews
     )
+    if stock_status == StockStatus.UNKNOWN:
+        score *= UNKNOWN_STOCK_CONFIDENCE_FACTOR
     return max(0.0, min(1.0, score))
 
 
 def compute_data_confidence_from(
     source: Source,
     seller: Seller,
+    stock_status: StockStatus | None = None,
 ) -> float:
     return compute_data_confidence(
         source_reliability=source.reliability,
         seller_reliability=seller.reliability,
         review_count=seller.review_count,
+        stock_status=stock_status,
     )
 
 
