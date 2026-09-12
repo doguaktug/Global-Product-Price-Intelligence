@@ -492,14 +492,25 @@ What the UI renders.
 
 ## What is stored vs in-memory
 
-| Persist | Per-search (memory, optional short cache) |
-| --- | --- |
-| `Category`, `ProductFamily`, `ProductVariant` | `Offer` and nested money/cost/specs |
-| `Source` | `ScoreBreakdown`, `Explanation` |
-| `SearchSession` (query, confirmation, preferences) | `DecisionPage` (may snapshot later for demos) |
-| Optional: recent `FxQuote` | |
+Only the **reference catalog** is persisted: `Category`, `ProductFamily`, `ProductVariant`, and `Source`, as seed JSON under `data/`. Everything a search produces — `Offer`, `ScoreBreakdown`, `Explanation`, `DecisionPage` — exists for the duration of the request and is then discarded. Prices are not a historical warehouse.
 
-Prices are not a historical warehouse in v1.
+### `SearchSession` is not stored either: the API is stateless by design
+
+There is no server-side session table and no session id to look up. `SearchSession` is a **request/response payload**: `POST /search/start` returns one, the client sends it back to `POST /search/confirm` with the popup answers, gets an updated one, and sends that to `POST /search/run`. The server holds nothing between calls.
+
+This is deliberate, for three reasons:
+
+- **A price is a fact about a moment.** A stored session invites replaying a stale Decision Page as if it were current. Making the client carry the state means every Decision Page is built from a fetch that just happened.
+- **Nothing to expire or invalidate.** No session store means no TTL policy, no eviction, no cleanup job, and no class of bug where two requests disagree about what the user confirmed.
+- **It scales sideways for free.** Any instance can serve any request, which matters for a prototype that may be demoed from anywhere.
+
+The trade-off is real and accepted: the payload travelling both ways is larger than a session id would be, and a client that loses the object loses the search.
+
+`SearchSession` still *has* fields that look like stored state — `propertyChoices`, `searchScope`, `confirmedVariantId` — because the state has to live somewhere across the confirm/run boundary. The distinction is that it lives in the payload, not on the server.
+
+### Where a cache would go, if one is added
+
+Nothing is cached today. Two places could justify it later, and both are narrow: recent `FxQuote` values, since the ECB publishes daily and re-fetching per request is wasteful; and fetched offers for a short window, so that re-ranking under different weights does not re-hit every source. Neither changes the stateless contract above — both would be a keyed cache in front of a service, not a session store.
 
 ---
 
@@ -512,4 +523,6 @@ Prices are not a historical warehouse in v1.
 - **Decision Page:** `DecisionPage` + highlights + explanations, not a single “cheapest” string.
 - **Missing/unreliable data:** `completeness`, `dataConfidence`, `missingCriteria` — first-class, not afterthoughts.
 
-Implementation later can be Python dataclasses, TypeScript types, or another OO language. The classes above are the contract; the language is still open.
+These classes are implemented in `src/gp_price_intel/domain/models.py` as **Pydantic v2 models** on Python 3.11+. Pydantic rather than plain dataclasses because the same definitions have to do three jobs: validate untrusted input at the API boundary, serialize to JSON for the Decision Page, and enforce immutability on the value objects (`Money`, `FxQuote`, `ConvertedMoney`, `NormalizedSpec`, `CostLine` and `LandedCost` are frozen, which is what makes "the original price is never overwritten" a guarantee rather than a convention). Writing that by hand around dataclasses would be the same code with more room for it to drift.
+
+This document writes field names in `camelCase` for readability. The Python fields and the JSON on the wire are both `snake_case` — there is no alias layer, so `listPrice` here is `list_price` in both.
