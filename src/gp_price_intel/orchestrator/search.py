@@ -16,6 +16,7 @@ from gp_price_intel.domain.models import (
     DecisionPage,
     MatchKind,
     NormalizedQuery,
+    PreferenceOrigin,
     PropertyChoice,
     SearchScope,
     SearchSession,
@@ -111,7 +112,7 @@ class SearchOrchestrator:
         raw_query: str,
         preferences: UserPreferences | None = None,
     ) -> SearchSession:
-        prefs = preferences or UserPreferences()
+        prefs = self._stamp_origin(preferences)
         normalized = self.normalizer.normalize(raw_query)
         status = (
             SessionStatus.NEEDS_CONFIRMATION
@@ -281,6 +282,27 @@ class SearchOrchestrator:
             alternatives=alt_list,
             generated_at=datetime.now(timezone.utc),
         )
+
+    @staticmethod
+    def _stamp_origin(preferences: UserPreferences | None) -> UserPreferences:
+        """
+        Record where the destination and currency came from.
+
+        Two origins are reachable today: `default` when the caller sent nothing, and
+        `manual` when it sent preferences. `geolocation` sits between them and is a
+        documented proposal only — no code infers a country from an IP or a browser
+        API, so nothing may claim that origin. Stamping the two we do have keeps the
+        Decision Page able to say "we assumed Türkiye" rather than implying the user
+        chose it.
+
+        An explicit non-default origin from the caller is left alone, so a future
+        geolocation step can set its own without this overwriting it.
+        """
+        if preferences is None:
+            return UserPreferences()
+        if preferences.origin != PreferenceOrigin.DEFAULT:
+            return preferences
+        return preferences.model_copy(update={"origin": PreferenceOrigin.MANUAL})
 
     def _source_registry(self) -> dict[str, Source]:
         """Map `Offer.sourceId` back to the source, so ranking can weigh site reputation."""

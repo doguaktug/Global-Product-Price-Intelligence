@@ -55,8 +55,8 @@ Chart and STEP writeup: [architecture.md — End-to-end process flow](docs/archi
 1. **User enters a product**  
    `api/routes.py` → `start_search` · `orchestrator/search.py` → `SearchOrchestrator.start_session`
 
-2. **User selects preference weights** (optional sliders; country/currency: TR+TRY → geo if permitted → manual; later overwrites earlier)  
-   `domain/models.py` → `UserPreferences` (defaults) · wired through `start_search` / `StartSearchRequest.preferences` · *UI sliders / geo waterfall: not built yet*
+2. **User selects preference weights** (optional sliders; country/currency: TR+TRY default → manual override, recorded in `origin`; geolocation is a documented proposal, not code)  
+   `domain/models.py` → `UserPreferences` (defaults) · wired through `start_search` / `StartSearchRequest.preferences` · `orchestrator/search.py` → `SearchOrchestrator._stamp_origin` · *UI sliders: not built yet*
 
 3. **Normalize the query against a small reference catalog**  
    `normalize/query_normalizer.py` → `QueryNormalizer.normalize` · `normalize/similarity.py` → `score_query_against_labels`, `similarity`, `strip_spec_tokens` · `normalize/attribute_parser.py` → `parse_storage_gb`, `parse_memory_gb`, `parse_region_version`, `parse_colour` · `catalog/repository.py` → `CatalogRepository` (`get_family`, `list_variants`, …) · preview: `api/routes.py` → `normalize_query` / `SearchOrchestrator.preview_normalization`

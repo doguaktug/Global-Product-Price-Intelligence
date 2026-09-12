@@ -24,11 +24,13 @@ Country and currency are never required fields. They follow a **waterfall**; eac
 
 | Priority | When | Result |
 | --- | --- | --- |
-| 1. Default | App load | **TR** + **TRY** |
-| 2. Geolocation | User permits location | Inferred country + that country’s usual currency **replaces** the default |
-| 3. Manual | User picks country/currency next to the sliders | **Replaces** whatever default or geo had set |
+| 1. Default | App load | **TR** + **TRY**. Implemented |
+| 2. Geolocation | User permits location | Inferred country + that country’s usual currency **replaces** the default. **Proposed — not implemented** |
+| 3. Manual | User picks country/currency next to the sliders | **Replaces** whatever default or geo had set. Implemented |
 
-Search uses whatever is in effect at submit. Manual choice is not snapped back to location. Changing sliders later can re-rank without a new crawl; changing destination/currency may require recomputing FX and landed cost.
+Search uses whatever is in effect at submit. Manual choice is not snapped back to location. Only steps 1 and 3 exist in code, and which one applied is recorded on the session so a card can distinguish "you chose TR" from "we assumed TR".
+
+Changing sliders later can re-rank without a new crawl; changing destination/currency may require recomputing FX and landed cost.
 
 ---
 

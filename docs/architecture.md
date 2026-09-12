@@ -68,11 +68,13 @@ If they do not move the sliders, **published defaults** apply (price 40%, seller
 
 **Country / currency waterfall** (each later step overwrites the one before):
 
-1. **Default:** TR + TRY  
-2. **If they permit geolocation:** inferred country + that country’s usual currency replaces the default  
-3. **If they manually select** next to the sliders: that replaces default or geo  
+1. **Default:** TR + TRY — **implemented**, recorded as `origin = default`
+2. **If they permit geolocation:** inferred country + that country’s usual currency replaces the default — **proposed, not implemented**
+3. **If they manually select** next to the sliders: that replaces default or geo — **implemented**, recorded as `origin = manual`
 
 Search uses whatever is in effect at submit. Manual choice is not snapped back to location.
+
+`UserPreferences.origin` records which step last set the country, so the Decision Page can say "we assumed Türkiye" instead of implying the user chose it. Only `default` and `manual` are reachable today; nothing in the code infers a country from an IP or a browser API, so nothing claims `geolocation`. The enum member exists because that step is a designed part of the waterfall rather than a hypothetical, and an explicitly supplied origin is never overwritten — a geolocation step can set its own when it is built.
 
 ### 3. Understand and normalize
 
