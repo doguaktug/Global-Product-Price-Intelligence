@@ -82,6 +82,8 @@ UAE / France / Italy can be added later as extra adapters; they are not required
 
 A **small** set that hits these types across the five countries is enough. Count of URLs is not the grade.
 
+The manufacturer row stays in this table even though no live manufacturer adapter is shipped. It is the reliability anchor the other tiers are graded against — a marketplace price only means something next to the official list price — and an official-store API key is being pursued, so the row describes the intended source mix rather than a wish. Until then a fixture stands in for it, with the same `Source.kind` and reliability it would have live.
+
 ---
 
 ## Shipped and planned adapters
@@ -105,12 +107,27 @@ Source reputation is the hand-set `reliability` field in `data/sources/sources.j
 | --- | --- |
 | Best Buy Products API | Dropped — no usable public API path for this prototype |
 | Fnac / other FR retailers | No public API; not scraping behind ToS |
-| Official brand stores (Apple / Samsung regional) | Optional later if a clean API or structured page exists |
+| Official brand stores (Apple / Samsung regional) | **Pending an API key**, which is being applied for. The adapter interface and the `manufacturer` source kind are already in place, so this is a credential away rather than a redesign |
 | TR / DE / UK / JP live retailers (Hepsiburada-, MediaMarkt-, Currys-class) | Prefer API or permitted page; until then fixtures cover those countries |
 | Amazon storefront HTML | **Out** unless an official partner API is licensed |
 | Trendyol / Hepsiburada bots | Skip or fixture if ToS forbids automated access |
 
 **Week 2 cut (done):** live **eBay + Frankfurter FX**, plus **fixtures** for the remaining MVP countries so the five-country Decision Page still has offers. Replace fixtures with live adapters as keys/ToS allow.
+
+### Why most coverage is fixtures
+
+Two constraints meet here, and between them they rule out live access to most of the source list:
+
+- **Crawling is off the table.** The assignment explicitly rules out designing around uncontrolled scraping, and principle 3 above rules out working around ToS, robots.txt, or bot protection. That removes every retailer whose prices are only available by reading their pages.
+- **Retailers do not hand out API keys for a student project.** The sources that *do* publish a product API — Hepsiburada, MediaMarkt, Trendyol, Currys, Amazon — gate it behind a commercial partner or seller agreement. eBay is the exception, which is why eBay is the one live retail adapter.
+
+So a fixture is not a placeholder for work not yet done. For most of these sources it is the only legitimate way to have their data in the project at all, and that is worth stating plainly rather than implying a live integration is one afternoon away.
+
+What matters for the assignment is that the fixture is a **substitute for the transport, not for the logic**. A fixture adapter implements the same `SourceAdapter` contract, returns the same `Offer` shape with the same provenance fields, and goes through the same normalization, matching, FX, landed-cost, and ranking code as the live eBay adapter. Nothing downstream can tell the difference, which is the property that makes the pipeline demonstrable and makes swapping in a live adapter a change to one class.
+
+The fixtures are also written to be *awkward* on purpose, so the normalization paths are genuinely exercised rather than fed pre-cleaned data: battery as `"5.000 mAh"` (dot as a thousands separator) next to display as `"17,5 cm"` (comma as a decimal point, and in centimetres), the same display written `"6,9 inç"` on the Turkish row, delivery as `"2-4 Werktage"` and `"1-3 iş günü"`, warranty as `"24 months"` on one row and `"2 years"` on another, and a `fixture-obscure` source carrying a deliberately low-reputation seller so the confidence gate has something to exclude.
+
+What fixtures cannot demonstrate, and the docs should not claim they do: live rate limits, real ToS behaviour, source downtime, and prices actually moving between searches.
 
 ---
 
