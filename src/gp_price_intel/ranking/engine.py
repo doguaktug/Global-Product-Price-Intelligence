@@ -163,7 +163,9 @@ def _seller_signal(offer: Offer, sources: dict[str, Source]) -> float:
         return source.reliability if source is not None else offer.data_confidence
     if source is None:
         return seller
-    return (1.0 - SOURCE_RELIABILITY_WEIGHT) * seller + SOURCE_RELIABILITY_WEIGHT * source.reliability
+    return (1.0 - SOURCE_RELIABILITY_WEIGHT) * seller + (
+        SOURCE_RELIABILITY_WEIGHT * source.reliability
+    )
 
 
 class RankingEngine:

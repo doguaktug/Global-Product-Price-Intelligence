@@ -80,7 +80,11 @@ def _listing_response(request: httpx.Request, *, title: str, aspects: list | Non
                     "title": title,
                     "itemWebUrl": "https://www.ebay.com/itm/999",
                     "price": {"value": "1099.99", "currency": "USD"},
-                    "seller": {"username": "s", "feedbackPercentage": "98.5", "feedbackScore": 4200},
+                    "seller": {
+                        "username": "s",
+                        "feedbackPercentage": "98.5",
+                        "feedbackScore": 4200,
+                    },
                     "estimatedAvailabilities": [{"estimatedAvailabilityStatus": "IN_STOCK"}],
                     **({"localizedAspects": aspects} if aspects else {}),
                 }
