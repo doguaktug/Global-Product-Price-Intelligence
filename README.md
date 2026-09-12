@@ -46,7 +46,7 @@ Health check: `GET http://127.0.0.1:8000/health`
 | `data/sources/` | Source registry |
 | `data/fixtures/` | Demo offer snapshots |
 
-Most pipeline modules are implemented end-to-end on the API (normalize → fetch → match → FX → landed cost → rank → Decision Page payload). **Next:** basic comparison UI. Catalog seed data and FastAPI routes load today.
+The pipeline runs end-to-end on the API: normalize → confirm → fetch → match → FX → landed cost → rank → explain → Decision Page payload. Catalog seed data and FastAPI routes load today. There is no UI yet; the Decision Page is a JSON payload.
 
 **Process**
 
@@ -85,7 +85,7 @@ Chart and STEP writeup: [architecture.md — End-to-end process flow](docs/archi
 11. **Suggest close alternatives** carefully (same product different specs, or a comparable different product)  
     `alternatives/scout.py` → `AlternativeScout.select`
 
-12. **Present the Decision Page** (why, FX, landed-cost add-ons, best landed / best for you / best rated + alternatives)  
+12. **Present the Decision Page** (why, FX, landed-cost add-ons, the five highlight lenses + alternatives)  
     `domain/models.py` → `DecisionPage` (`offers`, `offer_scores`, `highlights`, `alternatives`) · returned by `run_search` / `SearchOrchestrator.run` · *Decision Page UI: not built yet*
 
 ## Design docs
@@ -96,4 +96,5 @@ Chart and STEP writeup: [architecture.md — End-to-end process flow](docs/archi
 - [Initial UI concept](docs/ui-concept.md) — welcome, confirm popup, loading, Decision Page
 - [Proposed algorithm](docs/proposed-algorithm.md) — weighted scoring, missing-data handling, explanations, alternative guardrails
 - [Process framework](docs/process-framework-and-algorithm.md) — STEP flow from first page to Decision Page
+- [Parameter reference](docs/parameters.md) — every tunable value, where it is defined, and what moving it does
 - [Project layout](docs/project-layout.md) — Python package map and current backend status

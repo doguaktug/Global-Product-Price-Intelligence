@@ -225,8 +225,21 @@ async def test_laptop_search_ranks_the_confirmed_build_and_offers_spec_variants(
     assert "processor" not in upgrade.differing_attributes  # same chip, bigger build
     storage_reason = next(r for r in upgrade.explanation.reasons if r.factor == "storage_gb")
     assert storage_reason.detail == "512 → 1024"
-    # The delta is a landed-cost figure, so it must be labelled in the reference currency.
-    assert any("TRY" in caveat for caveat in upgrade.explanation.caveats)
+
+    # landedCostDelta is the difference against the top pick, not the alternative's
+    # own total, because the card renders it as "+X vs your pick". A 1 TB machine
+    # costs more than a 512 GB one, so the delta is positive and far smaller than
+    # either total.
+    top_pick = page.offers[0].landed_cost
+    assert top_pick is not None
+    assert upgrade.landed_cost_delta is not None
+    assert upgrade.landed_cost_delta.currency == "TRY"
+    assert upgrade.landed_cost_delta.amount > 0
+    assert upgrade.landed_cost_delta.amount < top_pick.total.amount
+
+    cost_reason = next(r for r in upgrade.explanation.reasons if r.factor == "cost")
+    assert "TRY" in cost_reason.detail
+    assert "more than your top pick" in cost_reason.detail
 
 
 @pytest.mark.asyncio

@@ -61,15 +61,19 @@ If a fee is not known with enough reliability, the system marks the total as par
 
 This is the suggested algorithm. Price alone does not decide the result. A cheaper list price may have a higher landed cost. A user may also care about seller reliability, warranty, reviews, or delivery.
 
-For each identical offer, the system reads:
+For each identical offer, the system reads five criteria:
 
-- price, as landed cost (or converted list price if landed cost is missing)
-- seller reliability
-- warranty
-- reviews
-- delivery time
+- **price**, as landed cost (or converted list price if landed cost is missing)
+- **seller**, mostly the seller's own rating with the hosting site's reputation counting for 30% of it
+- **reviews**, from how many reviews the seller has, on a log scale so the first hundred matter more than the next thousand
+- **delivery time**, parsed into days
+- **warranty**, parsed into months
 
-It then scales each of those values to a 0–1 range inside this search. A lower price gets a higher score. A higher rating gets a higher score. The best offer in the set scores 1 on that criterion. The worst scores 0.
+The system does not score specs. Every offer in this set already matched the confirmed variant exactly, so their specs are the same and a spec score would be 1 for all of them. Specs decide which offers get in here, and which alternatives are worth showing — not the order inside the set.
+
+Delivery and warranty arrive as text each source writes its own way, in its own language: "2-4 Werktage", "1-3 iş günü", "Next day", "24 months". The system parses these into days and months. A range counts as its slow end, because that is what the buyer waits for. If the text has no unit at all — a bare "48", or "manufacturer warranty" with no length — the system treats the criterion as missing rather than guessing a number.
+
+It then scales each of those values to a 0–1 range inside this search. A lower price gets a higher score, and so does a faster delivery. A higher rating gets a higher score. The best offer in the set scores 1 on that criterion. The worst scores 0.
 
 The user weights from STEP 1 then combine the scores:
 
@@ -78,6 +82,8 @@ final score = confidence × (w_price × price score + w_seller × seller score +
 ```
 
 Only the criteria that exist for that offer enter the sum. If warranty is missing, the system drops that weight and scales the rest so they still sum to 1. The offer stays in the ranking. The explanation later states what was missing.
+
+Because the weights are always rescaled this way, only their **proportions** matter. Pushing every slider to the maximum gives the same ranking as leaving them all low. Setting a weight to zero removes that criterion from the round completely.
 
 Unreliable data also lowers the score. Partial landed cost multiplies the result by 0.90. Unknown landed cost multiplies it by 0.75. Low source confidence (lesser-known sites, sparse reviews) lowers it further.
 
@@ -97,16 +103,24 @@ If “best for you” is the same offer as another lens, that other highlight is
 
 Close alternatives come from the similar and different offers in STEP 4. They are not random similar titles.
 
-A same-family upgrade is shown only if the spec gain is at least 25%. The extra landed cost must be at most 10%. A downgrade is shown only if it saves at least 15%. The spec loss must be at most 50%, and the offer must still meet the confirmed minimum.
+They are scored in the **same pass** as the confirmed offers and only separated afterwards. This matters because the 0–1 scale in STEP 6 is stretched to fit whatever set it is handed, so an alternative scored on its own would carry a number calibrated against other alternatives. Its score would not be comparable to the ranked list, and the rival test below compares exactly those two numbers. Alternatives are then sorted by final score, like the main list.
 
-A different product is shown only if it shares the category and overlaps at least 60% of the core specs. Its score must be greater than 85% of the best-for-you score.
+The value tests decide which alternatives get a **badge**, not which ones are shown. A same-family variant is badged an upgrade if some spec gains at least 25% while the landed cost rises at most 10%. It is badged a downgrade if it saves at least 15% while no spec falls more than 50% and it still meets the confirmed minimum. A different product is badged a rival if it shares the category, overlaps at least 60% of the core specs, and scores above 85% of the best-for-you score.
 
-The system keeps at most three alternatives. It prefers one upgrade, one downgrade, and one rival. If no candidate passes these tests, it shows none.
+Spec gain and loss are measured across every numeric spec in the category, not one chosen field, so a machine that doubles its memory while keeping its storage counts as an upgrade.
+
+An alternative that passes no test still appears, ranked, and says in its caveats that it does not clear a value test. The badge is a claim about value and has to be earned; simply existing as an option does not. Hiding the option instead would leave the user with an empty panel and no stated reason.
+
+The system keeps at most three alternatives and fills those slots with one upgrade, one downgrade, and one rival where it can, before topping up with the highest-scoring unbadged candidates — three cheaper-but-smaller variants would tell the user one thing three times. Each alternative also carries its landed cost **minus the top pick's**, so a negative figure means it is cheaper; the panel exists to answer what switching would cost, and a reader should not have to subtract two totals to find out. If there are no similar or different offers at all, the panel is empty.
 
 ## STEP 8 – Explain the result and show the Decision Page
 
 Before the page appears, the system writes a short reason for each highlight and each alternative.
 
-The reason has a headline, the decisive facts with their values, and any caveats. Caveats cover missing fields, estimated fees, and low confidence. If the best-for-you offer is not the cheapest, the text states why the cheaper offer lost.
+The reason has a headline, the decisive facts with their values, and any caveats.
 
-The Decision Page then shows those cards. It also shows the original price, the FX rate and time, the landed-cost add-ons, and a freshness time on every offer. When the user opens a retailer link, the system checks that listing again. If the item is gone or the price changed by a large amount, it warns the user.
+A stated reason has to be the reason the offer actually won. For each criterion the system takes the offer's weighted contribution — its slider weight times its 0–1 score — and subtracts the same figure for the offer it had to beat: second place for the winner, or the offer directly above for anyone further down the list. Criteria where that margin is positive are the reasons, largest margin first, and at most three are shown. The weighting matters because a criterion the user set to 5% cannot be the reason for anything, however well the offer scored on it; and comparing against the immediate rival rather than the whole field stops a criterion that only beats a few weak listings from looking decisive. A criterion the offer scores well on but ties or loses is not offered as a reason it won, because it was not one. Such criteria are appended afterwards only if there is room, so a strong all-rounder still reads as one.
+
+Caveats cover missing fields, estimated fees, and low confidence. If the best-for-you offer is not the cheapest, the text names the cheapest offer it beat and the criteria that offer lost on.
+
+The Decision Page then shows those cards. It also shows the original price, the FX rate and its publication date, the landed-cost add-ons, and the time each offer was collected. Retailer links open directly. Whether an offer can actually be bought was settled during the search — an out-of-stock listing never entered the ranking, and one with unknown stock was scored down for it — so there is no second check when the user clicks through.

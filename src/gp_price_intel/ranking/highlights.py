@@ -47,7 +47,10 @@ def pick_highlights(
             DecisionHighlight(
                 kind=kind,
                 offer_id=offer.id,
-                explanation=builder.build(offer, breakdown, label),
+                # The whole scored set, not just the eligible pool: "why the cheaper
+                # option lost" has to be able to name a cheap offer that was itself
+                # too unreliable to be recommended.
+                explanation=builder.build(offer, breakdown, label, scored),
             )
         )
         used_offer_ids.add(offer.id)
