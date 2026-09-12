@@ -15,6 +15,7 @@ from gp_price_intel.domain.models import (
 )
 from gp_price_intel.normalize.confirmation import ConfirmationError
 from gp_price_intel.orchestrator.search import SearchFailed, SearchOrchestrator
+from gp_price_intel.orchestrator.search_memory import SearchExpired
 
 router = APIRouter(prefix="/api")
 _catalog = CatalogRepository()
@@ -33,6 +34,11 @@ class NormalizeRequest(BaseModel):
 class ConfirmRequest(BaseModel):
     session: SearchSession
     choices: list[PropertyChoice] = Field(default_factory=list)
+
+
+class ReRankRequest(BaseModel):
+    session: SearchSession
+    preferences: UserPreferences
 
 
 @router.get("/catalog/categories")
@@ -79,6 +85,24 @@ async def run_search(session: SearchSession) -> DecisionPage:
     try:
         return await _orchestrator.run(session)
     except ConfirmationError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except SearchFailed as exc:
+        raise HTTPException(status_code=422, detail=exc.reason) from exc
+
+
+@router.post("/search/rerank", response_model=DecisionPage)
+async def rerank_search(body: ReRankRequest) -> DecisionPage:
+    """
+    Re-score the offers already fetched for this session under new weights.
+
+    Moving a slider does not change what is for sale, so this does not re-hit any
+    retailer. A 409 means the remembered fetch has expired or the request tried to
+    change destination or currency; either way the client should call
+    `/search/run` again.
+    """
+    try:
+        return await _orchestrator.rerank(body.session, body.preferences)
+    except SearchExpired as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except SearchFailed as exc:
         raise HTTPException(status_code=422, detail=exc.reason) from exc

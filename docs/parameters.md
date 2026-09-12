@@ -120,14 +120,24 @@ Read from the environment or `.env` via `config.py` (`Settings`), not from code 
 | --- | --- | --- |
 | `DEFAULT_DESTINATION_COUNTRY` | `TR` | Where the user is buying to, before geolocation or a manual override |
 | `DEFAULT_REFERENCE_CURRENCY` | `TRY` | Currency every offer is compared in |
+| `OFFER_CACHE_TTL_SECONDS` | `900` | How long a completed fetch stays re-rankable. `0` disables the memory entirely |
 | `EBAY_APP_ID` / `EBAY_CERT_ID` | unset | eBay Browse API credentials. Without them the eBay adapter returns nothing and other sources continue |
 | `EBAY_SANDBOX` | `false` | Point the eBay adapter at the sandbox host |
 | `DATA_DIR` | `<repo>/data` | Where catalog, sources and fixtures are loaded from |
 
-Three settings are declared but **read by nothing today**, and are listed separately rather than described as if they worked:
+Two settings are declared but **read by nothing today**, and are listed separately rather than described as if they worked:
 
 | Setting | Default | Intent |
 | --- | --- | --- |
 | `FX_PROVIDER` | `frankfurter` | Selecting between FX providers. Frankfurter is currently wired in directly, so the value is ignored |
-| `OFFER_CACHE_TTL_SECONDS` | `900` | Lifetime of a cached search — see [data-model.md](data-model.md#where-a-cache-would-go-if-one-is-added) |
 | `EBAY_DEV_ID` | unset | Required by eBay's Trading-era APIs; the Browse API does not use it |
+
+---
+
+## Search memory
+
+| Parameter | Default | Defined in | Effect |
+| --- | --- | --- | --- |
+| `MAX_REMEMBERED_SEARCHES` | `128` | `orchestrator/search_memory.py` | Cap on remembered fetches. The oldest is evicted past this, so a traffic burst cannot grow the cache without limit |
+
+Raising `OFFER_CACHE_TTL_SECONDS` keeps sliders responsive for longer at the cost of re-ranking against older prices; lowering it sends the user back to a fresh search sooner. Setting it to `0` turns the feature off. See [data-model.md](data-model.md#the-one-cache-remembered-offers-for-re-ranking).
