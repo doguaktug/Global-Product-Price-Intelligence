@@ -6,7 +6,6 @@
     "model_number": "SM-S928BZKG",
     "gtin": "8806095123456",
     "retailer_skus": {
-      "bestbuy-us": "6575028",
       "ebay": "v1|123456789|0"
     },
     "storage_gb": 512,
@@ -14,8 +13,18 @@
     "region_version": "EU",
     "colour": "Black",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 5000, "unit": "mAh", "raw_text": "5000 mAh"},
-      {"key": "display_inch", "value": 6.9, "unit": "in", "raw_text": "6.9-inch"}
+      {
+        "key": "battery_mah",
+        "value": 5000,
+        "unit": "mAh",
+        "raw_text": "5000 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.9,
+        "unit": "in",
+        "raw_text": "6.9-inch"
+      }
     ]
   },
   {
@@ -27,8 +36,18 @@
     "region_version": "EU",
     "colour": "Silver",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 5000, "unit": "mAh", "raw_text": "5000 mAh"},
-      {"key": "display_inch", "value": 6.9, "unit": "in", "raw_text": "6.9-inch"}
+      {
+        "key": "battery_mah",
+        "value": 5000,
+        "unit": "mAh",
+        "raw_text": "5000 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.9,
+        "unit": "in",
+        "raw_text": "6.9-inch"
+      }
     ]
   },
   {
@@ -37,16 +56,23 @@
     "model_name": "Galaxy S26 Ultra",
     "model_number": "SM-S928BZKH",
     "gtin": "8806095987654",
-    "retailer_skus": {
-      "bestbuy-us": "6575099"
-    },
     "storage_gb": 1024,
     "memory_gb": 12,
     "region_version": "EU",
     "colour": "Black",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 5000, "unit": "mAh", "raw_text": "5000 mAh"},
-      {"key": "display_inch", "value": 6.9, "unit": "in", "raw_text": "6.9-inch"}
+      {
+        "key": "battery_mah",
+        "value": 5000,
+        "unit": "mAh",
+        "raw_text": "5000 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.9,
+        "unit": "in",
+        "raw_text": "6.9-inch"
+      }
     ]
   },
   {
@@ -60,8 +86,18 @@
     "region_version": "EU",
     "colour": "Black",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 4900, "unit": "mAh", "raw_text": "4900 mAh"},
-      {"key": "display_inch", "value": 6.7, "unit": "in", "raw_text": "6.7-inch"}
+      {
+        "key": "battery_mah",
+        "value": 4900,
+        "unit": "mAh",
+        "raw_text": "4900 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.7,
+        "unit": "in",
+        "raw_text": "6.7-inch"
+      }
     ]
   },
   {
@@ -73,8 +109,18 @@
     "region_version": "EU",
     "colour": "Navy",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 4900, "unit": "mAh", "raw_text": "4900 mAh"},
-      {"key": "display_inch", "value": 6.7, "unit": "in", "raw_text": "6.7-inch"}
+      {
+        "key": "battery_mah",
+        "value": 4900,
+        "unit": "mAh",
+        "raw_text": "4900 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.7,
+        "unit": "in",
+        "raw_text": "6.7-inch"
+      }
     ]
   },
   {
@@ -88,8 +134,18 @@
     "region_version": "EU",
     "colour": "Black",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 4000, "unit": "mAh", "raw_text": "4000 mAh"},
-      {"key": "display_inch", "value": 6.2, "unit": "in", "raw_text": "6.2-inch"}
+      {
+        "key": "battery_mah",
+        "value": 4000,
+        "unit": "mAh",
+        "raw_text": "4000 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.2,
+        "unit": "in",
+        "raw_text": "6.2-inch"
+      }
     ]
   },
   {
@@ -101,8 +157,18 @@
     "region_version": "EU",
     "colour": "Black",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 4000, "unit": "mAh", "raw_text": "4000 mAh"},
-      {"key": "display_inch", "value": 6.2, "unit": "in", "raw_text": "6.2-inch"}
+      {
+        "key": "battery_mah",
+        "value": 4000,
+        "unit": "mAh",
+        "raw_text": "4000 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.2,
+        "unit": "in",
+        "raw_text": "6.2-inch"
+      }
     ]
   },
   {
@@ -114,8 +180,18 @@
     "region_version": "EU",
     "colour": "Green",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 4000, "unit": "mAh", "raw_text": "4000 mAh"},
-      {"key": "display_inch", "value": 6.2, "unit": "in", "raw_text": "6.2-inch"}
+      {
+        "key": "battery_mah",
+        "value": 4000,
+        "unit": "mAh",
+        "raw_text": "4000 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.2,
+        "unit": "in",
+        "raw_text": "6.2-inch"
+      }
     ]
   },
   {
@@ -129,8 +205,18 @@
     "region_version": "EU",
     "colour": "Black",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 5000, "unit": "mAh", "raw_text": "5000 mAh"},
-      {"key": "display_inch", "value": 6.9, "unit": "in", "raw_text": "6.9-inch"}
+      {
+        "key": "battery_mah",
+        "value": 5000,
+        "unit": "mAh",
+        "raw_text": "5000 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.9,
+        "unit": "in",
+        "raw_text": "6.9-inch"
+      }
     ]
   },
   {
@@ -142,8 +228,18 @@
     "region_version": "EU",
     "colour": "Silver",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 5000, "unit": "mAh", "raw_text": "5000 mAh"},
-      {"key": "display_inch", "value": 6.9, "unit": "in", "raw_text": "6.9-inch"}
+      {
+        "key": "battery_mah",
+        "value": 5000,
+        "unit": "mAh",
+        "raw_text": "5000 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.9,
+        "unit": "in",
+        "raw_text": "6.9-inch"
+      }
     ]
   },
   {
@@ -157,8 +253,18 @@
     "region_version": "EU",
     "colour": "Navy",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 4000, "unit": "mAh", "raw_text": "4000 mAh"},
-      {"key": "display_inch", "value": 6.2, "unit": "in", "raw_text": "6.2-inch"}
+      {
+        "key": "battery_mah",
+        "value": 4000,
+        "unit": "mAh",
+        "raw_text": "4000 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.2,
+        "unit": "in",
+        "raw_text": "6.2-inch"
+      }
     ]
   },
   {
@@ -170,8 +276,18 @@
     "region_version": "EU",
     "colour": "Black",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 4000, "unit": "mAh", "raw_text": "4000 mAh"},
-      {"key": "display_inch", "value": 6.2, "unit": "in", "raw_text": "6.2-inch"}
+      {
+        "key": "battery_mah",
+        "value": 4000,
+        "unit": "mAh",
+        "raw_text": "4000 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.2,
+        "unit": "in",
+        "raw_text": "6.2-inch"
+      }
     ]
   },
   {
@@ -180,16 +296,23 @@
     "model_name": "iPhone 16 Pro",
     "model_number": "MYND3ZD/A",
     "gtin": "0194253491234",
-    "retailer_skus": {
-      "bestbuy-us": "6502341"
-    },
     "storage_gb": 256,
     "memory_gb": 8,
     "region_version": "EU",
     "colour": "Black Titanium",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 3582, "unit": "mAh", "raw_text": "3582 mAh"},
-      {"key": "display_inch", "value": 6.3, "unit": "in", "raw_text": "6.3-inch"}
+      {
+        "key": "battery_mah",
+        "value": 3582,
+        "unit": "mAh",
+        "raw_text": "3582 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.3,
+        "unit": "in",
+        "raw_text": "6.3-inch"
+      }
     ]
   },
   {
@@ -201,8 +324,18 @@
     "region_version": "EU",
     "colour": "Natural Titanium",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 3582, "unit": "mAh", "raw_text": "3582 mAh"},
-      {"key": "display_inch", "value": 6.3, "unit": "in", "raw_text": "6.3-inch"}
+      {
+        "key": "battery_mah",
+        "value": 3582,
+        "unit": "mAh",
+        "raw_text": "3582 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.3,
+        "unit": "in",
+        "raw_text": "6.3-inch"
+      }
     ]
   },
   {
@@ -216,8 +349,18 @@
     "region_version": "US",
     "colour": "Natural Titanium",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 4685, "unit": "mAh", "raw_text": "4685 mAh"},
-      {"key": "display_inch", "value": 6.9, "unit": "in", "raw_text": "6.9-inch"}
+      {
+        "key": "battery_mah",
+        "value": 4685,
+        "unit": "mAh",
+        "raw_text": "4685 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.9,
+        "unit": "in",
+        "raw_text": "6.9-inch"
+      }
     ]
   },
   {
@@ -229,8 +372,18 @@
     "region_version": "EU",
     "colour": "Black Titanium",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 4685, "unit": "mAh", "raw_text": "4685 mAh"},
-      {"key": "display_inch", "value": 6.9, "unit": "in", "raw_text": "6.9-inch"}
+      {
+        "key": "battery_mah",
+        "value": 4685,
+        "unit": "mAh",
+        "raw_text": "4685 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.9,
+        "unit": "in",
+        "raw_text": "6.9-inch"
+      }
     ]
   },
   {
@@ -244,8 +397,18 @@
     "region_version": "EU",
     "colour": "Black",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 3561, "unit": "mAh", "raw_text": "3561 mAh"},
-      {"key": "display_inch", "value": 6.1, "unit": "in", "raw_text": "6.1-inch"}
+      {
+        "key": "battery_mah",
+        "value": 3561,
+        "unit": "mAh",
+        "raw_text": "3561 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.1,
+        "unit": "in",
+        "raw_text": "6.1-inch"
+      }
     ]
   },
   {
@@ -257,8 +420,18 @@
     "region_version": "EU",
     "colour": "Teal",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 3561, "unit": "mAh", "raw_text": "3561 mAh"},
-      {"key": "display_inch", "value": 6.1, "unit": "in", "raw_text": "6.1-inch"}
+      {
+        "key": "battery_mah",
+        "value": 3561,
+        "unit": "mAh",
+        "raw_text": "3561 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.1,
+        "unit": "in",
+        "raw_text": "6.1-inch"
+      }
     ]
   },
   {
@@ -272,8 +445,18 @@
     "region_version": "EU",
     "colour": "White",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 4674, "unit": "mAh", "raw_text": "4674 mAh"},
-      {"key": "display_inch", "value": 6.7, "unit": "in", "raw_text": "6.7-inch"}
+      {
+        "key": "battery_mah",
+        "value": 4674,
+        "unit": "mAh",
+        "raw_text": "4674 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.7,
+        "unit": "in",
+        "raw_text": "6.7-inch"
+      }
     ]
   },
   {
@@ -285,8 +468,18 @@
     "region_version": "EU",
     "colour": "Teal",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 4674, "unit": "mAh", "raw_text": "4674 mAh"},
-      {"key": "display_inch", "value": 6.7, "unit": "in", "raw_text": "6.7-inch"}
+      {
+        "key": "battery_mah",
+        "value": 4674,
+        "unit": "mAh",
+        "raw_text": "4674 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.7,
+        "unit": "in",
+        "raw_text": "6.7-inch"
+      }
     ]
   },
   {
@@ -300,8 +493,18 @@
     "region_version": "EU",
     "colour": "Black Titanium",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 3274, "unit": "mAh", "raw_text": "3274 mAh"},
-      {"key": "display_inch", "value": 6.1, "unit": "in", "raw_text": "6.1-inch"}
+      {
+        "key": "battery_mah",
+        "value": 3274,
+        "unit": "mAh",
+        "raw_text": "3274 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.1,
+        "unit": "in",
+        "raw_text": "6.1-inch"
+      }
     ]
   },
   {
@@ -313,8 +516,18 @@
     "region_version": "EU",
     "colour": "White Titanium",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 3274, "unit": "mAh", "raw_text": "3274 mAh"},
-      {"key": "display_inch", "value": 6.1, "unit": "in", "raw_text": "6.1-inch"}
+      {
+        "key": "battery_mah",
+        "value": 3274,
+        "unit": "mAh",
+        "raw_text": "3274 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.1,
+        "unit": "in",
+        "raw_text": "6.1-inch"
+      }
     ]
   },
   {
@@ -328,8 +541,18 @@
     "region_version": "EU",
     "colour": "Blue",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 3349, "unit": "mAh", "raw_text": "3349 mAh"},
-      {"key": "display_inch", "value": 6.1, "unit": "in", "raw_text": "6.1-inch"}
+      {
+        "key": "battery_mah",
+        "value": 3349,
+        "unit": "mAh",
+        "raw_text": "3349 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.1,
+        "unit": "in",
+        "raw_text": "6.1-inch"
+      }
     ]
   },
   {
@@ -341,8 +564,18 @@
     "region_version": "EU",
     "colour": "Pink",
     "canonical_specs": [
-      {"key": "battery_mah", "value": 3349, "unit": "mAh", "raw_text": "3349 mAh"},
-      {"key": "display_inch", "value": 6.1, "unit": "in", "raw_text": "6.1-inch"}
+      {
+        "key": "battery_mah",
+        "value": 3349,
+        "unit": "mAh",
+        "raw_text": "3349 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.1,
+        "unit": "in",
+        "raw_text": "6.1-inch"
+      }
     ]
   },
   {
@@ -355,7 +588,12 @@
     "colour": "Midnight",
     "processor": "M3",
     "canonical_specs": [
-      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+      {
+        "key": "display_inch",
+        "value": 13.6,
+        "unit": "in",
+        "raw_text": "13.6-inch"
+      }
     ]
   },
   {
@@ -368,7 +606,12 @@
     "colour": "Midnight",
     "processor": "M3",
     "canonical_specs": [
-      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+      {
+        "key": "display_inch",
+        "value": 13.6,
+        "unit": "in",
+        "raw_text": "13.6-inch"
+      }
     ]
   },
   {
@@ -381,7 +624,12 @@
     "colour": "Starlight",
     "processor": "M3",
     "canonical_specs": [
-      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+      {
+        "key": "display_inch",
+        "value": 13.6,
+        "unit": "in",
+        "raw_text": "13.6-inch"
+      }
     ]
   },
   {
@@ -394,7 +642,12 @@
     "colour": "Space Gray",
     "processor": "M3",
     "canonical_specs": [
-      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+      {
+        "key": "display_inch",
+        "value": 13.6,
+        "unit": "in",
+        "raw_text": "13.6-inch"
+      }
     ]
   },
   {
@@ -409,7 +662,12 @@
     "colour": "Sky Blue",
     "processor": "M4",
     "canonical_specs": [
-      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+      {
+        "key": "display_inch",
+        "value": 13.6,
+        "unit": "in",
+        "raw_text": "13.6-inch"
+      }
     ]
   },
   {
@@ -418,16 +676,18 @@
     "model_name": "MacBook Air M4",
     "model_number": "MC6U4LL/A",
     "gtin": "0195949832018",
-    "retailer_skus": {
-      "bestbuy-us": "6608701"
-    },
     "storage_gb": 512,
     "memory_gb": 16,
     "region_version": "US",
     "colour": "Sky Blue",
     "processor": "M4",
     "canonical_specs": [
-      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+      {
+        "key": "display_inch",
+        "value": 13.6,
+        "unit": "in",
+        "raw_text": "13.6-inch"
+      }
     ]
   },
   {
@@ -442,7 +702,12 @@
     "colour": "Midnight",
     "processor": "M4",
     "canonical_specs": [
-      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+      {
+        "key": "display_inch",
+        "value": 13.6,
+        "unit": "in",
+        "raw_text": "13.6-inch"
+      }
     ]
   },
   {
@@ -455,7 +720,12 @@
     "colour": "Silver",
     "processor": "M4",
     "canonical_specs": [
-      {"key": "display_inch", "value": 13.6, "unit": "in", "raw_text": "13.6-inch"}
+      {
+        "key": "display_inch",
+        "value": 13.6,
+        "unit": "in",
+        "raw_text": "13.6-inch"
+      }
     ]
   },
   {
@@ -468,7 +738,12 @@
     "colour": "Space Black",
     "processor": "M4",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.2, "unit": "in", "raw_text": "14.2-inch"}
+      {
+        "key": "display_inch",
+        "value": 14.2,
+        "unit": "in",
+        "raw_text": "14.2-inch"
+      }
     ]
   },
   {
@@ -481,7 +756,12 @@
     "colour": "Space Black",
     "processor": "M4",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.2, "unit": "in", "raw_text": "14.2-inch"}
+      {
+        "key": "display_inch",
+        "value": 14.2,
+        "unit": "in",
+        "raw_text": "14.2-inch"
+      }
     ]
   },
   {
@@ -494,7 +774,12 @@
     "colour": "Space Black",
     "processor": "M4 Pro",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.2, "unit": "in", "raw_text": "14.2-inch"}
+      {
+        "key": "display_inch",
+        "value": 14.2,
+        "unit": "in",
+        "raw_text": "14.2-inch"
+      }
     ]
   },
   {
@@ -507,7 +792,12 @@
     "colour": "Silver",
     "processor": "M4 Max",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.2, "unit": "in", "raw_text": "14.2-inch"}
+      {
+        "key": "display_inch",
+        "value": 14.2,
+        "unit": "in",
+        "raw_text": "14.2-inch"
+      }
     ]
   },
   {
@@ -520,7 +810,12 @@
     "colour": "Silver",
     "processor": "M4 Pro",
     "canonical_specs": [
-      {"key": "display_inch", "value": 16.2, "unit": "in", "raw_text": "16.2-inch"}
+      {
+        "key": "display_inch",
+        "value": 16.2,
+        "unit": "in",
+        "raw_text": "16.2-inch"
+      }
     ]
   },
   {
@@ -533,7 +828,12 @@
     "colour": "Space Black",
     "processor": "M4 Pro",
     "canonical_specs": [
-      {"key": "display_inch", "value": 16.2, "unit": "in", "raw_text": "16.2-inch"}
+      {
+        "key": "display_inch",
+        "value": 16.2,
+        "unit": "in",
+        "raw_text": "16.2-inch"
+      }
     ]
   },
   {
@@ -546,7 +846,12 @@
     "colour": "Space Black",
     "processor": "M4 Max",
     "canonical_specs": [
-      {"key": "display_inch", "value": 16.2, "unit": "in", "raw_text": "16.2-inch"}
+      {
+        "key": "display_inch",
+        "value": 16.2,
+        "unit": "in",
+        "raw_text": "16.2-inch"
+      }
     ]
   },
   {
@@ -560,7 +865,12 @@
     "colour": "Foggy Silver",
     "processor": "Intel Core Ultra 7",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.0, "unit": "in", "raw_text": "14-inch OLED"}
+      {
+        "key": "display_inch",
+        "value": 14.0,
+        "unit": "in",
+        "raw_text": "14-inch OLED"
+      }
     ]
   },
   {
@@ -574,7 +884,12 @@
     "colour": "Basalt Gray",
     "processor": "Intel Core Ultra 7",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.0, "unit": "in", "raw_text": "14-inch OLED"}
+      {
+        "key": "display_inch",
+        "value": 14.0,
+        "unit": "in",
+        "raw_text": "14-inch OLED"
+      }
     ]
   },
   {
@@ -588,7 +903,12 @@
     "colour": "Foggy Silver",
     "processor": "Intel Core Ultra 9",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.0, "unit": "in", "raw_text": "14-inch OLED"}
+      {
+        "key": "display_inch",
+        "value": 14.0,
+        "unit": "in",
+        "raw_text": "14-inch OLED"
+      }
     ]
   },
   {
@@ -602,7 +922,12 @@
     "colour": "Cool Silver",
     "processor": "Intel Core i5",
     "canonical_specs": [
-      {"key": "display_inch", "value": 16.0, "unit": "in", "raw_text": "16-inch"}
+      {
+        "key": "display_inch",
+        "value": 16.0,
+        "unit": "in",
+        "raw_text": "16-inch"
+      }
     ]
   },
   {
@@ -616,7 +941,12 @@
     "colour": "Quiet Blue",
     "processor": "Intel Core i7",
     "canonical_specs": [
-      {"key": "display_inch", "value": 16.0, "unit": "in", "raw_text": "16-inch"}
+      {
+        "key": "display_inch",
+        "value": 16.0,
+        "unit": "in",
+        "raw_text": "16-inch"
+      }
     ]
   },
   {
@@ -630,7 +960,12 @@
     "colour": "Cool Silver",
     "processor": "Intel Core i7",
     "canonical_specs": [
-      {"key": "display_inch", "value": 16.0, "unit": "in", "raw_text": "16-inch"}
+      {
+        "key": "display_inch",
+        "value": 16.0,
+        "unit": "in",
+        "raw_text": "16-inch"
+      }
     ]
   },
   {
@@ -644,7 +979,12 @@
     "colour": "Eclipse Gray",
     "processor": "AMD Ryzen 9",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.0, "unit": "in", "raw_text": "14-inch"}
+      {
+        "key": "display_inch",
+        "value": 14.0,
+        "unit": "in",
+        "raw_text": "14-inch"
+      }
     ]
   },
   {
@@ -658,7 +998,12 @@
     "colour": "Eclipse Gray",
     "processor": "AMD Ryzen 9",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.0, "unit": "in", "raw_text": "14-inch"}
+      {
+        "key": "display_inch",
+        "value": 14.0,
+        "unit": "in",
+        "raw_text": "14-inch"
+      }
     ]
   },
   {
@@ -672,7 +1017,12 @@
     "colour": "Platinum White",
     "processor": "AMD Ryzen 9",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.0, "unit": "in", "raw_text": "14-inch"}
+      {
+        "key": "display_inch",
+        "value": 14.0,
+        "unit": "in",
+        "raw_text": "14-inch"
+      }
     ]
   },
   {
@@ -686,7 +1036,12 @@
     "colour": "Graphite Black",
     "processor": "AMD Ryzen 7",
     "canonical_specs": [
-      {"key": "display_inch", "value": 15.6, "unit": "in", "raw_text": "15.6-inch"}
+      {
+        "key": "display_inch",
+        "value": 15.6,
+        "unit": "in",
+        "raw_text": "15.6-inch"
+      }
     ]
   },
   {
@@ -700,7 +1055,12 @@
     "colour": "Jaeger Gray",
     "processor": "AMD Ryzen 7",
     "canonical_specs": [
-      {"key": "display_inch", "value": 15.6, "unit": "in", "raw_text": "15.6-inch"}
+      {
+        "key": "display_inch",
+        "value": 15.6,
+        "unit": "in",
+        "raw_text": "15.6-inch"
+      }
     ]
   },
   {
@@ -714,7 +1074,12 @@
     "colour": "Jaeger Gray",
     "processor": "AMD Ryzen 9",
     "canonical_specs": [
-      {"key": "display_inch", "value": 15.6, "unit": "in", "raw_text": "15.6-inch"}
+      {
+        "key": "display_inch",
+        "value": 15.6,
+        "unit": "in",
+        "raw_text": "15.6-inch"
+      }
     ]
   },
   {
@@ -730,7 +1095,12 @@
     "processor": "M4",
     "connectivity": "Wi-Fi",
     "canonical_specs": [
-      {"key": "display_inch", "value": 13.0, "unit": "in", "raw_text": "13-inch Ultra Retina XDR"}
+      {
+        "key": "display_inch",
+        "value": 13.0,
+        "unit": "in",
+        "raw_text": "13-inch Ultra Retina XDR"
+      }
     ]
   },
   {
@@ -746,7 +1116,12 @@
     "processor": "M4",
     "connectivity": "Wi-Fi + Cellular",
     "canonical_specs": [
-      {"key": "display_inch", "value": 13.0, "unit": "in", "raw_text": "13-inch Ultra Retina XDR"}
+      {
+        "key": "display_inch",
+        "value": 13.0,
+        "unit": "in",
+        "raw_text": "13-inch Ultra Retina XDR"
+      }
     ]
   },
   {
@@ -760,7 +1135,12 @@
     "processor": "M4",
     "connectivity": "Wi-Fi",
     "canonical_specs": [
-      {"key": "display_inch", "value": 13.0, "unit": "in", "raw_text": "13-inch Ultra Retina XDR"}
+      {
+        "key": "display_inch",
+        "value": 13.0,
+        "unit": "in",
+        "raw_text": "13-inch Ultra Retina XDR"
+      }
     ]
   },
   {
@@ -776,7 +1156,12 @@
     "processor": "M3",
     "connectivity": "Wi-Fi",
     "canonical_specs": [
-      {"key": "display_inch", "value": 11.0, "unit": "in", "raw_text": "11-inch Liquid Retina"}
+      {
+        "key": "display_inch",
+        "value": 11.0,
+        "unit": "in",
+        "raw_text": "11-inch Liquid Retina"
+      }
     ]
   },
   {
@@ -785,9 +1170,6 @@
     "model_name": "iPad Air 11 M3",
     "model_number": "MC2X4ZD/A",
     "gtin": "0195949310027",
-    "retailer_skus": {
-      "bestbuy-us": "6591203"
-    },
     "storage_gb": 256,
     "memory_gb": 8,
     "region_version": "EU",
@@ -795,7 +1177,12 @@
     "processor": "M3",
     "connectivity": "Wi-Fi",
     "canonical_specs": [
-      {"key": "display_inch", "value": 11.0, "unit": "in", "raw_text": "11-inch Liquid Retina"}
+      {
+        "key": "display_inch",
+        "value": 11.0,
+        "unit": "in",
+        "raw_text": "11-inch Liquid Retina"
+      }
     ]
   },
   {
@@ -811,7 +1198,12 @@
     "processor": "M3",
     "connectivity": "Wi-Fi + Cellular",
     "canonical_specs": [
-      {"key": "display_inch", "value": 11.0, "unit": "in", "raw_text": "11-inch Liquid Retina"}
+      {
+        "key": "display_inch",
+        "value": 11.0,
+        "unit": "in",
+        "raw_text": "11-inch Liquid Retina"
+      }
     ]
   },
   {
@@ -825,7 +1217,12 @@
     "processor": "M3",
     "connectivity": "Wi-Fi",
     "canonical_specs": [
-      {"key": "display_inch", "value": 11.0, "unit": "in", "raw_text": "11-inch Liquid Retina"}
+      {
+        "key": "display_inch",
+        "value": 11.0,
+        "unit": "in",
+        "raw_text": "11-inch Liquid Retina"
+      }
     ]
   },
   {
@@ -841,7 +1238,12 @@
     "processor": "A16",
     "connectivity": "Wi-Fi",
     "canonical_specs": [
-      {"key": "display_inch", "value": 11.0, "unit": "in", "raw_text": "11-inch Liquid Retina"}
+      {
+        "key": "display_inch",
+        "value": 11.0,
+        "unit": "in",
+        "raw_text": "11-inch Liquid Retina"
+      }
     ]
   },
   {
@@ -855,7 +1257,12 @@
     "processor": "A16",
     "connectivity": "Wi-Fi + Cellular",
     "canonical_specs": [
-      {"key": "display_inch", "value": 11.0, "unit": "in", "raw_text": "11-inch Liquid Retina"}
+      {
+        "key": "display_inch",
+        "value": 11.0,
+        "unit": "in",
+        "raw_text": "11-inch Liquid Retina"
+      }
     ]
   },
   {
@@ -870,7 +1277,12 @@
     "colour": "Moonstone Gray",
     "connectivity": "Wi-Fi",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.6, "unit": "in", "raw_text": "14.6-inch AMOLED"}
+      {
+        "key": "display_inch",
+        "value": 14.6,
+        "unit": "in",
+        "raw_text": "14.6-inch AMOLED"
+      }
     ]
   },
   {
@@ -885,7 +1297,12 @@
     "colour": "Moonstone Gray",
     "connectivity": "Wi-Fi + Cellular",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.6, "unit": "in", "raw_text": "14.6-inch AMOLED"}
+      {
+        "key": "display_inch",
+        "value": 14.6,
+        "unit": "in",
+        "raw_text": "14.6-inch AMOLED"
+      }
     ]
   },
   {
@@ -898,7 +1315,12 @@
     "colour": "Platinum Silver",
     "connectivity": "Wi-Fi",
     "canonical_specs": [
-      {"key": "display_inch", "value": 14.6, "unit": "in", "raw_text": "14.6-inch AMOLED"}
+      {
+        "key": "display_inch",
+        "value": 14.6,
+        "unit": "in",
+        "raw_text": "14.6-inch AMOLED"
+      }
     ]
   },
   {
@@ -913,7 +1335,12 @@
     "colour": "Moonstone Gray",
     "connectivity": "Wi-Fi",
     "canonical_specs": [
-      {"key": "display_inch", "value": 12.4, "unit": "in", "raw_text": "12.4-inch AMOLED"}
+      {
+        "key": "display_inch",
+        "value": 12.4,
+        "unit": "in",
+        "raw_text": "12.4-inch AMOLED"
+      }
     ]
   },
   {
@@ -926,7 +1353,12 @@
     "colour": "Platinum Silver",
     "connectivity": "Wi-Fi + Cellular",
     "canonical_specs": [
-      {"key": "display_inch", "value": 12.4, "unit": "in", "raw_text": "12.4-inch AMOLED"}
+      {
+        "key": "display_inch",
+        "value": 12.4,
+        "unit": "in",
+        "raw_text": "12.4-inch AMOLED"
+      }
     ]
   }
 ]

@@ -25,6 +25,8 @@ from gp_price_intel.domain.models import (
     SourceKind,
     StockStatus,
 )
+from gp_price_intel.normalize.attribute_parser import parse_listing_attributes
+from gp_price_intel.normalize.spec_parser import parse_spec_value
 from gp_price_intel.ranking.confidence import compute_data_confidence_from
 
 logger = logging.getLogger(__name__)
@@ -44,6 +46,22 @@ _QUERY_TERMS: tuple[tuple[str, str], ...] = (
     ("memory_gb", "{}GB RAM"),
     ("connectivity", "{}"),
 )
+
+# Seller-filled aspect names worth reading, mapped to catalog spec keys. eBay lets
+# sellers name aspects freely, so this covers the common spellings rather than all.
+ASPECT_SPEC_KEYS: dict[str, str] = {
+    "storage capacity": "storage_gb",
+    "internal storage capacity": "storage_gb",
+    "ram": "memory_gb",
+    "ram size": "memory_gb",
+    "processor": "processor",
+    "chipset/cpu model": "processor",
+    "battery capacity": "battery_mah",
+    "screen size": "display_inch",
+    "display size": "display_inch",
+    "colour": "colour",
+    "color": "colour",
+}
 
 
 def default_ebay_source() -> Source:
@@ -99,9 +117,15 @@ class EbayAdapter(SourceAdapter):
             logger.exception("eBay search failed for query=%r", query)
             return []
 
+        # The Browse API returns a title and little else, so the family's option
+        # lists are what let us read specs out of that title. Without them the
+        # offer reaches the matcher with nothing to compare and is dropped.
+        family = self.catalog.get_family(scope.family_id)
+        valid_options = family.valid_options if family else {}
+
         offers: list[Offer] = []
         for item in summaries:
-            offer = self._parse_item(item)
+            offer = self._parse_item(item, valid_options)
             if offer is None or offer.stock_status == StockStatus.OUT_OF_STOCK:
                 continue
             offers.append(offer)
@@ -130,7 +154,7 @@ class EbayAdapter(SourceAdapter):
                 "message": "This listing no longer appears on eBay.",
             }
 
-        parsed = self._parse_item(item)
+        parsed = self._parse_item(item, {})
         if parsed is None:
             return {"available": True, "verified": False, "message": "Could not parse live item."}
 
@@ -213,7 +237,11 @@ class EbayAdapter(SourceAdapter):
     def _api_host(self) -> str:
         return "api.sandbox.ebay.com" if self.settings.ebay_sandbox else "api.ebay.com"
 
-    def _parse_item(self, item: dict[str, Any]) -> Offer | None:
+    def _parse_item(
+        self,
+        item: dict[str, Any],
+        valid_options: dict[str, list[Any]],
+    ) -> Offer | None:
         title = item.get("title")
         price_block = item.get("price") or {}
         amount = price_block.get("value")
@@ -270,10 +298,54 @@ class EbayAdapter(SourceAdapter):
                     if condition
                     else []
                 ),
+                *self._specs_from_title(str(title), valid_options),
+                *self._specs_from_aspects(item),
             ],
             collected_at=datetime.now(timezone.utc),
             data_confidence=confidence,
         )
+
+    @staticmethod
+    def _specs_from_title(
+        title: str,
+        valid_options: dict[str, list[Any]],
+    ) -> list[NormalizedSpec]:
+        """
+        Read catalog attributes out of the listing title.
+
+        eBay publishes no structured specs on search results, so without this the
+        offer carries only a title and a condition — nothing the attribute matcher
+        can compare — and every listing ends up `unmatched` and dropped. The title
+        is the one place a seller reliably states the build ("... 512GB 12GB RAM
+        Unlocked EU"), so it is parsed with the same code that reads user queries.
+        """
+        attributes = parse_listing_attributes(title, valid_options)
+        return [
+            NormalizedSpec(key=key, value=value, raw_text=title)
+            for key, value in attributes.items()
+            if value is not None
+        ]
+
+    @staticmethod
+    def _specs_from_aspects(item: dict[str, Any]) -> list[NormalizedSpec]:
+        """
+        Take specs from `localizedAspects` when a seller filled them in.
+
+        These are more trustworthy than the title but optional and inconsistently
+        named, so they supplement the title rather than replace it. Values arrive as
+        display strings ("5,000 mAh", "6.9 in") and go through the unit parser.
+        """
+        specs: list[NormalizedSpec] = []
+        for aspect in item.get("localizedAspects") or []:
+            key = ASPECT_SPEC_KEYS.get(str(aspect.get("name", "")).casefold())
+            if key is None:
+                continue
+            values = aspect.get("value") or []
+            raw = str(values[0]) if isinstance(values, list) and values else str(values or "")
+            parsed = parse_spec_value(key, raw)
+            if parsed is not None:
+                specs.append(NormalizedSpec(key=key, value=parsed, raw_text=raw))
+        return specs
 
     def _item_country(self, item: dict[str, Any]) -> str:
         location = item.get("itemLocation") or {}

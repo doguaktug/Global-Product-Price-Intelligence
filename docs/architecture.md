@@ -14,7 +14,7 @@ Personal project draft. Full decision-support model (not only a ranking engine).
 | Reference Catalog | Small reference data for normalization / validation (not a price warehouse) |
 | Confirmation Gate | Popup on search when the catalog match is missing, invalid, or ambiguous |
 | Live Data Acquisition | API / scraping / headless browser adapters per source |
-| Product Matching | Catalog + attributes + text similarity; same product vs near variant |
+| Product Matching | Catalog identifiers, then normalized attributes; same product vs near variant |
 | FX Service | Live exchange rates into a common currency |
 | Landed Cost Layer | Shipping, border/import tax, registration and similar destination fees |
 | Ranking Engine | User weights + total cost + trust + reviews (+ delivery signals) |
@@ -78,6 +78,10 @@ Search uses whatever is in effect at submit. Manual choice is not snapped back t
 
 The user does not need a perfect product name (`Aple`, wrong capacity, etc.). The normalizer extracts category, brand, model, and technical attributes; fixes typos; and checks against valid catalog options.
 
+The same parser is reused on **listing titles** during matching (step 7), because a title is the same kind of string as a query — free text naming a build. Keeping one implementation means a query and a listing can never disagree about what `"512GB 12GB RAM"` means.
+
+Separately, a **unit parser** normalizes measurement specs that sources write in their own units and punctuation: `5,000 mAh`, `5.000 mAh`, `5000mAh` and `5 Ah` are one battery, and `6.9"`, `6,9 inç`, `6.9型` and `17,5 cm` are one screen. See [data-model.md](data-model.md#normalizedspec) for the canonical unit per key and the disambiguation rules.
+
 Colors and other non-core, frequently changing fields need not live in the catalog. The catalog answers “what product could this be?” Live data answers “where, how much, under what conditions — now?”
 
 ### 4. Confirm model / specs (popup on search)
@@ -113,12 +117,18 @@ See [data-source-strategy.md](data-source-strategy.md) for MVP countries, source
 
 Same physical product can appear under different titles across stores.
 
-| Approach | Logic | Strong when |
+Matching is **two tiers, tried in order**:
+
+| Tier | Logic | Strong when |
 | --- | --- | --- |
-| Identity-based | EAN/UPC/GTIN, model code, SKU | Strong IDs exist across listings |
-| Attribute-based | Brand, model, RAM, storage, screen, etc. | Phones / laptops / tablets |
-| Text similarity | Title/description similarity | Missing model codes / messy titles |
-| Hybrid | Identity → attributes → text | Default overall strategy |
+| 1. Identity | EAN/UPC/GTIN, manufacturer model code, per-source retailer SKU | Strong IDs exist across listings |
+| 2. Attributes | Category identity keys — storage, RAM, region, chip, connectivity — compared against catalog variants | Phones / laptops / tablets, where the build is what distinguishes one SKU from another |
+
+An **absent** identifier is missing evidence, not contradicting evidence: when tier 1 finds nothing, matching falls through to tier 2 rather than rejecting the offer. Only a *stated conflict* rules a variant out. This is what makes marketplace listings usable at all — eBay publishes no identifier the catalog shares, so every eBay offer is decided by tier 2.
+
+Tier 2 needs structured attributes, and most sources do not publish any. The attributes therefore come from **normalizing the listing title** with the same parser that reads user queries (see step 5): `"Galaxy S26 Ultra 512GB 12GB RAM EU Black"` yields `storage_gb=512, memory_gb=12, region_version=EU, colour=Black`. Where a source does publish structured specs, those are preferred and passed through the unit parser first.
+
+There is deliberately **no free-text similarity tier**. Fuzzy title scoring is used to pick the product *family* from the user's query (step 5), where a wrong guess only opens a confirmation popup. Using it to decide which *build* an offer is would silently merge a 256 GB listing with a 512 GB one, and a wrong answer there corrupts the price comparison itself. When the two tiers cannot decide, the offer is `unmatched` and excluded, which is the honest outcome.
 
 Matching must distinguish:
 

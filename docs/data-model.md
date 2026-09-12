@@ -217,7 +217,23 @@ Example (assignment §4): original €1,399 EUR; EUR/TRY = X at time T; TRY equi
 | `unit` | string | `mAh` |
 | `rawText` | string? | `"5,000 mAh"` / `"5 Ah"` as seen on the site |
 
-Normalization maps messy source text into `key` + canonical `unit`. `rawText` is kept for trust and debugging.
+Normalization maps messy source text into `key` + canonical `unit`. `rawText` is kept for trust and debugging — the Decision Page can show what the retailer actually wrote next to the value we compared on.
+
+**Canonical unit per key** (`normalize/spec_parser.py`):
+
+| Key | Canonical unit | Accepted source text |
+| --- | --- | --- |
+| `battery_mah` | mAh | `5,000 mAh`, `5.000 mAh`, `5000mAh`, `5 Ah`, `5.0 Ah` |
+| `display_inch` | inches, 1 decimal | `6.9"`, `6,9 inç`, `6.9 inch`, `6.9 Zoll`, `6.9型`, `17,5 cm`, `175 mm` |
+| `storage_gb` / `memory_gb` | GB | `512 GB`, `512GB`, `1 TB`, `1TB` |
+
+Three parsing rules make this work across the locales in scope:
+
+- **`,` is ambiguous and must be disambiguated.** A separator followed by exactly three digits is thousands grouping (`5,000` and German `5.000` are both 5000); otherwise it is a decimal point (`6,9` is 6.9). Getting this backwards turns a battery into a 5 mAh cell or a screen into a 69-inch television.
+- **The unit word sets the scale, not the number's size.** `1 TB` is 1024 GB, not 1. `5 Ah` is 5000 mAh.
+- **Metric and imperial must land on the same value.** Screen sizes are quoted to one decimal everywhere, so converted figures are rounded to one decimal: `17,5 cm` becomes `6.9`, not `6.89`. Without that rounding a centimetre-quoting source would "conflict" with a catalog value of `6.9` and block an otherwise correct match.
+
+Text with no readable number yields **no spec at all** rather than a guess, so an unreadable field becomes missing data instead of a wrong comparison.
 
 ### `LandedCost`
 
