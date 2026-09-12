@@ -195,8 +195,12 @@ Never converted in place.
 | `baseCurrency` | ISO 4217 | Offer currency |
 | `quoteCurrency` | ISO 4217 | User reference currency |
 | `rate` | decimal | |
-| `asOf` | datetime (UTC) | **Must be shown** on the Decision Page |
-| `provider` | string | Which FX API |
+| `asOf` | datetime (UTC)? | When the **provider published** this rate. **Must be shown.** `null` when no conversion happened |
+| `provider` | string | Which FX API, or `identity` when base and quote are the same |
+
+**`asOf` is a publication date, not a fetch time.** The ECB publishes one rate per business day, so Frankfurter returns a date and two searches minutes apart legitimately share the same `asOf`. That is the number the user needs — "which rate priced this offer" — and it must not be replaced with the moment we called the API, which would imply a precision the rate does not have. When the user wants to know how fresh the *listing* is, that is `Offer.collectedAt`, a different question with a different answer.
+
+**Same currency means no conversion.** A TRY offer priced in TRY is not converted: the quote is `rate = 1`, `provider = identity`, `asOf = null`, and `isIdentity` is true. Explanations say "already in your reference currency" rather than quoting a rate, because showing "rate 1 as of today" would advertise a lookup that never happened.
 
 ### `ConvertedMoney`
 
@@ -241,19 +245,41 @@ Computed **after** FX, toward the user’s destination.
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `listInReference` | `Money` | FX’d list price |
-| `shipping` | `CostLine` | |
-| `taxes` | `CostLine` | VAT / sales tax if applicable |
-| `importDuties` | `CostLine` | Border / import |
-| `registrationFees` | `CostLine` | Category/region fees if relevant |
-| `otherFees` | list of `CostLine` | |
-| `total` | `Money` | Sum in reference currency |
-| `completeness` | enum | `complete` \| `partial` \| `unknown` |
+| `listInReference` | `Money` | FX’d list price. Never modified — the sticker stays the sticker |
+| `shipping` | `CostLine` | Estimated per **origin→destination lane**, scaled by category parcel size |
+| `taxes` | `CostLine` | Destination import VAT, charged on the net price plus shipping plus duty |
+| `importDuties` | `CostLine` | Border / import duty, per `(destination, category)` |
+| `registrationFees` | `CostLine` | Category/region fees if relevant (e.g. TR handset IMEI registration) |
+| `otherFees` | list of `CostLine` | Adjustments that are neither shipping nor a destination tax. Entries **may be negative** — origin-VAT removal lives here |
+| `total` | `Money` | `listInReference` + every line above, including negative `otherFees` |
+| `completeness` | enum | `complete` \| `partial` \| `unknown` — see below |
 | `destinationCountry` | ISO country | |
 
 `CostLine`: `{ amount: Money, origin: quoted | estimated | unavailable, label }`.
 
-If a line is `unavailable`, `completeness` is not `complete`. Ranking must not pretend precision.
+#### Origin VAT is removed before destination tax is added
+
+A €1,349 German sticker **includes** 19% German VAT. An export sale does not charge it, so adding Turkish VAT on top of the gross figure taxes the buyer twice and overstates every import. The net price is therefore the base for duty and destination VAT:
+
+```
+net              = listInReference / (1 + originVatRate)
+otherFees       += CostLine(net - listInReference, "DE VAT removed on export (19%)")   # negative
+importDuties     = net × dutyRate(destination, category)
+taxes            = (net + shipping + importDuties) × vatRate(destination)
+total            = listInReference + otherFees + shipping + importDuties + taxes + registrationFees
+```
+
+The removal is recorded as a visible negative line rather than silently discounting the sticker, so the arithmetic on the Decision Page adds up to the total the user is shown.
+
+#### What `completeness` means
+
+| Value | When | Score multiplier |
+| --- | --- | --- |
+| `complete` | Domestic purchase on a published lane: no border to cross, and the only add-on is delivery | 1.00 |
+| `partial` | Cross-border, but every rate and lane came from a published table. Still estimates, not seller quotes | 0.90 |
+| `unknown` | At least one component **could not be looked up** — an unpublished shipping lane, an unknown destination VAT or duty rate — and a generic figure stood in for it | 0.75 |
+
+The distinction that matters is **a figure we looked up versus a figure we invented**. A blind fallback is marked `unavailable` on its own `CostLine` and forces `completeness` to `unknown`, so it reaches the user as a caveat and the ranking as a penalty instead of disappearing into the total.
 
 ---
 

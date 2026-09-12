@@ -31,11 +31,14 @@ class FxService:
         ref = reference_currency.upper()
         base = money.currency.upper()
         if base == ref:
+            # No conversion happened, so there is no published rate and no rate date.
+            # Stamping "now" here would show the user an FX line for a price that was
+            # never converted, and imply a rate lookup we never made.
             quote = FxQuote(
                 base_currency=base,
                 quote_currency=ref,
                 rate=Decimal("1"),
-                as_of=datetime.now(timezone.utc),
+                as_of=None,
                 provider="identity",
             )
             return ConvertedMoney(original=money, reference=money, fx=quote)
@@ -61,6 +64,9 @@ class FxService:
             response.raise_for_status()
             payload = response.json()
             rate = Decimal(str(payload["rates"][quote]))
+            # Frankfurter's `date` is the ECB publication date for this rate, which is
+            # what the user needs to see. It is deliberately not our fetch time —
+            # listing freshness is Offer.collectedAt and is a different question.
             as_of = datetime.fromisoformat(str(payload["date"])).replace(tzinfo=timezone.utc)
             quote_obj = FxQuote(
                 base_currency=base,

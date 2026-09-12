@@ -125,8 +125,16 @@ class FxQuote(BaseModel):
     base_currency: str
     quote_currency: str
     rate: Decimal
-    as_of: datetime
+    #: When the *provider* published this rate, not when we fetched it. ECB rates are
+    #: published once per business day, so this is a date, and two searches minutes
+    #: apart legitimately share it. None when no conversion happened (see `is_identity`).
+    as_of: datetime | None = None
     provider: str
+
+    @property
+    def is_identity(self) -> bool:
+        """True when base and quote are the same currency, so no rate was involved."""
+        return self.base_currency.upper() == self.quote_currency.upper()
 
 
 class ConvertedMoney(BaseModel):

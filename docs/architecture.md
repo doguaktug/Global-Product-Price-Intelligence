@@ -140,23 +140,30 @@ Matching must distinguish:
 
 Convert offer list prices into a common currency via a live exchange-rate provider (no custom FX engine). Example: USD/EUR offers → TRY (or user’s preferred currency) using current rates, then pass amounts into landed-cost and ranking on the same scale. If conversion fails for a single offer, drop that offer and continue ranking the rest. If every offer is dropped (conversion or another pipeline step), fail the search with a reason instead of returning an empty Decision Page.
 
+An offer already priced in the reference currency is **not converted** — the quote records `rate = 1`, `provider = identity` and no rate date, and explanations say so instead of quoting a meaningless rate. The timestamp shown with a real conversion is the provider's **publication date** for that rate (ECB publishes daily), not the moment we fetched it; listing freshness is a separate field, `Offer.collectedAt`. See [data-model.md](data-model.md#fxquote).
+
+Flat fees inside landed cost are authored in USD (`FEE_CURRENCY`) and restated into the reference currency through the same FX service, so a shipping or registration figure is never silently read as "450 EUR" for a user pricing in EUR. A fee already in the reference currency skips conversion.
+
 ### 9. Landed cost (after FX)
 
 For **worldwide** options, list price in common currency is not enough. After FX, compute an estimated **total landed cost** toward the user’s destination:
 
-- shipping / delivery to destination
+- **origin VAT removed** — a foreign sticker usually includes the seller's local VAT, which an export sale does not charge
+- shipping / delivery on the specific **origin→destination lane**
 - border / import / VAT / duty estimates where applicable
 - registration or other mandatory destination fees when relevant to the category/region
 
 ```
-LandedCost ≈ FX(ListPrice) + Shipping + BorderTaxEstimate + RegistrationFees + OtherKnownFees
+Net         = FX(ListPrice) − OriginVAT
+LandedCost ≈ FX(ListPrice) − OriginVAT + Shipping(origin→destination) + Duty(Net) + VAT(Net + Shipping + Duty) + RegistrationFees
 ```
 
 Rules of thumb for the prototype:
 
-- Prefer source-provided shipping when available; otherwise use a transparent estimate and label it as estimated.
+- **Shipping depends on both ends of the journey.** DE→TR is a short regional hop and JP→TR is long-haul, so a per-destination figure was wrong in both directions. Lanes are curated fixtures (`data/fixtures/shipping_lanes.json`) scaled by category parcel size; a carrier rate API or per-source published shipping is the intended replacement.
+- **Do not tax the buyer twice.** Strip the origin country's VAT before applying destination duty and VAT, and show the removal as its own visible (negative) line so the breakdown still adds up to the total.
 - Keep fee breakdowns visible in explanations (so “cheaper list price, higher landed cost” is understandable).
-- If a fee cannot be estimated reliably, mark the offer’s total cost as **partial / uncertain** and down-rank or flag confidence — do not pretend precision.
+- **Distinguish a rate we looked up from a rate we invented.** If a lane or rate is genuinely unavailable, mark that line `unavailable`, set `completeness` to `unknown`, and let the confidence multiplier down-rank the offer — do not pretend precision.
 
 Ranking and “best price” should prefer **landed cost**, not raw list price, when comparing across countries.
 

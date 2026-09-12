@@ -142,12 +142,21 @@ Do **not** invent a customs microservice. Compose:
 | --- | --- |
 | List price | Offer adapter (original currency) |
 | FX | FX provider |
-| Shipping | Listing if quoted; else a **destination rule** (flat/estimated), marked `estimated` |
-| VAT / sales tax | Rule table by destination + offer country (e.g. TR import VAT; EU VAT already in many EU list prices — do not double-count) |
+| Shipping | Per **origin→destination lane** from `data/fixtures/shipping_lanes.json`, scaled by category parcel size, marked `estimated` |
+| Origin VAT removal | Origin-country VAT rate table — a foreign sticker usually includes it and an export sale does not charge it. Recorded as a negative `otherFees` line |
+| VAT / sales tax | Rule table by destination, charged on the **net** price plus shipping plus duty (EU VAT is already in many EU list prices — do not double-count) |
 | Import duty / ÖTV-like fees | Category + destination **estimate table**, `estimated` or `unavailable` |
 | Registration | Only if the category/destination has a known mandatory fee; else omit |
 
-If shipping or duty cannot be estimated honestly, set `LandedCost.completeness = partial | unknown` and say so in the explanation. Ranking prefers complete landed costs over fake precision.
+Shipping is keyed on **both** ends of the journey, not the destination alone: DE→TR is a short regional hop and JP→TR is long-haul, and a single per-destination figure was wrong in both directions. The lanes are curated fixtures for the same reason the offers are — no crawling, and carrier rate APIs are not freely available. Replacing them with a licensed carrier rate API, or with per-source published shipping tables, is the intended next step and needs no change to the rest of the pipeline.
+
+`completeness` records **whether a figure was looked up or invented**:
+
+- `complete` — domestic, published lane, no border crossed.
+- `partial` — cross-border with every lane and rate coming from a table. Still estimates, not seller quotes.
+- `unknown` — at least one component could not be looked up and a generic figure stood in. That line is marked `unavailable`, the user sees a caveat, and the ×0.75 confidence multiplier down-ranks the offer.
+
+Ranking prefers complete landed costs over fake precision.
 
 ---
 

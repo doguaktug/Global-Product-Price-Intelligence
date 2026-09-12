@@ -13,22 +13,33 @@ from gp_price_intel.ranking.confidence import HIGHLIGHT_MIN_CONFIDENCE, effectiv
 
 
 class ExplanationBuilder:
+    @staticmethod
+    def _price_detail(offer: Offer) -> str:
+        """
+        State the price, and the rate only when one was actually applied.
+
+        A domestic offer already priced in the reference currency was never
+        converted, so quoting "rate 1 as of <today>" would invent an FX lookup.
+        """
+        converted = offer.converted_list_price
+        assert converted is not None
+        listed = f"List price {offer.list_price.amount} {offer.list_price.currency}"
+        if converted.fx.is_identity:
+            return f"{listed} — already in your reference currency, no conversion applied."
+
+        rate_date = converted.fx.as_of.date() if converted.fx.as_of else "an undated rate"
+        return (
+            f"{listed} → {converted.reference.amount} {converted.reference.currency} "
+            f"(rate {converted.fx.rate}, published {rate_date} by {converted.fx.provider})."
+        )
+
     def build(self, offer: Offer, score: ScoreBreakdown, label: str) -> Explanation:
         reasons: list[ExplanationReason] = []
         caveats: list[str] = []
 
         if offer.converted_list_price:
             reasons.append(
-                ExplanationReason(
-                    factor="price",
-                    detail=(
-                        f"List price {offer.list_price.amount} {offer.list_price.currency} "
-                        f"→ {offer.converted_list_price.reference.amount} "
-                        f"{offer.converted_list_price.reference.currency} "
-                        f"(rate {offer.converted_list_price.fx.rate} as of "
-                        f"{offer.converted_list_price.fx.as_of.date()})."
-                    ),
-                )
+                ExplanationReason(factor="price", detail=self._price_detail(offer))
             )
 
         if offer.landed_cost:
