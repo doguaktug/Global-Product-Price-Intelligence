@@ -123,4 +123,4 @@ A stated reason has to be the reason the offer actually won. For each criterion 
 
 Caveats cover missing fields, estimated fees, and low confidence. If the best-for-you offer is not the cheapest, the text names the cheapest offer it beat and the criteria that offer lost on.
 
-The Decision Page then shows those cards. It also shows the original price, the FX rate and time, the landed-cost add-ons, and a freshness time on every offer. When the user opens a retailer link, the system checks that listing again. If the item is gone or the price changed by a large amount, it warns the user.
+The Decision Page then shows those cards. It also shows the original price, the FX rate and its publication date, the landed-cost add-ons, and the time each offer was collected. Retailer links open directly. Whether an offer can actually be bought was settled during the search — an out-of-stock listing never entered the ranking, and one with unknown stock was scored down for it — so there is no second check when the user clicks through.

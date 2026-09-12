@@ -217,24 +217,22 @@ Offers whose **effective confidence** (`dataConfidence × landed-cost completene
 - `unknown` stock is allowed but carries a lower `dataConfidence` (a ×0.85 factor). Only `unknown` is discounted: `in_stock`, `limited` and `out_of_stock` are all facts the source reported, and confidence rates the **data**, not the attractiveness of the offer. No separate explanation caveat is raised for it — the planned freshness work, which surfaces `collectedAt` and warns on stale listings, is the right place to tell the user about purchasability.
 - `limited` stock is included with a visible warning on the card.
 
-### 2. Cache TTL — don't serve stale offers
+### 2. Freshness — show when the price was seen
 
-- Offer cache TTL: **15–30 minutes** max.
-- After expiry, the next search re-fetches live.
 - The Decision Page shows `collectedAt` visibly on every card (e.g. "price seen 3 min ago").
-
-### 3. On click — re-check before redirect
-
-When the user clicks a retailer link on the Decision Page:
-
-1. **Quick re-check:** lightweight re-fetch of stock/price for that one listing (adapter's `check_availability` method — not a full search).
-2. **If still available and price is close:** redirect to the retailer.
-3. **If gone or price changed materially:** show a warning popup *before* redirecting. Example: "This item appears to be unavailable now" or "Price has changed from €1,399 to €1,499 — continue?"
-4. **If re-check fails or times out (e.g. >3s):** redirect anyway with a disclaimer: "We couldn't verify availability — please confirm on the retailer's page."
+- Nothing is cached today, so every Decision Page comes from a fetch that just ran. If a short offer cache is added, it gets a TTL in the **15–30 minute** range and the card keeps showing the original `collectedAt`, not the cache-read time.
 
 ### What we cannot prevent
 
-A listing can go stale between re-check and the user's actual purchase. We do not control the retailer. The system's job is to **minimize** dead-link clicks and **never pretend** an offer is guaranteed.
+A listing can go stale between the fetch and the user's actual purchase. We do not control the retailer. The system's job is to **minimize** dead-link clicks and **never pretend** an offer is guaranteed, which is what the visible timestamp and the honest `stockStatus` handling above are for.
+
+### Why there is no on-click re-check
+
+Earlier drafts specified a lightweight re-fetch of the single listing when the user clicks through, with a warning popup if it had gone or moved. That is dropped, and the `check_availability` adapter method it needed has been removed rather than left as unused surface.
+
+The idea came from wanting to be sure an offer is really purchasable, and **checking availability during the search already delivers that**: adapters read `stockStatus` from the listing, `out_of_stock` offers never enter the ranking, and `unknown` stock is discounted in confidence. A second check at click time re-answers a question already answered, and it cannot close the gap it was aimed at — the listing can change between the re-check and the purchase just as easily as between the fetch and the re-check.
+
+What it did cost was real: a second live call per click against the same rate limits the search competes for, a redirect the user waits on, and a fallback path ("we couldn't verify") that fires most often for exactly the fixture-backed sources that cannot verify anything. The honest version of this guarantee is a visible `collectedAt` plus a stale-data warning, which is the freshness work above.
 
 ---
 

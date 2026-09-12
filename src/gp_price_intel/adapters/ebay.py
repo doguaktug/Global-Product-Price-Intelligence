@@ -131,41 +131,6 @@ class EbayAdapter(SourceAdapter):
             offers.append(offer)
         return offers
 
-    async def check_availability(self, offer: Offer) -> dict[str, Any]:
-        if not self.is_configured():
-            return {"available": True, "verified": False, "message": "eBay credentials not configured."}
-
-        item_id = offer.retailer_sku or offer.id.removeprefix("ebay-")
-        try:
-            token = await self._access_token()
-            item = await self._get_item(token, item_id)
-        except Exception:
-            logger.exception("eBay availability check failed for %s", item_id)
-            return {
-                "available": True,
-                "verified": False,
-                "message": "Could not verify — confirm on eBay.",
-            }
-
-        if not item:
-            return {
-                "available": False,
-                "verified": True,
-                "message": "This listing no longer appears on eBay.",
-            }
-
-        parsed = self._parse_item(item, {})
-        if parsed is None:
-            return {"available": True, "verified": False, "message": "Could not parse live item."}
-
-        return {
-            "available": parsed.stock_status != StockStatus.OUT_OF_STOCK,
-            "verified": True,
-            "price": str(parsed.list_price.amount),
-            "currency": parsed.list_price.currency,
-            "message": "Availability re-checked on eBay.",
-        }
-
     def _build_search_query(self, scope: SearchScope) -> str:
         family = self.catalog.get_family(scope.family_id)
         if family is None:
@@ -217,22 +182,6 @@ class EbayAdapter(SourceAdapter):
         )
         response.raise_for_status()
         return list(response.json().get("itemSummaries", []))
-
-    async def _get_item(self, token: str, item_id: str) -> dict[str, Any] | None:
-        host = self._api_host()
-        client = await self._get_client()
-        response = await client.get(
-            f"https://{host}/buy/browse/v1/item/{item_id}",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "X-EBAY-C-MARKETPLACE-ID": self.marketplace_id,
-            },
-            timeout=10.0,
-        )
-        if response.status_code == 404:
-            return None
-        response.raise_for_status()
-        return response.json()
 
     def _api_host(self) -> str:
         return "api.sandbox.ebay.com" if self.settings.ebay_sandbox else "api.ebay.com"

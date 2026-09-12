@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from gp_price_intel.domain.models import Offer, SearchScope, Source
 
@@ -25,11 +24,3 @@ class SourceAdapter(ABC):
         and an adapter may speak for more than one site.
         """
         return [self.source]
-
-    async def check_availability(self, offer: Offer) -> dict[str, Any]:
-        """Lightweight on-click re-check. Override in live adapters."""
-        return {
-            "available": offer.stock_status.value != "out_of_stock",
-            "verified": False,
-            "message": "Re-check not implemented for this source.",
-        }
