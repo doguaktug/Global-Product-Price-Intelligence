@@ -60,7 +60,7 @@ The user types what they want to buy (need not be a perfect product name).
 
 This is a first-class user step, not a hidden ranking default. On the **welcome / search** screen, next to the search bar:
 
-- **Criterion weights** (sliders) that must sum to 1, e.g. landed price, seller trust, warranty, specs, reviews, delivery
+- **Criterion weights** (sliders) over the five scored criteria: landed price, seller trust, reviews, delivery, warranty. Specs are not among them — only offers matching the confirmed variant exactly are ranked, so their specs are identical and cannot separate them. The sliders are **relative**: the engine re-normalizes them, so they do not have to sum to 1 and each can move on its own
 - **Destination country** and **reference currency** — optional controls next to the sliders
 - Optional **catalogue browse** if they want to explore instead of typing
 
@@ -172,7 +172,9 @@ FinalScore = confidenceMultiplier × (
 )
 ```
 
-Lower landed cost → higher PriceScore. Uncertain landed-cost offers carry a confidence multiplier. Offers below the **0.7** effective-confidence floor stay in the ranked list with a warning but are excluded from highlight recommendations. Missing criteria are excluded per offer with weight re-normalization.
+Lower landed cost → higher PriceScore, and fewer delivery days likewise. `SellerScore` blends the seller's own rating with the reputation of the hosting site, the site counting for 30% so a strong seller on a mid-tier marketplace is not capped by it. `ReviewScore` comes from review volume on a log scale. Delivery and warranty are parsed out of each source's own free text (`"2-4 Werktage"`, `"24 months"`); text with no usable unit makes the criterion missing rather than a guessed number.
+
+Uncertain landed-cost offers carry a confidence multiplier. Offers below the **0.7** effective-confidence floor stay in the ranked list with a warning but are excluded from highlight recommendations. Missing criteria are excluded per offer with weight re-normalization.
 
 Full algorithm: [proposed-algorithm.md](proposed-algorithm.md) — normalization, missing-data rules, confidence, highlight selection, alternative guardrails, and explanation generation.
 

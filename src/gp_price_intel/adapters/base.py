@@ -17,6 +17,15 @@ class SourceAdapter(ABC):
     async def search(self, scope: SearchScope, destination_country: str) -> list[Offer]:
         """Fetch listings for the search scope."""
 
+    def known_sources(self) -> list[Source]:
+        """
+        Every source this adapter can stamp on an offer.
+
+        Ranking needs the `Source` behind `Offer.sourceId` to weigh site reputation,
+        and an adapter may speak for more than one site.
+        """
+        return [self.source]
+
     async def check_availability(self, offer: Offer) -> dict[str, Any]:
         """Lightweight on-click re-check. Override in live adapters."""
         return {

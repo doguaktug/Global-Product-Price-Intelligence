@@ -68,6 +68,9 @@ class FixtureAdapter(SourceAdapter):
         self.source = self.sources[0]
         self._fixture_path = fixture_path
 
+    def known_sources(self) -> list[Source]:
+        return list(self.source_by_id.values())
+
     async def search(self, scope: SearchScope, destination_country: str) -> list[Offer]:
         rows = self._load_rows()
         offers: list[Offer] = []
@@ -89,6 +92,8 @@ class FixtureAdapter(SourceAdapter):
                     reliability=float(row.get("seller_reliability", 0.7)),
                     acquisition_method=AcquisitionMethod.FIXTURE,
                 )
+                # Remember it so ranking can still resolve the source behind the offer.
+                self.source_by_id[source_id] = source
 
             offer = self._row_to_offer(row, source)
             if offer.stock_status == StockStatus.OUT_OF_STOCK:

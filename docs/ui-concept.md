@@ -16,7 +16,7 @@ Welcome (search)
 First screen. Enough to start a search without filling a long form.
 
 - **Search bar** — product query
-- **Weight sliders** — optional; published defaults if left alone (must still sum to 1)
+- **Weight sliders** — optional; published defaults if left alone. Five of them: price, seller, reviews, delivery, warranty. They do **not** have to sum to 1 — only their proportions matter, so each slider moves freely without stealing from its neighbours, and dropping one to zero removes that criterion from the decision
 - **Destination country** and **reference currency** — next to the sliders; also optional
 - **Catalogue browse** — optional explore path into the small reference catalog (not required to search)
 

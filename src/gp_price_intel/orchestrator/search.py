@@ -20,6 +20,7 @@ from gp_price_intel.domain.models import (
     SearchScope,
     SearchSession,
     SessionStatus,
+    Source,
     StockStatus,
     UserPreferences,
 )
@@ -228,7 +229,11 @@ class SearchOrchestrator:
 
         # Only the confirmed build is ranked; other builds of the family are alternatives.
         identical = [offer for offer in enriched if offer.match_kind == MatchKind.IDENTICAL]
-        scored = self.ranking.score(identical or enriched, session.preferences)
+        scored = self.ranking.score(
+            identical or enriched,
+            session.preferences,
+            self._source_registry(),
+        )
         scored_with_explanations: list = []
         for offer, breakdown in scored:
             explanation = self.explanations.build(offer, breakdown, "Ranked offer")
@@ -264,6 +269,14 @@ class SearchOrchestrator:
             alternatives=alt_list,
             generated_at=datetime.now(timezone.utc),
         )
+
+    def _source_registry(self) -> dict[str, Source]:
+        """Map `Offer.sourceId` back to the source, so ranking can weigh site reputation."""
+        return {
+            source.id: source
+            for adapter in self.adapters
+            for source in adapter.known_sources()
+        }
 
     def _ensure_scope(self, session: SearchSession) -> tuple[SearchScope, str | None]:
         if session.search_scope is not None:

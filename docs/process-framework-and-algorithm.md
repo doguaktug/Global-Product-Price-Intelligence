@@ -61,15 +61,19 @@ If a fee is not known with enough reliability, the system marks the total as par
 
 This is the suggested algorithm. Price alone does not decide the result. A cheaper list price may have a higher landed cost. A user may also care about seller reliability, warranty, reviews, or delivery.
 
-For each identical offer, the system reads:
+For each identical offer, the system reads five criteria:
 
-- price, as landed cost (or converted list price if landed cost is missing)
-- seller reliability
-- warranty
-- reviews
-- delivery time
+- **price**, as landed cost (or converted list price if landed cost is missing)
+- **seller**, mostly the seller's own rating with the hosting site's reputation counting for 30% of it
+- **reviews**, from how many reviews the seller has, on a log scale so the first hundred matter more than the next thousand
+- **delivery time**, parsed into days
+- **warranty**, parsed into months
 
-It then scales each of those values to a 0–1 range inside this search. A lower price gets a higher score. A higher rating gets a higher score. The best offer in the set scores 1 on that criterion. The worst scores 0.
+The system does not score specs. Every offer in this set already matched the confirmed variant exactly, so their specs are the same and a spec score would be 1 for all of them. Specs decide which offers get in here, and which alternatives are worth showing — not the order inside the set.
+
+Delivery and warranty arrive as text each source writes its own way, in its own language: "2-4 Werktage", "1-3 iş günü", "Next day", "24 months". The system parses these into days and months. A range counts as its slow end, because that is what the buyer waits for. If the text has no unit at all — a bare "48", or "manufacturer warranty" with no length — the system treats the criterion as missing rather than guessing a number.
+
+It then scales each of those values to a 0–1 range inside this search. A lower price gets a higher score, and so does a faster delivery. A higher rating gets a higher score. The best offer in the set scores 1 on that criterion. The worst scores 0.
 
 The user weights from STEP 1 then combine the scores:
 
@@ -78,6 +82,8 @@ final score = confidence × (w_price × price score + w_seller × seller score +
 ```
 
 Only the criteria that exist for that offer enter the sum. If warranty is missing, the system drops that weight and scales the rest so they still sum to 1. The offer stays in the ranking. The explanation later states what was missing.
+
+Because the weights are always rescaled this way, only their **proportions** matter. Pushing every slider to the maximum gives the same ranking as leaving them all low. Setting a weight to zero removes that criterion from the round completely.
 
 Unreliable data also lowers the score. Partial landed cost multiplies the result by 0.90. Unknown landed cost multiplies it by 0.75. Low source confidence (lesser-known sites, sparse reviews) lowers it further.
 

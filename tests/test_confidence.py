@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from gp_price_intel.domain.models import (
     DEFAULT_WEIGHTS,
+    AcquisitionMethod,
     ConvertedMoney,
     FxQuote,
     HighlightKind,
@@ -15,6 +16,8 @@ from gp_price_intel.domain.models import (
     Money,
     Offer,
     Seller,
+    Source,
+    SourceKind,
     UserPreferences,
 )
 from gp_price_intel.ranking.confidence import (
@@ -25,7 +28,12 @@ from gp_price_intel.ranking.confidence import (
     reliability_warning,
     review_volume_score,
 )
-from gp_price_intel.ranking.engine import RankingEngine, warranty_months
+from gp_price_intel.ranking.engine import (
+    SOURCE_RELIABILITY_WEIGHT,
+    RankingEngine,
+    delivery_days,
+    warranty_months,
+)
 from gp_price_intel.ranking.highlights import pick_highlights
 
 
@@ -218,7 +226,109 @@ def test_warranty_months_parses_years_and_days() -> None:
     assert warranty_months("30 days") == 1
     assert warranty_months(None) is None
     assert warranty_months("  ") is None
-    assert warranty_months("2 years manufacturer") == 30
+
+
+def test_warranty_months_ignores_who_issued_the_cover() -> None:
+    """Duration is the criterion; 'manufacturer' is a seller claim, not extra months."""
+    assert warranty_months("2 years manufacturer") == 24
+    assert warranty_months("24 months official") == 24
+
+
+def test_warranty_months_returns_none_for_unparseable_text() -> None:
+    assert warranty_months("manufacturer warranty") is None
+    assert warranty_months("see listing") is None
+
+
+def test_delivery_days_uses_the_unit_word_in_the_source_language() -> None:
+    assert delivery_days("2-4 Werktage") == 4
+    assert delivery_days("1-3 iş günü") == 3
+    assert delivery_days("2-5日") == 5
+    assert delivery_days("7-14 days") == 14
+    assert delivery_days("3 weeks") == 21
+    assert delivery_days("1 month") == 30
+
+
+def test_delivery_days_reads_a_range_as_its_slowest_end() -> None:
+    """A quoted range is a promise of its far end — that is what the buyer waits for."""
+    assert delivery_days("2-4 days") == 4
+    assert delivery_days("2 days") == 2
+
+
+def test_delivery_days_understands_same_and_next_day_phrasing() -> None:
+    assert delivery_days("Same day") == 0
+    assert delivery_days("Next day") == 1
+    assert delivery_days("aynı gün teslimat") == 0
+
+
+def test_delivery_days_returns_none_when_no_estimate_is_given() -> None:
+    assert delivery_days(None) is None
+    assert delivery_days("   ") is None
+    assert delivery_days("ships soon") is None
+    # A bare number carries no unit, so it is not an estimate we can trust.
+    assert delivery_days("48") is None
+
+
+def test_unparseable_delivery_drops_the_criterion_instead_of_guessing() -> None:
+    quoted = _offer(offer_id="quoted", price="1000", data_confidence=1.0, delivery_time="2 days")
+    silent = _offer(offer_id="silent", price="1000", data_confidence=1.0, delivery_time=None)
+    scored = RankingEngine().score([quoted, silent], UserPreferences())
+    by_id = {offer.id: breakdown for offer, breakdown in scored}
+
+    assert "delivery" in by_id["quoted"].criterion_scores
+    assert "delivery" not in by_id["silent"].criterion_scores
+    assert "delivery" in by_id["silent"].missing_criteria
+    assert abs(sum(by_id["silent"].weights_used.values()) - 1.0) < 1e-9
+
+
+def test_faster_delivery_scores_higher() -> None:
+    fast = _offer(offer_id="fast", price="1000", data_confidence=1.0, delivery_time="Next day")
+    slow = _offer(offer_id="slow", price="1000", data_confidence=1.0, delivery_time="3-4 weeks")
+    scored = RankingEngine().score([fast, slow], UserPreferences())
+
+    assert scored[0][0].id == "fast"
+    by_id = {offer.id: breakdown for offer, breakdown in scored}
+    assert by_id["fast"].criterion_scores["delivery"] > by_id["slow"].criterion_scores["delivery"]
+
+
+def _source(source_id: str, reliability: float) -> Source:
+    return Source(
+        id=source_id,
+        display_name=source_id,
+        country="TR",
+        kind=SourceKind.MARKETPLACE,
+        reliability=reliability,
+        acquisition_method=AcquisitionMethod.FIXTURE,
+    )
+
+
+def test_site_reputation_moves_the_seller_criterion_without_dominating_it() -> None:
+    """A strong seller on a mid-tier site is not capped by the site (see item: 30% effect)."""
+    assert SOURCE_RELIABILITY_WEIGHT == 0.30
+
+    on_weak_site = _offer(
+        offer_id="weak-site", price="1000", data_confidence=1.0, seller_reliability=1.0
+    )
+    on_strong_site = _offer(
+        offer_id="strong-site", price="1000", data_confidence=1.0, seller_reliability=1.0
+    ).model_copy(update={"source_id": "trusted"})
+
+    sources = {"test": _source("test", 0.2), "trusted": _source("trusted", 1.0)}
+    scored = RankingEngine().score([on_weak_site, on_strong_site], UserPreferences(), sources)
+    by_id = {offer.id: breakdown for offer, breakdown in scored}
+
+    assert by_id["strong-site"].criterion_scores["seller"] == 1.0
+    assert by_id["weak-site"].criterion_scores["seller"] == 0.0
+    assert scored[0][0].id == "strong-site"
+
+
+def test_seller_criterion_falls_back_to_site_reputation_when_seller_is_unrated() -> None:
+    unrated = _offer(offer_id="unrated", price="1000", data_confidence=1.0, seller_reliability=None)
+    rated = _offer(offer_id="rated", price="1000", data_confidence=1.0, seller_reliability=0.9)
+    sources = {"test": _source("test", 0.4)}
+    scored = RankingEngine().score([unrated, rated], UserPreferences(), sources)
+    by_id = {offer.id: breakdown for offer, breakdown in scored}
+
+    assert by_id["rated"].criterion_scores["seller"] > by_id["unrated"].criterion_scores["seller"]
 
 
 def test_missing_warranty_is_dropped_and_weights_renormalized() -> None:

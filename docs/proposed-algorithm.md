@@ -36,12 +36,21 @@ For each offer, extract raw criterion values from the data model fields:
 
 | Criterion | Raw value | Source field(s) |
 | --- | --- | --- |
-| **price** | Landed cost total (reference currency) | `landedCost.total.amount`; fall back to `convertedListPrice.reference.amount` if landed cost is unavailable |
-| **seller** | Seller reliability score | `seller.reliability` (0–1) × `source.reliability` (0–1) |
-| **warranty** | Warranty strength | Parsed warranty duration in months; official/manufacturer warranty > third-party |
-| **specs** | Spec match quality | How closely this offer's specs match or exceed the confirmed variant's canonical specs |
-| **reviews** | User review score | Normalized rating (e.g. 4.5/5 → 0.9); penalize low review count |
-| **delivery** | Delivery speed | Estimated days to destination; in-stock bonus |
+| **price** | Landed cost total (reference currency) | `landedCost.total.amount`; falls back to `convertedListPrice.reference.amount` if landed cost is unavailable |
+| **seller** | Seller trust | `0.70 × seller.reliability + 0.30 × source.reliability` (both 0–1) |
+| **reviews** | Review weight | `reviewVolumeScore(seller.reviewCount)`, log-scaled; falls back to `seller.reliability`, then `dataConfidence`, when the source publishes no count |
+| **delivery** | Delivery speed | `deliveryTime` parsed into days |
+| **warranty** | Warranty length | `warranty` parsed into months |
+
+Every criterion is read in the **reference currency or a parsed unit** — never a raw source string. Offers whose price cannot be converted are dropped upstream, so the price criterion never compares mixed currencies.
+
+### Why the seller criterion blends two reputations
+
+A listing's trustworthiness is partly the seller and partly the site carrying it. Multiplying the two would let a mid-tier marketplace cap an excellent seller (`0.95 × 0.5 = 0.475`, indistinguishable from a mediocre seller). Instead the site's reputation is a **30% influence** on the criterion, so it moves the ranking without overruling the seller's own record. Seller reliability is currently hand-set per source/fixture; a later iteration may derive it from published traffic and feedback statistics.
+
+### There is no spec criterion
+
+Only offers that matched the confirmed variant as `identical` are ranked, and identical offers share the same specs — a spec score would be 1.0 for every one of them and contribute nothing. Specs decide **which** offers enter the ranking set (matching) and **which alternatives are worth showing** (AlternativeScout), not the score inside the set. Accordingly, specs appear in neither `DEFAULT_WEIGHTS` nor the user's weight sliders.
 
 Not every offer will have every field. That is handled in step 3.
 
@@ -59,7 +68,7 @@ For **lower-is-better** criteria (price, delivery days):
 score_i = (max_value - value_i) / (max_value - min_value)
 ```
 
-For **higher-is-better** criteria (seller, warranty, specs, reviews):
+For **higher-is-better** criteria (seller, reviews, warranty):
 
 ```
 score_i = (value_i - min_value) / (max_value - min_value)
@@ -83,10 +92,17 @@ Real-world offers will have gaps. The algorithm does not guess; it penalizes and
 | Situation | Rule |
 | --- | --- |
 | Criterion value is **missing** for this offer | That criterion is **excluded** from this offer's score; remaining weights are **re-normalized** to sum to 1 |
+| Criterion value is present but **unparseable** | Treated as missing — see "No invented numbers" below |
 | Criterion value is missing for **all** offers | Criterion is dropped from the entire ranking round; weights re-normalized |
 | `landedCost.completeness` is `partial` or `unknown` | Apply a **confidence penalty** (see below) |
 | `dataConfidence` is low | Apply a confidence penalty |
 | Conflicting specs between sources for the same offer | Use the source with higher reliability; log the conflict |
+
+### No invented numbers
+
+`deliveryTime` and `warranty` arrive as free text written by each source in its own language: `"2-4 Werktage"`, `"1-3 iş günü"`, `"2-5日"`, `"Next day"`, `"24 months"`. The parsers convert these to days and months respectively, using the **unit word** to pick the scale and reading a quoted range as its **slowest end** (a "2-4 day" promise is a 4-day wait for the buyer).
+
+When the text carries no unit the parser returns nothing rather than guessing — `"48"` could be hours, days or a warranty in months, and a wrong guess silently moves the ranking. A bare `"manufacturer warranty"` likewise yields no duration. In both cases the criterion joins `missingCriteria` for that offer and its weight is redistributed, which is honest and visible in the explanation. The alternative — substituting a neutral default like 0.5 — would fabricate a comparison the data does not support.
 
 ### Weight re-normalization (per offer)
 
@@ -126,6 +142,15 @@ finalScore = confidenceMultiplier × Σ (w_c × score_c)   for each criterion c 
 ```
 
 Where `w_c` are the **re-normalized** weights for this offer (after dropping missing criteria), and `score_c` is the 0–1 normalized value.
+
+### Weights are relative, not absolute
+
+Only the **ratios** between weights matter. The engine re-normalizes whatever it is given to sum to 1 before scoring, so `{ price: 0.40, seller: 0.20 }` and `{ price: 4, seller: 2 }` rank identically, and a user who drags every slider to the top gets the same result as one who leaves them all at the bottom. This has two useful consequences:
+
+- **The UI does not have to police the sliders.** Sliders can move independently; nothing needs to "steal" from a neighbour to keep a total of 100%.
+- **Published defaults stay comparable to custom weights.** `DEFAULT_WEIGHTS` happens to sum to 1.0 for readability, but that is a presentation choice, not a requirement.
+
+A criterion given a weight of **zero is removed** from the round entirely — it is not scored, not re-normalized against, and does not appear in `weightsUsed`. That is how a user says "I genuinely do not care about warranty" as opposed to "warranty barely matters".
 
 Example with all criteria present and default weights:
 

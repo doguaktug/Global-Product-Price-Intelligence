@@ -269,8 +269,8 @@ One listing, at collection time. This is the unit of comparison.
 | `convertedListPrice` | `ConvertedMoney`? | Filled after FX |
 | `landedCost` | `LandedCost`? | Filled after FX + fees |
 | `stockStatus` | enum? | `in_stock` \| `limited` \| `out_of_stock` \| `unknown`. Out-of-stock offers are **excluded from ranking**; unknown carries lower confidence |
-| `deliveryTime` | string? | Keep source phrasing + optional normalized days |
-| `warranty` | string? | |
+| `deliveryTime` | string? | Stored as the source phrased it (`"2-4 Werktage"`, `"1-3 iş günü"`). Ranking parses it to days at scoring time; unparseable text makes delivery a missing criterion rather than a guess |
+| `warranty` | string? | Source phrasing (`"24 months"`, `"2 yıl"`). Parsed to months at scoring time; who issued the cover does not change the parsed length |
 | `returnPolicy` | string? | |
 | `retailerSku` | string? | Per-source SKU when available |
 | `gtin` | string? | EAN/UPC when available |
@@ -280,7 +280,7 @@ One listing, at collection time. This is the unit of comparison.
 | `matchKind` | enum | `identical` \| `similar` \| `different` \| `unmatched` |
 | `matchNotes` | list of strings | e.g. “same family, storage 1TB vs 512GB” |
 | `collectedAt` | datetime | Freshness; shown visibly on Decision Page cards. Cache TTL 15–30 min |
-| `dataConfidence` | 0–1 | From source reliability × seller rating × review volume (adapters); missing/conflicting fields may also pull this down |
+| `dataConfidence` | 0–1 | Weighted mix set by the adapter: `0.45 × source reliability + 0.30 × seller rating + 0.25 × review-volume score`. A weighted sum rather than a product, so one weak signal lowers confidence instead of collapsing it |
 
 **Matching rule in the model:** two offers may share a `matchedVariantId` only when `matchKind = identical`. Similar SKUs (1 TB vs 512 GB, US vs EU version) stay separate offers and may become **alternatives**, not merged rows.
 
@@ -290,9 +290,9 @@ Attached after ranking; does not replace commercial fields.
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `criterionScores` | map | `price`, `seller`, `warranty`, `specs`, `delivery`, … → 0–1 |
-| `weightsUsed` | map | Copy of user weights |
-| `missingCriteria` | list | What was unavailable |
+| `criterionScores` | map | `price`, `seller`, `reviews`, `delivery`, `warranty` → 0–1. Only criteria this offer actually had; there is no `specs` key (identical offers share specs, so it would score 1.0 for everyone) |
+| `weightsUsed` | map | The weights **as applied to this offer** — re-normalized to sum to 1 after dropping whatever was missing, so it may differ from the user's raw slider values |
+| `missingCriteria` | list | What was unavailable — absent from the source, or present but unparseable |
 | `confidencePenalty` | 0–1 | `1 − (dataConfidence × completenessMultiplier)` — display/metadata; ranking already applied the multiplier to `finalScore` |
 | `reliabilityWarning` | string? | Set when effective confidence is below the highlight floor (0.7) |
 | `finalScore` | 0–1 | |
@@ -311,7 +311,7 @@ Missing data: skip or down-weight that criterion; record it in `missingCriteria`
 | `destinationCountry` | ISO country | Waterfall: default **TR**, then geolocation if permitted, then manual select (later overwrites earlier) |
 | `referenceCurrency` | ISO 4217 | Same waterfall; default **TRY** |
 | `origin` | enum | `default` \| `geolocation` \| `manual` — which step last set country/currency |
-| `weights` | map of criterion → 0–1 | Set by sliders; must sum to 1. Defaults if sliders unchanged |
+| `weights` | map of criterion → number | Set by sliders over `price`, `seller`, `reviews`, `delivery`, `warranty`. **Relative, not absolute** — the engine re-normalizes them, so only their proportions matter and they need not sum to 1. A weight of 0 removes the criterion. Defaults if sliders unchanged |
 
 Example: `{ price: 0.40, seller: 0.20, reviews: 0.15, delivery: 0.10, warranty: 0.15 }`.
 
@@ -359,7 +359,7 @@ Assignment Decision Page “best of” lenses:
 | `lowest_list_price` | Cheapest **original** list, after FX only (sticker) |
 | `lowest_total_cost` | Cheapest **landed** cost |
 | `best_warranty` | Longest / strongest parsed warranty among eligible offers |
-| `best_seller` | Reliability / official status |
+| `best_seller` | Highest seller criterion — the seller's own rating blended with the hosting site's reputation |
 | `best_overall` | Highest `finalScore` for this user’s weights (“best for you”). If this offer also wins another lens, the other highlight is dropped. |
 
 Each highlight: `{ kind, offerId, explanation }`.
