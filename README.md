@@ -46,7 +46,7 @@ Health check: `GET http://127.0.0.1:8000/health`
 | `data/sources/` | Source registry |
 | `data/fixtures/` | Demo offer snapshots |
 
-Most pipeline modules are implemented end-to-end on the API (normalize → fetch → match → FX → landed cost → rank → Decision Page payload). **Next:** basic comparison UI. Catalog seed data and FastAPI routes load today.
+The pipeline runs end-to-end on the API: normalize → confirm → fetch → match → FX → landed cost → rank → explain → Decision Page payload. Catalog seed data and FastAPI routes load today. There is no UI yet; the Decision Page is a JSON payload.
 
 **Process**
 

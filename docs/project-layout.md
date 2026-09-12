@@ -23,4 +23,4 @@ data/
 tests/            # pytest (invariants + pipeline)
 ```
 
-**Backend status (Week 2 core):** normalize + confirmation; SKU/GTIN matching; eBay Browse API + multi-country fixtures; Frankfurter FX; landed cost; ranking with confidence floor for highlights; explanations. **Next:** basic comparison / Decision Page UI.
+**Backend status:** normalize + confirmation; two-tier offer matching; eBay Browse API + multi-country fixtures; Frankfurter FX; landed cost with per-lane shipping; ranking with a confidence floor for highlights; explanations; ranked and badged alternatives. No UI — the Decision Page is served as JSON.
