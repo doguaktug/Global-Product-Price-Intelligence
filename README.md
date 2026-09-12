@@ -96,4 +96,5 @@ Chart and STEP writeup: [architecture.md — End-to-end process flow](docs/archi
 - [Initial UI concept](docs/ui-concept.md) — welcome, confirm popup, loading, Decision Page
 - [Proposed algorithm](docs/proposed-algorithm.md) — weighted scoring, missing-data handling, explanations, alternative guardrails
 - [Process framework](docs/process-framework-and-algorithm.md) — STEP flow from first page to Decision Page
+- [Parameter reference](docs/parameters.md) — every tunable value, where it is defined, and what moving it does
 - [Project layout](docs/project-layout.md) — Python package map and current backend status

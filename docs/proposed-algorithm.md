@@ -239,7 +239,7 @@ isGoodDowngrade  = costSavingRatio >= DOWNGRADE_MIN_COST_SAVING   # e.g. 0.15 (�
                and meetsMinimumRequirements                        # from confirmation gate
 ```
 
-Thresholds are configurable; these defaults are illustrative.
+These are the implemented defaults, not illustrations. They are module constants in `alternatives/scout.py` — see [parameters.md](parameters.md#alternatives).
 
 **`specGain` and `specLoss` are measured per spec, not on one hand-picked field.** Every numeric key in the category's identity, optional, and core spec lists is compared between the confirmed variant and the candidate; the largest gain and the largest loss are what the thresholds are tested against. So "≥25% gain" means *some* spec improved by at least that much, and "≤50% loss" means *nothing* fell further than that. This matters because a laptop that doubles its RAM while keeping the same storage is a genuine upgrade, and a rule that only looked at storage would miss it.
 
@@ -311,22 +311,11 @@ The explanation must not be a score dump. It must read like a short purchasing a
 
 ---
 
-## Configurable parameters (summary)
+## Configurable parameters
 
-| Parameter | Default | Purpose |
-| --- | --- | --- |
-| `DEFAULT_WEIGHTS` | `{ price: 0.40, seller: 0.20, reviews: 0.15, delivery: 0.10, warranty: 0.15 }` | Applied when user does not move sliders |
-| `COMPLETENESS_MULTIPLIER` | `{ complete: 1.0, partial: 0.90, unknown: 0.75 }` | Landed-cost confidence factor |
-| `HIGHLIGHT_MIN_CONFIDENCE` | `0.7` | Effective-confidence floor for Decision Page recommendations |
-| `UPGRADE_MIN_SPEC_GAIN` | `0.25` | Min relative spec improvement for an upgrade alternative |
-| `UPGRADE_MAX_COST_INCREASE` | `0.10` | Max relative cost increase for an upgrade alternative |
-| `DOWNGRADE_MIN_COST_SAVING` | `0.15` | Min relative cost saving for a downgrade alternative |
-| `DOWNGRADE_MAX_SPEC_LOSS` | `0.50` | Max relative spec loss for a downgrade alternative |
-| `COMPARABLE_OVERLAP_RATIO` | `0.60` | Min attribute overlap for a different-product alternative |
-| `COMPARABLE_SCORE_FLOOR` | `0.85` | Min finalScore ratio vs best-overall for a rival alternative |
-| `MAX_ALTERNATIVES` | `3` | Cap on alternative suggestions |
-| `STRONG_CRITERION_SCORE` | `0.7` | Criterion score worth stating even when it was not decisive |
-| `MAX_DECISIVE_REASONS` | `3` | Cap on criterion reasons in one explanation |
+Every threshold named above is a module constant, listed with its defining module and its effect in **[parameters.md](parameters.md)**. That page is the reference; the numbers quoted inline in this document are there to make the prose readable and should be checked against it.
+
+The ones this algorithm turns on: `DEFAULT_WEIGHTS`, `SOURCE_RELIABILITY_WEIGHT`, `_COMPLETENESS_MULTIPLIER`, `UNKNOWN_STOCK_CONFIDENCE_FACTOR`, `HIGHLIGHT_MIN_CONFIDENCE`, the six alternative value tests, `MAX_ALTERNATIVES`, `STRONG_CRITERION_SCORE`, and `MAX_DECISIVE_REASONS`.
 
 ---
 
