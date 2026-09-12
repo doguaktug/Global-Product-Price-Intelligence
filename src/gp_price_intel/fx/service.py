@@ -14,7 +14,7 @@ from gp_price_intel.domain.models import ConvertedMoney, FxQuote, Money
 
 logger = logging.getLogger(__name__)
 
-FRANKFURTER_URL = "https://api.frankfurter.app/latest"
+FRANKFURTER_URL = "https://api.frankfurter.dev/v1/latest"
 
 
 class FxService:
