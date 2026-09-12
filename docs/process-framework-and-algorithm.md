@@ -103,16 +103,24 @@ If “best for you” is the same offer as another lens, that other highlight is
 
 Close alternatives come from the similar and different offers in STEP 4. They are not random similar titles.
 
-A same-family upgrade is shown only if the spec gain is at least 25%. The extra landed cost must be at most 10%. A downgrade is shown only if it saves at least 15%. The spec loss must be at most 50%, and the offer must still meet the confirmed minimum.
+They are scored in the **same pass** as the confirmed offers and only separated afterwards. This matters because the 0–1 scale in STEP 6 is stretched to fit whatever set it is handed, so an alternative scored on its own would carry a number calibrated against other alternatives. Its score would not be comparable to the ranked list, and the rival test below compares exactly those two numbers. Alternatives are then sorted by final score, like the main list.
 
-A different product is shown only if it shares the category and overlaps at least 60% of the core specs. Its score must be greater than 85% of the best-for-you score.
+The value tests decide which alternatives get a **badge**, not which ones are shown. A same-family variant is badged an upgrade if some spec gains at least 25% while the landed cost rises at most 10%. It is badged a downgrade if it saves at least 15% while no spec falls more than 50% and it still meets the confirmed minimum. A different product is badged a rival if it shares the category, overlaps at least 60% of the core specs, and scores above 85% of the best-for-you score.
 
-The system keeps at most three alternatives. It prefers one upgrade, one downgrade, and one rival. If no candidate passes these tests, it shows none.
+Spec gain and loss are measured across every numeric spec in the category, not one chosen field, so a machine that doubles its memory while keeping its storage counts as an upgrade.
+
+An alternative that passes no test still appears, ranked, and says in its caveats that it does not clear a value test. The badge is a claim about value and has to be earned; simply existing as an option does not. Hiding the option instead would leave the user with an empty panel and no stated reason.
+
+The system keeps at most three alternatives and fills those slots with one upgrade, one downgrade, and one rival where it can, before topping up with the highest-scoring unbadged candidates — three cheaper-but-smaller variants would tell the user one thing three times. Each alternative also carries its landed cost **minus the top pick's**, so a negative figure means it is cheaper; the panel exists to answer what switching would cost, and a reader should not have to subtract two totals to find out. If there are no similar or different offers at all, the panel is empty.
 
 ## STEP 8 – Explain the result and show the Decision Page
 
 Before the page appears, the system writes a short reason for each highlight and each alternative.
 
-The reason has a headline, the decisive facts with their values, and any caveats. Caveats cover missing fields, estimated fees, and low confidence. If the best-for-you offer is not the cheapest, the text states why the cheaper offer lost.
+The reason has a headline, the decisive facts with their values, and any caveats.
+
+A stated reason has to be the reason the offer actually won. For each criterion the system takes the offer's weighted contribution — its slider weight times its 0–1 score — and subtracts the same figure for the offer it had to beat: second place for the winner, or the offer directly above for anyone further down the list. Criteria where that margin is positive are the reasons, largest margin first, and at most three are shown. The weighting matters because a criterion the user set to 5% cannot be the reason for anything, however well the offer scored on it; and comparing against the immediate rival rather than the whole field stops a criterion that only beats a few weak listings from looking decisive. A criterion the offer scores well on but ties or loses is not offered as a reason it won, because it was not one. Such criteria are appended afterwards only if there is room, so a strong all-rounder still reads as one.
+
+Caveats cover missing fields, estimated fees, and low confidence. If the best-for-you offer is not the cheapest, the text names the cheapest offer it beat and the criteria that offer lost on.
 
 The Decision Page then shows those cards. It also shows the original price, the FX rate and time, the landed-cost add-ons, and a freshness time on every offer. When the user opens a retailer link, the system checks that listing again. If the item is gone or the price changed by a large amount, it warns the user.

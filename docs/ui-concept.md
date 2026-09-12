@@ -65,6 +65,6 @@ Almost everything for the purchasing decision, in one place:
 - Commercial: seller, reliability, stock, delivery, warranty, returns
 - Specs and differences vs the confirmed variant
 - Lenses: best for you (weights), lowest list price, lowest total landed cost, best seller, best warranty — plus other “best of” where they apply and do not overlap “best for you”
-- Close alternatives (same family different specs, or a comparable product) with their own why — or none if nothing passes the guardrails
+- Close alternatives (same family different specs, or a comparable product) with their own why, ranked alongside the main list, each carrying its cost difference against the top pick. An **upgrade / downgrade / rival** badge appears on the ones that pass a value test; the rest are shown plainly, labelled as comparison-only
 - **Freshness timestamp** on every card ("price seen 3 min ago")
 - **On-click re-check:** when the user clicks a retailer link, quick-verify availability before redirecting. Warn if the item is gone or the price changed; disclaim if re-check times out

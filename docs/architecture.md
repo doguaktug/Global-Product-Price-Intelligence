@@ -205,7 +205,7 @@ Examples:
 - **Best landed price:** “Lowest estimated total after FX + shipping + import estimate (list price was not the cheapest).”
 - **Passed-over cheaper list:** “Lower sticker price, but border fees and shipping make landed cost higher.”
 
-Explanations should cite the decisive factors (weights, landed-cost components, confidence), not a black-box rank.
+Explanations cite the factors that were actually decisive, not a black-box rank and not a list of everything the offer happened to score well on. A criterion is stated as a reason only when the offer's **weighted** contribution on it (slider weight × normalized score) exceeds that of the offer it had to outrank, so what the user reads is the margin that produced the result under their own weights.
 
 ### 12. Close alternatives (careful)
 
@@ -219,12 +219,12 @@ Alternatives are **not** random similar titles. They are deliberate “you might
 **Guardrails (important):**
 
 - Never present a different-spec SKU as the same offer; keep exact matches and alternatives separate.
-- Spec upgrades should clear a **value test**, e.g. meaningful capacity/RAM/CPU gain vs modest landed-cost delta — threshold configurable (illustrative: large storage jump for ≤ ~5–10% cost increase).
-- Spec downgrades only if they save clearly and still meet confirmed minimum requirements from the confirmation gate.
+- Alternatives are scored in the **same normalization pass** as the ranked list, then split off. Scoring them separately would put them on their own 0–1 scale and make any comparison against the top pick meaningless.
+- Alternatives are ranked by final score and each may carry a **badge** — upgrade, downgrade, or rival — awarded by a value test: a meaningful spec gain for a modest cost increase, a clear saving that still meets the confirmed minimum, or a different product with enough attribute overlap and a score close to the top pick. Thresholds live in [proposed-algorithm.md](proposed-algorithm.md).
+- The value tests gate the **badge, not the listing**. A near-offer that clears none is still shown, ranked, with a caveat saying so — the badge is a claim about value and must be earned, but the user is not served by hiding that an option exists.
 - Different products need shared category + comparable form factor; require enough attribute overlap; avoid “alternative” drift into unrelated devices.
-- Cap alternatives (e.g. ~3). Prefer diversity of *reason* (better value upgrade, cheaper acceptable downgrade, strong rival) over three near-duplicates.
-- Each alternative gets its own explanation: what differs, cost delta, and why it might beat the primary pick for this user.
-- If no candidate passes the guardrails, show fewer alternatives (or none) rather than weak suggestions.
+- Cap alternatives at 3. Fill the slots with one upgrade, one downgrade and one rival where possible before topping up with the highest-scoring unbadged candidates — three near-duplicates say one thing three times.
+- Each alternative gets its own explanation: what differs, its landed cost **minus the top pick's** (negative means cheaper), and why it might beat the primary pick for this user.
 
 ### 13. Decision Page
 
@@ -238,7 +238,7 @@ The main UI. Show **why**, original price + FX (rate and timestamp), landed-cost
 | Best rated / trust | Strong on reviews and related quality signals. |
 | Best warranty | Longest / strongest warranty among confidence-eligible offers. |
 | Best for you | Highest final score under the user’s weights. |
-| Close alternatives | Up to ~3: same model different specs and/or comparable products, each with rationale. |
+| Close alternatives | Up to 3: same model different specs and/or comparable products, ranked with the main list, each with rationale and a cost difference against the top pick. Upgrade / downgrade / rival badges where earned. |
 
 “Cheapest sticker” and “best for you” stay distinct. Reasoning is shown with (or immediately under) each card — not buried.
 
