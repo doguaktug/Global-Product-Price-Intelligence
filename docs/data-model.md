@@ -34,9 +34,15 @@ classDiagram
         status
     }
     class NormalizedQuery {
-        extractedAttributes
-        candidates
+        extracted
+        candidateVariantIds
         needsConfirmation
+        pendingProperties
+    }
+    class SearchScope {
+        familyId
+        constraints
+        unconstrainedKeys
     }
     class UserPreferences {
         destinationCountry
@@ -84,7 +90,9 @@ classDiagram
 
     SearchSession --> NormalizedQuery
     SearchSession --> UserPreferences
+    SearchSession --> SearchScope
     SearchSession --> ProductVariant : confirmed
+    NormalizedQuery --> SearchScope : plus popup answers
     SearchSession --> DecisionPage
     ProductFamily "1" --> "*" ProductVariant
     Offer --> Source
@@ -148,9 +156,12 @@ The exact product the user confirms. Offers match **to** this, or are tagged sim
 | `colour` | string? | `Sky Blue` |
 | `processor` | string? | `M4 Pro`, `Intel Core Ultra 9` — laptop/tablet identity |
 | `connectivity` | string? | `Wi-Fi`, `Wi-Fi + Cellular` — tablet identity |
+| `retailerSkus` | map source id → string | `{ "ebay": "v1\|123456789\|0" }` — this build's article number **at a specific source** |
 | `canonicalSpecs` | list of `NormalizedSpec` | Battery, display size, … |
 
 Specs read through `variant.attribute(key)`, which falls back to `canonicalSpecs` — so `display_inch` is usable in matching without being promoted to a field.
+
+**`retailerSkus` is keyed by source for a reason.** A retailer SKU is only unique inside the retailer that issued it; the same string can name a phone at one site and a kettle at another. The matcher therefore looks up `retailerSkus[offer.sourceId]` and compares only against that, so a SKU can never match an offer from a different site. Populating it is optional and per-source: a build with no entry for the source simply falls through to attribute matching (see the two tiers in [architecture.md](architecture.md#7-product-matching)) rather than failing.
 
 **Identity rule:** same family + same identity keys **for that category** (plus model number when present) ⇒ **identical**. Same family, different storage/region/chip/radio ⇒ **similar**: eligible as an alternative, never merged into the ranked list of the confirmed build.
 
@@ -362,10 +373,48 @@ Example: `{ price: 0.40, seller: 0.20, reviews: 0.15, delivery: 0.10, warranty: 
 | Field | Type | Notes |
 | --- | --- | --- |
 | `rawText` | string | `"Aple 600GB telefon"` |
-| `extracted` | identity-like fields | Brand, family, storage, … as parsed |
-| `candidateVariantIds` | list | Catalog hits |
-| `needsConfirmation` | bool | `true` only if invalid, incomplete, or ambiguous — **false** when a unique catalog variant already matches |
-| `confirmationPrompt` | string? | Popup copy: “600 GB isn’t valid. 512 GB or 1 TB?” — unset when no popup |
+| `extracted` | map key → value | Whatever the parser could read off the text: `brand`, `storage_gb`, `colour`, … Keys that are not `ProductVariant` attributes are ignored when filtering the catalog |
+| `candidateFamilyId` | string? | The single family the query resolved to. A query that resolves to none does not start a search |
+| `candidateVariantIds` | list | Builds of that family still consistent with `extracted` |
+| `needsConfirmation` | bool | `true` only if something is invalid, incomplete, or ambiguous — **false** when a unique catalog variant already matches |
+| `pendingProperties` | list of `ConfirmationPrompt` | One entry per question the popup must ask. Empty when no popup is needed |
+
+### `ConfirmationPrompt`
+
+One question in the confirmation popup. It is structured rather than a prepared sentence, because the UI needs to render real controls (a set of radio buttons, an optional "doesn't matter" escape) and the API needs to validate the answer against the options that were actually offered.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `propertyKey` | string | What is being asked about: `storage_gb`, `colour`, `family_id`, or `variant_id` for a "closest build" question |
+| `role` | enum | `identity` \| `optional`. Identity questions must be answered; optional ones may be skipped |
+| `reason` | enum | `missing` \| `invalid` \| `ambiguous` \| `shorthand` \| `no_match` \| `no_exact_variant` — why we are asking, so the copy can differ between "600 GB isn't a thing" and "you didn't say" |
+| `options` | list | The permitted answers. An answer outside this list is rejected |
+| `allowNotImportant` | bool | Whether "doesn't matter" is offered. Only ever true for `optional` roles |
+
+### `PropertyChoice`
+
+One answer coming back from the popup.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `propertyKey` | string | Which prompt this answers |
+| `kind` | enum | `value` (the user picked something) \| `not_important` (the user declined to constrain it) |
+| `value` | any? | Set when `kind = value` |
+
+`not_important` is not the same as an unanswered prompt. It is a deliberate instruction to widen the search on that property, and it is recorded separately (see `SearchScope.unconstrainedKeys`) so the Decision Page can say "you said colour doesn't matter" instead of quietly ignoring it.
+
+### `SearchScope`
+
+What the confirmation step produced: the definition of what this search is looking for. Every adapter fetch and every match is bounded by it.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `familyId` | string | Offers are never taken from another family |
+| `constraints` | map key → value | The properties that are pinned, merged from `extracted` and the popup answers |
+| `unconstrainedKeys` | list | Properties the user explicitly released with `not_important` |
+| `variantIds` | list | Catalog builds still satisfying `constraints`. A scope that collapses to exactly one is the confirmed variant |
+
+`SearchScope` is what makes the difference between "search for this exact build" and "search this family, any colour" expressible in one object. `constraints` and `unconstrainedKeys` are both needed: a key absent from both was never asked about, whereas a key in `unconstrainedKeys` was asked about and deliberately opened up.
 
 ### `SearchSession`
 
@@ -376,6 +425,8 @@ Orchestrator aggregate: one user search.
 | `id` | string | |
 | `rawQuery` | string | |
 | `normalizedQuery` | `NormalizedQuery` | |
+| `propertyChoices` | list of `PropertyChoice` | The popup answers, kept as given. Retained rather than discarded after use so a re-confirm can be applied on top of earlier answers, and so the page can show what the user actually asked for |
+| `searchScope` | `SearchScope`? | Derived from `normalizedQuery` + `propertyChoices`. Once set it is reused rather than recomputed, so a later step cannot silently resolve the scope differently from the fetch that already happened |
 | `confirmedVariantId` | string? | Set immediately on a unique valid catalog hit, or after the user confirms |
 | `preferences` | `UserPreferences` | Captured as an explicit user step at session start (defaults if unchanged) |
 | `status` | enum | `received` \| `needs_confirmation` \| `fetching` \| `ranked` \| `failed` |
