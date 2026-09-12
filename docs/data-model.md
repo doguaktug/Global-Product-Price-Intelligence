@@ -508,9 +508,24 @@ The trade-off is real and accepted: the payload travelling both ways is larger t
 
 `SearchSession` still *has* fields that look like stored state — `propertyChoices`, `searchScope`, `confirmedVariantId` — because the state has to live somewhere across the confirm/run boundary. The distinction is that it lives in the payload, not on the server.
 
-### Where a cache would go, if one is added
+### The one cache: remembered offers, for re-ranking
 
-Nothing is cached today. Two places could justify it later, and both are narrow: recent `FxQuote` values, since the ECB publishes daily and re-fetching per request is wasteful; and fetched offers for a short window, so that re-ranking under different weights does not re-hit every source. Neither changes the stateless contract above — both would be a keyed cache in front of a service, not a session store.
+`SearchMemory` holds the offers from a completed fetch, keyed by session id, for `OFFER_CACHE_TTL_SECONDS` (default 15 minutes). It exists so that changing a weight slider does not re-hit every retailer: re-ranking is pure arithmetic over offers already in hand, so `POST /search/rerank` reuses them and re-runs only scoring, explanations, highlights and alternatives.
+
+Avoiding the re-fetch is not only about speed. Prices move. If a slider change triggered a second fetch, the user would be comparing a different set of offers while believing they had changed one input, and any difference in the result would be unattributable.
+
+This does not weaken the stateless contract above, and the distinction is worth being precise about:
+
+- It is a cache **in front of the adapters**, not a session store. It holds fetched offers, not the user's confirmation state, which still travels in the payload.
+- **Nothing requires it.** `POST /search/run` never reads it, so a cold instance answers a search identically to a warm one.
+- **A miss is an ordinary outcome, not an error state.** It costs a re-fetch. `POST /search/rerank` answers `409` and the client calls `/search/run` again.
+- It is **bounded** (`MAX_REMEMBERED_SEARCHES`) and expires on a monotonic clock, so a clock adjustment cannot make a stale fetch look current.
+
+Setting the TTL to `0` disables it entirely, which is the switch for running with no server-side memory at all.
+
+Two things are deliberately **not** re-rankable: destination country and reference currency. Landed cost and FX were computed against the originals, so re-scoring on a changed destination would rank totals that answer a different question. Those changes are refused and the client is told to search again.
+
+One more cache could be justified later and is not built: recent `FxQuote` values, since the ECB publishes daily and re-fetching per request is wasteful. `FxService` already keeps an in-process rate cache for an hour, which covers the prototype.
 
 ---
 

@@ -88,6 +88,9 @@ Chart and STEP writeup: [architecture.md — End-to-end process flow](docs/archi
 12. **Present the Decision Page** (why, FX, landed-cost add-ons, the five highlight lenses + alternatives)  
     `domain/models.py` → `DecisionPage` (`offers`, `offer_scores`, `highlights`, `alternatives`) · returned by `run_search` / `SearchOrchestrator.run` · *Decision Page UI: not built yet*
 
+13. **Re-rank on a slider change without re-fetching** — the completed fetch stays re-rankable for `OFFER_CACHE_TTL_SECONDS`; destination and currency changes need a fresh search  
+    `orchestrator/search_memory.py` → `SearchMemory` · `orchestrator/search.py` → `SearchOrchestrator.rerank`, `_decide` · `api/routes.py` → `rerank_search`
+
 ## Design docs
 
 - [System architecture](docs/architecture.md) — process, services, ranking and alternatives

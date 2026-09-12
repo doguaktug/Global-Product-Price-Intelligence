@@ -21,12 +21,13 @@ Personal project draft. Full decision-support model (not only a ranking engine).
 | Explanation Builder | Why each highlighted choice won (or lost) before presentation |
 | Alternative Scout | Same-product different specs, or different but comparable products |
 | Result Presentation | Five highlight lenses (best for you, lowest list price, lowest total landed cost, most trusted seller, best warranty) and close alternatives — each with rationale |
+| Search Memory | Keeps a completed fetch re-rankable for a short window, so a slider change re-scores instead of re-fetching |
 
 ## Architectural principles
 
 - Prices are **not** pre-filled into a giant database. On search, fetch as-current data via API, scraping, or headless browser where appropriate.
 - Keep a **small reference catalog**: brand, model family, category, and valid technical options for normalization — not “the whole product internet.”
-- Variable fields (price, stock, shipping quotes, fees) are acquired at query time. Short-lived cache is optional later.
+- Variable fields (price, stock, shipping quotes, fees) are acquired at query time. A search always fetches; the only cache is a short-lived memory of a completed fetch that lets a weight change re-rank without re-fetching.
 - First scope: **phone, laptop, tablet**.
 - Prefer official APIs when available; each retailer/source gets its own adapter. Respect rate limits, ToS, robots.txt, and data licenses.
 

@@ -16,6 +16,7 @@ from gp_price_intel.domain.models import (
     DecisionPage,
     MatchKind,
     NormalizedQuery,
+    Offer,
     PreferenceOrigin,
     PropertyChoice,
     SearchScope,
@@ -31,6 +32,11 @@ from gp_price_intel.landed_cost.service import LandedCostService
 from gp_price_intel.matching.matcher import ProductMatcher
 from gp_price_intel.normalize.confirmation import ConfirmationError, resolve_search_scope
 from gp_price_intel.normalize.query_normalizer import QueryNormalizer
+from gp_price_intel.orchestrator.search_memory import (
+    RememberedSearch,
+    SearchExpired,
+    SearchMemory,
+)
 from gp_price_intel.ranking.engine import RankingEngine
 from gp_price_intel.ranking.highlights import pick_highlights
 
@@ -96,6 +102,7 @@ class SearchOrchestrator:
         catalog: CatalogRepository | None = None,
         adapters: list[SourceAdapter] | None = None,
         fx: FxService | None = None,
+        memory: SearchMemory | None = None,
     ) -> None:
         self.catalog = catalog or CatalogRepository()
         self.normalizer = QueryNormalizer(self.catalog)
@@ -106,6 +113,7 @@ class SearchOrchestrator:
         self.explanations = ExplanationBuilder()
         self.alternatives = AlternativeScout(catalog=self.catalog)
         self.adapters = adapters if adapters is not None else build_adapters(self.catalog)
+        self.memory = memory or SearchMemory()
 
     def start_session(
         self,
@@ -228,6 +236,61 @@ class SearchOrchestrator:
                 ),
             )
 
+        self.memory.remember(
+            session.id,
+            RememberedSearch(
+                offers=enriched,
+                confirmed_variant_id=confirmed_variant_id or session.confirmed_variant_id,
+                destination_country=destination,
+                reference_currency=ref_currency,
+            ),
+        )
+        return self._decide(session, enriched, confirmed_variant_id)
+
+    async def rerank(
+        self,
+        session: SearchSession,
+        preferences: UserPreferences,
+    ) -> DecisionPage:
+        """
+        Rebuild the Decision Page under new weights, reusing the offers already fetched.
+
+        Only the weighting is allowed to change. Destination and reference currency
+        are refused rather than honoured, because landed cost and FX were computed
+        against the old ones — re-ranking on them would present numbers that answer
+        a question the user is no longer asking.
+        """
+        remembered = self.memory.recall(session.id)
+        if remembered is None:
+            raise SearchExpired(
+                "This search is no longer in memory, so its offers cannot be re-ranked. "
+                "Run the search again to get current prices."
+            )
+        if (
+            preferences.destination_country != remembered.destination_country
+            or preferences.reference_currency != remembered.reference_currency
+        ):
+            raise SearchExpired(
+                "Destination and reference currency cannot be changed by re-ranking: "
+                "landed cost and currency conversion depend on them. Run the search again."
+            )
+
+        session.preferences = preferences
+        return self._decide(session, remembered.offers, remembered.confirmed_variant_id)
+
+    def _decide(
+        self,
+        session: SearchSession,
+        enriched: list[Offer],
+        confirmed_variant_id: str | None,
+    ) -> DecisionPage:
+        """
+        Score, explain, highlight and scout alternatives. No I/O.
+
+        Split out from `run` so a re-rank can reuse it verbatim: the guarantee worth
+        having is that changing a weight goes through exactly the same code as the
+        original search, and cannot drift from it.
+        """
         # Confirmed builds and near-offers are scored in ONE normalization pass, then
         # split. Min–max scaling is relative to the set it is given, so scoring
         # alternatives separately would produce numbers that cannot be compared to

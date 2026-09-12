@@ -30,7 +30,7 @@ Country and currency are never required fields. They follow a **waterfall**; eac
 
 Search uses whatever is in effect at submit. Manual choice is not snapped back to location. Only steps 1 and 3 exist in code, and which one applied is recorded on the session so a card can distinguish "you chose TR" from "we assumed TR".
 
-Changing sliders later can re-rank without a new crawl; changing destination/currency may require recomputing FX and landed cost.
+Changing sliders later **re-ranks without re-fetching** (`POST /api/search/rerank`) for as long as the search is still in memory. Changing destination or currency does not: landed cost and FX were computed against the old ones, so that needs a fresh search rather than a re-score of stale totals.
 
 ---
 
