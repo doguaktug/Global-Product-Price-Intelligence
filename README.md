@@ -85,7 +85,7 @@ Chart and STEP writeup: [architecture.md — End-to-end process flow](docs/archi
 11. **Suggest close alternatives** carefully (same product different specs, or a comparable different product)  
     `alternatives/scout.py` → `AlternativeScout.select`
 
-12. **Present the Decision Page** (why, FX, landed-cost add-ons, best landed / best for you / best rated + alternatives)  
+12. **Present the Decision Page** (why, FX, landed-cost add-ons, the five highlight lenses + alternatives)  
     `domain/models.py` → `DecisionPage` (`offers`, `offer_scores`, `highlights`, `alternatives`) · returned by `run_search` / `SearchOrchestrator.run` · *Decision Page UI: not built yet*
 
 ## Design docs

@@ -20,7 +20,7 @@ Personal project draft. Full decision-support model (not only a ranking engine).
 | Ranking Engine | User weights + total cost + trust + reviews (+ delivery signals) |
 | Explanation Builder | Why each highlighted choice won (or lost) before presentation |
 | Alternative Scout | Same-product different specs, or different but comparable products |
-| Result Presentation | Best price, best for you, best rated, and close alternatives — each with rationale |
+| Result Presentation | Five highlight lenses (best for you, lowest list price, lowest total landed cost, most trusted seller, best warranty) and close alternatives — each with rationale |
 
 ## Architectural principles
 
@@ -165,7 +165,7 @@ Rules of thumb for the prototype:
 - Keep fee breakdowns visible in explanations (so “cheaper list price, higher landed cost” is understandable).
 - **Distinguish a rate we looked up from a rate we invented.** If a lane or rate is genuinely unavailable, mark that line `unavailable`, set `completeness` to `unknown`, and let the confidence multiplier down-rank the offer — do not pretend precision.
 
-Ranking and “best price” should prefer **landed cost**, not raw list price, when comparing across countries.
+Ranking prefers **landed cost**, not raw list price, when comparing across countries. List price keeps a lens of its own (`lowest_list_price`) so the user can see the difference the border made, but it is not what the score is built on.
 
 ### 10. Ranking with user preferences
 
@@ -232,15 +232,21 @@ The main UI. Show **why**, original price + FX (rate and timestamp), landed-cost
 
 **Availability freshness:** every offer card shows a visible `collectedAt` timestamp ("price seen 3 min ago"). When the user clicks a retailer link, the system performs a **quick re-check** of that listing (lightweight re-fetch of stock/price) before redirecting. If the item is no longer available or the price has changed materially, show a warning instead of silently forwarding to a dead page. If re-check fails or times out, redirect anyway with a disclaimer: "We couldn't verify — confirm on the retailer's page."
 
-| Card | Meaning |
-| --- | --- |
-| Best landed price | Lowest estimated total cost in the common currency (FX + fees). |
-| Best rated / trust | Strong on reviews and related quality signals. |
-| Best warranty | Longest / strongest warranty among confidence-eligible offers. |
-| Best for you | Highest final score under the user’s weights. |
-| Close alternatives | Up to 3: same model different specs and/or comparable products, ranked with the main list, each with rationale and a cost difference against the top pick. Upgrade / downgrade / rival badges where earned. |
+There are exactly five highlight lenses, and they are the five members of `HighlightKind`. The card label is what the user reads; the kind is what the API returns.
 
-“Cheapest sticker” and “best for you” stay distinct. Reasoning is shown with (or immediately under) each card — not buried.
+| `HighlightKind` | Card label | Meaning |
+| --- | --- | --- |
+| `best_overall` | Best for you | Highest final score under the user’s weights. Picked first |
+| `lowest_list_price` | Lowest list price | Cheapest sticker after currency conversion, before shipping and border fees |
+| `lowest_total_cost` | Lowest total landed cost | Cheapest estimated total. Only offers with a usable cost estimate compete |
+| `best_seller` | Most trusted seller | Highest score on the seller criterion (seller record blended with site reputation) |
+| `best_warranty` | Best warranty | Longest parsed warranty. Offers with unparseable or absent warranty do not compete |
+
+“Lowest list price” and “lowest total landed cost” are separate lenses on purpose: the gap between them is the whole cross-border argument, and collapsing them would hide it. Reasoning is shown with (or immediately under) each card — not buried.
+
+A lens is skipped rather than filled with a weak answer when nothing qualifies: no offer with a complete landed cost means no “lowest total landed cost” card. And one offer holds at most one highlight — “best for you” is assigned first, so any other lens that would name the same offer is dropped rather than duplicating the card.
+
+There is no “best rated” lens. Review volume is a criterion inside the score, not a lens of its own, because a review count is only meaningful next to the seller it belongs to. There is no “best specification” lens either: every offer in the ranked list matched the confirmed build, so they all share the same specs.
 
 ---
 

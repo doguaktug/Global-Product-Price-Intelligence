@@ -64,7 +64,7 @@ Almost everything for the purchasing decision, in one place:
 - Landed-cost add-ons: shipping, border/import tax, registration and similar fees (mark **estimated** vs quoted)
 - Commercial: seller, reliability, stock, delivery, warranty, returns
 - Specs and differences vs the confirmed variant
-- Lenses: best for you (weights), lowest list price, lowest total landed cost, best seller, best warranty — plus other “best of” where they apply and do not overlap “best for you”
+- The five lenses: **best for you** (weights), **lowest list price**, **lowest total landed cost**, **most trusted seller**, **best warranty**. “Best for you” is assigned first and one offer holds at most one card, so a lens that would name the same offer is dropped rather than shown twice. A lens with no qualifying offer is omitted, not filled with a weak answer
 - Close alternatives (same family different specs, or a comparable product) with their own why, ranked alongside the main list, each carrying its cost difference against the top pick. An **upgrade / downgrade / rival** badge appears on the ones that pass a value test; the rest are shown plainly, labelled as comparison-only
 - **Freshness timestamp** on every card ("price seen 3 min ago")
 - **On-click re-check:** when the user clicks a retailer link, quick-verify availability before redirecting. Warn if the item is gone or the price changed; disclaim if re-check times out

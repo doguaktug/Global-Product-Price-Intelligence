@@ -14,7 +14,7 @@ The algorithm must:
 2. Apply **user-chosen weights** (or published defaults)
 3. Handle **missing and unreliable** data honestly
 4. Produce a **score** and a **plain-language explanation**
-5. Select highlights (best price, best for you, …) and rank **alternatives**, badging the ones that pass a value test
+5. Select the five **highlights** (best for you, lowest list price, lowest total landed cost, most trusted seller, best warranty) and rank **alternatives**, badging the ones that pass a value test
 
 ---
 
@@ -188,8 +188,8 @@ Eligible offers are then selected by lens (not only by overall score):
 | --- | --- |
 | **Best for you** | Max `finalScore` — the weighted composite. Selected first. |
 | **Lowest list price** | Min `convertedListPrice.reference.amount` (sticker, ignoring fees) |
-| **Lowest total cost** | Min `landedCost.total.amount` among offers with usable landed-cost completeness |
-| **Best seller / trust** | Max `sellerScore` (composite of seller + source reliability) |
+| **Lowest total landed cost** | Min `landedCost.total.amount` among offers with usable landed-cost completeness |
+| **Most trusted seller** | Max seller criterion score (the seller's own rating blended with the hosting site's reputation) |
 | **Best warranty** | Max parsed warranty duration among eligible offers that have warranty data |
 
 If “best for you” is the same offer as another lens, **drop the other highlight**. Identical-product offers share the same specs, so there is no “best specification” Decision Page lens. AlternativeScout still compares specs when choosing close (same-family variant) or far (comparable product) alternatives.
