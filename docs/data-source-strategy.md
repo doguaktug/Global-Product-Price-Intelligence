@@ -127,6 +127,8 @@ What matters for the assignment is that the fixture is a **substitute for the tr
 
 The fixtures are also written to be *awkward* on purpose, so the normalization paths are genuinely exercised rather than fed pre-cleaned data: battery as `"5.000 mAh"` (dot as a thousands separator) next to display as `"17,5 cm"` (comma as a decimal point, and in centimetres), the same display written `"6,9 inç"` on the Turkish row, delivery as `"2-4 Werktage"` and `"1-3 iş günü"`, warranty as `"24 months"` on one row and `"2 years"` on another, and a `fixture-obscure` source carrying a deliberately low-reputation seller so the confidence gate has something to exclude.
 
+Because a fixture row is authored rather than fetched, a missing column is a mistake in the data and not a condition to degrade around. The adapter therefore requires `id`, `family_id`, `source_id`, `price`, `currency`, `listing_title` and `listing_url`, and requires `source_id` to name a source in the registry. It fills in nothing: a defaulted currency would read the price at the wrong rate, and a synthesized source would invent a reliability, which is a ranking input. `stock_status` is the one field allowed to be absent, because "we do not know" is a real state a listing can be in — it resolves to `unknown`, which the confidence score already discounts, rather than to in-stock, which would guess in the seller's favour on the one thing the buyer cannot check. A row that breaks any of these is reported against its own source, so the rest of the search still runs.
+
 What fixtures cannot demonstrate, and the docs should not claim they do: live rate limits, real ToS behaviour, source downtime, and prices actually moving between searches.
 
 ---
