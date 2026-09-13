@@ -111,8 +111,14 @@ class ShippingLanes:
         self._default_cross_border = _optional_decimal(payload.get("default_cross_border"))
 
     def estimate(self, origin: str, destination: str, category: str) -> _ShippingEstimate | None:
-        """None when nothing is published and no fallback exists — an unknown fee."""
-        factor = _CATEGORY_SHIPPING_FACTOR.get(category, Decimal("1.0"))
+        """None when the fee cannot be estimated — reported as unknown, never as zero."""
+        factor = _CATEGORY_SHIPPING_FACTOR.get(category)
+        if factor is None:
+            # Parcel size sets the courier price and is a property of the category.
+            # Defaulting to the handset factor would bill a 16-inch laptop as a phone
+            # parcel and present the result as an estimate rather than a gap.
+            return None
+
         lane = self.lanes.get(f"{origin}-{destination}")
         if lane is not None:
             return _ShippingEstimate(lane * factor, from_published_lane=True)

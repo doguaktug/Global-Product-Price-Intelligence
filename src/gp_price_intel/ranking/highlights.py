@@ -85,7 +85,7 @@ def pick_highlights(
             lowest_total[1],
         )
 
-    best_seller = max(eligible, key=lambda item: item[1].criterion_scores.get("seller", 0.0))
+    best_seller = max(eligible, key=lambda item: item[1].criterion_scores["seller"])
     add_highlight(HighlightKind.BEST_SELLER, "Most trusted seller", best_seller[0], best_seller[1])
 
     with_warranty = [

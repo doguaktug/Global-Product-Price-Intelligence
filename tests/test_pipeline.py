@@ -12,7 +12,15 @@ from gp_price_intel.adapters.fixture import FixtureAdapter
 from gp_price_intel.adapters.registry import load_sources
 from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.config import Settings
-from gp_price_intel.domain.models import HighlightKind, MatchKind, SessionStatus, UserPreferences
+from gp_price_intel.domain.models import (
+    HighlightKind,
+    LandedCostCompleteness,
+    MatchKind,
+    PropertyChoice,
+    PropertyChoiceKind,
+    SessionStatus,
+    UserPreferences,
+)
 from gp_price_intel.fx.service import FxService
 from gp_price_intel.orchestrator.search import SearchFailed, SearchOrchestrator
 from gp_price_intel.ranking.confidence import HIGHLIGHT_MIN_CONFIDENCE, effective_confidence, is_highlight_eligible
@@ -240,6 +248,140 @@ async def test_laptop_search_ranks_the_confirmed_build_and_offers_spec_variants(
     cost_reason = next(r for r in upgrade.explanation.reasons if r.factor == "cost")
     assert "TRY" in cost_reason.detail
     assert "more than your top pick" in cost_reason.detail
+
+
+TR_TRY = UserPreferences(destination_country="TR", reference_currency="TRY")
+
+# One family per category, queried the way someone actually types it: by name, with
+# the build left out. Each category asks for a different set of identity properties,
+# which is the part of the flow that is category-specific.
+CONFIRMATION_CASES = [
+    pytest.param(
+        "smartphone",
+        "Samsung Galaxy S26 Ultra",
+        {"storage_gb": 512, "colour": "Black"},
+        "samsung-galaxy-s26-ultra-512-12-eu-black",
+        id="smartphone",
+    ),
+    pytest.param(
+        "laptop",
+        "MacBook Air M4",
+        {
+            "storage_gb": 512,
+            "memory_gb": 16,
+            "region_version": "US",
+            "colour": "Sky Blue",
+        },
+        "apple-macbook-air-m4-512-16-us-sky-blue",
+        id="laptop",
+    ),
+    pytest.param(
+        "tablet",
+        "iPad Air 11 M3",
+        {
+            "storage_gb": 256,
+            "connectivity": "Wi-Fi",
+            "region_version": "EU",
+            "colour": "Space Gray",
+        },
+        "apple-ipad-air-11-m3-256-8-wifi-eu-space-gray",
+        id="tablet",
+    ),
+]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("category,query,answers,expected_variant", CONFIRMATION_CASES)
+async def test_every_category_completes_the_confirm_then_run_flow(
+    pipeline_orchestrator: SearchOrchestrator,
+    category: str,
+    query: str,
+    answers: dict,
+    expected_variant: str,
+) -> None:
+    """
+    The whole pipeline, per category, from a half-specified query to a Decision Page.
+
+    The other end-to-end tests start from queries that resolve on their own, so they
+    never cross the confirm boundary. This one does, and asserts the prompts each
+    category raises: a laptop is identified by its processor, a tablet by its
+    connectivity, and neither question makes sense for the other.
+    """
+    session = pipeline_orchestrator.start_session(query, TR_TRY)
+    assert session.status is SessionStatus.NEEDS_CONFIRMATION
+    assert session.normalized_query is not None
+    assert session.normalized_query.extracted["category_id"] == category
+    assert {p.property_key for p in session.normalized_query.pending_properties} == set(answers)
+
+    confirmed = pipeline_orchestrator.apply_choices(
+        session,
+        [
+            PropertyChoice(property_key=key, kind=PropertyChoiceKind.VALUE, value=value)
+            for key, value in answers.items()
+        ],
+    )
+    assert confirmed.status is SessionStatus.RECEIVED
+    assert confirmed.confirmed_variant_id == expected_variant
+
+    page = await pipeline_orchestrator.run(confirmed)
+
+    assert confirmed.status is SessionStatus.RANKED
+    assert page.confirmed_variant is not None
+    assert page.confirmed_variant.id == expected_variant
+    family = pipeline_orchestrator.catalog.get_family(page.confirmed_variant.family_id)
+    assert family is not None and family.category_id == category
+
+    # Only the build the user confirmed is ranked, and every offer is priced through
+    # to a landed total in their currency — the two things the page is built on.
+    assert page.offers
+    assert len(page.offer_scores) == len(page.offers)
+    for offer in page.offers:
+        assert offer.match_kind is MatchKind.IDENTICAL
+        assert offer.matched_variant_id == expected_variant
+        assert offer.converted_list_price is not None
+        assert offer.converted_list_price.reference.currency == "TRY"
+        assert offer.landed_cost is not None
+        assert offer.landed_cost.total.currency == "TRY"
+        assert offer.landed_cost.completeness is not LandedCostCompleteness.UNKNOWN
+
+    scores = [page.offer_scores[offer.id].final_score for offer in page.offers]
+    assert scores == sorted(scores, reverse=True)
+
+    assert page.highlights
+    best = next(h for h in page.highlights if h.kind is HighlightKind.BEST_OVERALL)
+    assert best.offer_id in {offer.id for offer in page.offers}
+    assert best.explanation.headline
+    assert best.explanation.reasons
+
+
+@pytest.mark.asyncio
+async def test_an_unimportant_property_widens_the_search_instead_of_pinning_a_build(
+    pipeline_orchestrator: SearchOrchestrator,
+) -> None:
+    """
+    "Not important" on an optional property is answered by searching wider.
+
+    Colour does not pin a build, so no single variant is confirmed and offers for
+    more than one colour are allowed to compete.
+    """
+    session = pipeline_orchestrator.start_session("Samsung Galaxy S26 Ultra", TR_TRY)
+
+    confirmed = pipeline_orchestrator.apply_choices(
+        session,
+        [
+            PropertyChoice(
+                property_key="storage_gb", kind=PropertyChoiceKind.VALUE, value=512
+            ),
+            PropertyChoice(property_key="colour", kind=PropertyChoiceKind.NOT_IMPORTANT),
+        ],
+    )
+
+    assert confirmed.search_scope is not None
+    assert "colour" in confirmed.search_scope.unconstrained_keys
+    assert "colour" not in confirmed.search_scope.constraints
+
+    page = await pipeline_orchestrator.run(confirmed)
+    assert page.offers
 
 
 @pytest.mark.asyncio

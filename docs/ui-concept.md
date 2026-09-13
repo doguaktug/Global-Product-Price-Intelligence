@@ -24,11 +24,11 @@ Country and currency are never required fields. They follow a **waterfall**; eac
 
 | Priority | When | Result |
 | --- | --- | --- |
-| 1. Default | App load | **TR** + **TRY**. Implemented |
+| 1. Default | App load | The configured default, shipping as **TR** + **TRY** (`DEFAULT_DESTINATION_COUNTRY`, `DEFAULT_REFERENCE_CURRENCY`). Implemented |
 | 2. Geolocation | User permits location | Inferred country + that country’s usual currency **replaces** the default. **Proposed — not implemented** |
 | 3. Manual | User picks country/currency next to the sliders | **Replaces** whatever default or geo had set. Implemented |
 
-Search uses whatever is in effect at submit. Manual choice is not snapped back to location. Only steps 1 and 3 exist in code, and which one applied is recorded on the session so a card can distinguish "you chose TR" from "we assumed TR".
+Search uses whatever is in effect at submit. Manual choice is not snapped back to location. Only steps 1 and 3 exist in code, and which one applied is recorded on the session so a card can distinguish "you chose TR" from "we assumed TR". Moving only the weight sliders does not count as choosing — the country is still assumed, and the card should still say so.
 
 Changing sliders later **re-ranks without re-fetching** (`POST /api/search/rerank`) for as long as the search is still in memory. Changing destination or currency does not: landed cost and FX were computed against the old ones, so that needs a fresh search rather than a re-score of stale totals.
 

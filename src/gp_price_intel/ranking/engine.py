@@ -197,10 +197,13 @@ class RankingEngine:
 
         scored: list[tuple[Offer, ScoreBreakdown]] = []
         for index, offer in enumerate(offers):
+            # Indexed, not `.get(index, 0.0)`: these three are scored for every offer,
+            # and a default would turn a missing score into "worst in the set" —
+            # the same figure an offer earns by genuinely being the most expensive.
             criterion_scores = {
-                "price": price_scores.get(index, 0.0),
-                "seller": seller_scores.get(index, 0.0),
-                "reviews": review_scores.get(index, 0.0),
+                "price": price_scores[index],
+                "seller": seller_scores[index],
+                "reviews": review_scores[index],
             }
             missing: list[str] = []
             for key, optional_scores in (
