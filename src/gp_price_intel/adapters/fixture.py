@@ -24,6 +24,7 @@ from gp_price_intel.domain.models import (
     SourceKind,
     StockStatus,
 )
+from gp_price_intel.normalize.spec_parser import parse_source_specs
 from gp_price_intel.ranking.confidence import compute_data_confidence_from
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ _SPEC_ROW_KEYS = (
     "processor",
     "connectivity",
     "display_inch",
+    "battery_mah",
 )
 
 
@@ -68,6 +70,9 @@ class FixtureAdapter(SourceAdapter):
         self.source = self.sources[0]
         self._fixture_path = fixture_path
 
+    def known_sources(self) -> list[Source]:
+        return list(self.source_by_id.values())
+
     async def search(self, scope: SearchScope, destination_country: str) -> list[Offer]:
         rows = self._load_rows()
         offers: list[Offer] = []
@@ -89,6 +94,8 @@ class FixtureAdapter(SourceAdapter):
                     reliability=float(row.get("seller_reliability", 0.7)),
                     acquisition_method=AcquisitionMethod.FIXTURE,
                 )
+                # Remember it so ranking can still resolve the source behind the offer.
+                self.source_by_id[source_id] = source
 
             offer = self._row_to_offer(row, source)
             if offer.stock_status == StockStatus.OUT_OF_STOCK:
@@ -109,6 +116,38 @@ class FixtureAdapter(SourceAdapter):
         payload = json.loads(path.read_text(encoding="utf-8"))
         return list(payload.get("offers", []))
 
+    @staticmethod
+    def _specs_from_row(row: dict[str, Any]) -> list[NormalizedSpec]:
+        """
+        Build this listing's specs, preferring what the "source" actually published.
+
+        A fixture row can carry specs two ways. `source_specs` holds strings written
+        the way a real retailer writes them — "5.000 mAh", "6,9 inç", "17,5 cm" — and
+        goes through the unit parser, which is the path a live adapter takes. The
+        typed columns (`storage_gb: 512`) are a curated shortcut for rows that do not
+        need to exercise parsing.
+
+        `source_specs` wins where both exist, because on a real source the published
+        text *is* the data. Keeping the original string in `raw_text` lets the
+        Decision Page show what the retailer said next to the normalized value.
+        """
+        published = parse_source_specs(row.get("source_specs"))
+        raw_text = {
+            key: str(value)
+            for key, value in (row.get("source_specs") or {}).items()
+            if isinstance(value, str)
+        }
+
+        specs: list[NormalizedSpec] = []
+        for key in _SPEC_ROW_KEYS:
+            if key in published:
+                specs.append(
+                    NormalizedSpec(key=key, value=published[key], raw_text=raw_text.get(key))
+                )
+            elif key in row:
+                specs.append(NormalizedSpec(key=key, value=row[key]))
+        return specs
+
     def _row_to_offer(self, row: dict[str, Any], source: Source) -> Offer:
         offer_id = str(row.get("id") or f"fixture-{uuid4()}")
         price = row["price"]
@@ -127,7 +166,7 @@ class FixtureAdapter(SourceAdapter):
         if "data_confidence" in row:
             confidence = float(row["data_confidence"])
         else:
-            confidence = compute_data_confidence_from(source, seller)
+            confidence = compute_data_confidence_from(source, seller, stock_status)
 
         return Offer(
             id=offer_id,
@@ -147,11 +186,7 @@ class FixtureAdapter(SourceAdapter):
             return_policy=row.get("return_policy"),
             raw_specs=[
                 NormalizedSpec(key="title", value=row["listing_title"], raw_text=row["listing_title"]),
-                *[
-                    NormalizedSpec(key=key, value=row[key])
-                    for key in _SPEC_ROW_KEYS
-                    if key in row
-                ],
+                *self._specs_from_row(row),
             ],
             collected_at=datetime.now(timezone.utc),
             data_confidence=confidence,

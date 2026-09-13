@@ -1,0 +1,30 @@
+{
+  "_comment": "Courier cost for a phone-sized parcel on a given lane, in USD. Real cost depends on origin and destination, not destination alone: DE->TR is a short intra-region hop, JP->TR is long-haul. Curated fixtures until a carrier rate API is licensed; see docs/data-source-strategy.md.",
+  "fee_currency": "USD",
+  "domestic": 6,
+  "default_cross_border": 32,
+  "lanes": {
+    "DE-TR": 14,
+    "DE-DE": 6,
+    "DE-GB": 12,
+    "DE-US": 28,
+    "DE-JP": 34,
+    "TR-TR": 5,
+    "TR-DE": 15,
+    "TR-GB": 16,
+    "TR-US": 30,
+    "GB-TR": 16,
+    "GB-DE": 12,
+    "GB-GB": 6,
+    "GB-US": 24,
+    "JP-TR": 38,
+    "JP-DE": 34,
+    "JP-GB": 35,
+    "JP-US": 22,
+    "JP-JP": 7,
+    "US-TR": 30,
+    "US-DE": 26,
+    "US-GB": 24,
+    "US-US": 8
+  }
+}

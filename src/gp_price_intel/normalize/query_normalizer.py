@@ -13,13 +13,7 @@ from gp_price_intel.domain.models import (
     ProductVariant,
     PropertyRole,
 )
-from gp_price_intel.normalize.attribute_parser import (
-    parse_capacities,
-    parse_colour,
-    parse_connectivity,
-    parse_processor,
-    parse_region_version,
-)
+from gp_price_intel.normalize.attribute_parser import parse_listing_attributes
 from gp_price_intel.normalize.confirmation import (
     VARIANT_CHOICE_KEY,
     distinct_values,
@@ -165,20 +159,7 @@ class QueryNormalizer:
         )
 
     def _parse_attributes(self, text: str, family: ProductFamily) -> dict[str, Any]:
-        options = family.valid_options
-        storage, memory = parse_capacities(
-            text,
-            options.get("storage_gb", []),
-            options.get("memory_gb", []),
-        )
-        return {
-            "storage_gb": storage,
-            "memory_gb": memory,
-            "region_version": parse_region_version(text),
-            "colour": parse_colour(text, options.get("colour", [])),
-            "processor": parse_processor(text, options.get("processor", [])),
-            "connectivity": parse_connectivity(text, options.get("connectivity", [])),
-        }
+        return parse_listing_attributes(text, family.valid_options)
 
     def _closest_build_prompt(
         self,

@@ -16,7 +16,7 @@ Welcome (search)
 First screen. Enough to start a search without filling a long form.
 
 - **Search bar** — product query
-- **Weight sliders** — optional; published defaults if left alone (must still sum to 1)
+- **Weight sliders** — optional; published defaults if left alone. Five of them: price, seller, reviews, delivery, warranty. They do **not** have to sum to 1 — only their proportions matter, so each slider moves freely without stealing from its neighbours, and dropping one to zero removes that criterion from the decision
 - **Destination country** and **reference currency** — next to the sliders; also optional
 - **Catalogue browse** — optional explore path into the small reference catalog (not required to search)
 
@@ -64,7 +64,7 @@ Almost everything for the purchasing decision, in one place:
 - Landed-cost add-ons: shipping, border/import tax, registration and similar fees (mark **estimated** vs quoted)
 - Commercial: seller, reliability, stock, delivery, warranty, returns
 - Specs and differences vs the confirmed variant
-- Lenses: best for you (weights), lowest list price, lowest total landed cost, best seller, best warranty — plus other “best of” where they apply and do not overlap “best for you”
-- Close alternatives (same family different specs, or a comparable product) with their own why — or none if nothing passes the guardrails
+- The five lenses: **best for you** (weights), **lowest list price**, **lowest total landed cost**, **most trusted seller**, **best warranty**. “Best for you” is assigned first and one offer holds at most one card, so a lens that would name the same offer is dropped rather than shown twice. A lens with no qualifying offer is omitted, not filled with a weak answer
+- Close alternatives (same family different specs, or a comparable product) with their own why, ranked alongside the main list, each carrying its cost difference against the top pick. An **upgrade / downgrade / rival** badge appears on the ones that pass a value test; the rest are shown plainly, labelled as comparison-only
 - **Freshness timestamp** on every card ("price seen 3 min ago")
-- **On-click re-check:** when the user clicks a retailer link, quick-verify availability before redirecting. Warn if the item is gone or the price changed; disclaim if re-check times out
+- Retailer links go straight through. Availability was established during the search, so the card's timestamp and stock state are what the user is trusted with — no interstitial re-check popup

@@ -8,8 +8,10 @@ import httpx
 import pytest
 
 from gp_price_intel.adapters.ebay import EbayAdapter
+from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.config import Settings
-from gp_price_intel.domain.models import SearchScope, StockStatus
+from gp_price_intel.domain.models import MatchKind, SearchScope, StockStatus
+from gp_price_intel.matching.matcher import ProductMatcher
 
 
 def _adapter(client: httpx.AsyncClient) -> EbayAdapter:
@@ -64,6 +66,111 @@ async def test_ebay_search_maps_required_offer_fields() -> None:
     assert offer.seller.review_count == 4200
     assert offer.seller.reliability is not None
     assert 0.0 <= offer.data_confidence <= 1.0
+
+
+def _listing_response(request: httpx.Request, *, title: str, aspects: list | None = None):
+    if request.url.path.endswith("/oauth2/token"):
+        return httpx.Response(200, json={"access_token": "token-123", "expires_in": 3600})
+    return httpx.Response(
+        200,
+        json={
+            "itemSummaries": [
+                {
+                    "itemId": "v1|999|0",
+                    "title": title,
+                    "itemWebUrl": "https://www.ebay.com/itm/999",
+                    "price": {"value": "1099.99", "currency": "USD"},
+                    "seller": {
+                        "username": "s",
+                        "feedbackPercentage": "98.5",
+                        "feedbackScore": 4200,
+                    },
+                    "estimatedAvailabilities": [{"estimatedAvailabilityStatus": "IN_STOCK"}],
+                    **({"localizedAspects": aspects} if aspects else {}),
+                }
+            ]
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_ebay_listing_title_becomes_matchable_specs() -> None:
+    """
+    Without this the one live adapter contributes nothing.
+
+    eBay publishes no structured specs and no identifier we share, so if the title
+    is not parsed the offer reaches the matcher with only a title and a condition,
+    matches nothing, and is dropped from every search.
+    """
+    scope = SearchScope(
+        family_id="samsung-galaxy-s26-ultra",
+        constraints={"storage_gb": 512},
+        variant_ids=["samsung-galaxy-s26-ultra-512-12-eu-black"],
+    )
+    transport = httpx.MockTransport(
+        lambda request: _listing_response(
+            request,
+            title="Samsung Galaxy S26 Ultra 512GB 12GB RAM EU Unlocked Black",
+        )
+    )
+
+    offers = await _adapter(httpx.AsyncClient(transport=transport)).search(
+        scope, destination_country="TR"
+    )
+
+    specs = {spec.key: spec.value for spec in offers[0].raw_specs}
+    assert specs["storage_gb"] == 512
+    assert specs["memory_gb"] == 12
+    assert specs["region_version"] == "EU"
+    assert specs["colour"] == "Black"
+
+
+@pytest.mark.asyncio
+async def test_ebay_offer_parsed_from_its_title_survives_matching() -> None:
+    """The point of parsing the title: the offer is no longer dropped as unmatched."""
+    scope = SearchScope(
+        family_id="samsung-galaxy-s26-ultra",
+        constraints={"storage_gb": 512},
+        variant_ids=["samsung-galaxy-s26-ultra-512-12-eu-black"],
+    )
+    transport = httpx.MockTransport(
+        lambda request: _listing_response(
+            request,
+            title="Samsung Galaxy S26 Ultra 512GB 12GB RAM EU Unlocked Black",
+        )
+    )
+
+    offers = await _adapter(httpx.AsyncClient(transport=transport)).search(
+        scope, destination_country="TR"
+    )
+    matched = ProductMatcher(CatalogRepository()).match(offers, scope)[0]
+
+    assert matched.match_kind == MatchKind.IDENTICAL
+    assert matched.matched_variant_id == "samsung-galaxy-s26-ultra-512-12-eu-black"
+
+
+@pytest.mark.asyncio
+async def test_ebay_seller_filled_aspects_go_through_the_unit_parser() -> None:
+    """Aspects arrive as display strings in whatever unit the seller chose."""
+    transport = httpx.MockTransport(
+        lambda request: _listing_response(
+            request,
+            title="Samsung Galaxy S26 Ultra 512GB",
+            aspects=[
+                {"name": "Battery Capacity", "value": ["5,000 mAh"]},
+                {"name": "Screen Size", "value": ["6.9 in"]},
+            ],
+        )
+    )
+
+    offers = await _adapter(httpx.AsyncClient(transport=transport)).search(
+        SearchScope(family_id="samsung-galaxy-s26-ultra", constraints={"storage_gb": 512}),
+        destination_country="TR",
+    )
+
+    specs = {spec.key: spec.value for spec in offers[0].raw_specs}
+    assert specs["battery_mah"] == 5000
+    assert specs["display_inch"] == 6.9
 
 
 @pytest.mark.asyncio

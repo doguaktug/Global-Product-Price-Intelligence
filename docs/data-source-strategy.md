@@ -82,6 +82,8 @@ UAE / France / Italy can be added later as extra adapters; they are not required
 
 A **small** set that hits these types across the five countries is enough. Count of URLs is not the grade.
 
+The manufacturer row stays in this table even though no live manufacturer adapter is shipped. It is the reliability anchor the other tiers are graded against — a marketplace price only means something next to the official list price — and an official-store API key is being pursued, so the row describes the intended source mix rather than a wish. Until then a fixture stands in for it, with the same `Source.kind` and reliability it would have live.
+
 ---
 
 ## Shipped and planned adapters
@@ -105,12 +107,27 @@ Source reputation is the hand-set `reliability` field in `data/sources/sources.j
 | --- | --- |
 | Best Buy Products API | Dropped — no usable public API path for this prototype |
 | Fnac / other FR retailers | No public API; not scraping behind ToS |
-| Official brand stores (Apple / Samsung regional) | Optional later if a clean API or structured page exists |
+| Official brand stores (Apple / Samsung regional) | **Pending an API key**, which is being applied for. The adapter interface and the `manufacturer` source kind are already in place, so this is a credential away rather than a redesign |
 | TR / DE / UK / JP live retailers (Hepsiburada-, MediaMarkt-, Currys-class) | Prefer API or permitted page; until then fixtures cover those countries |
 | Amazon storefront HTML | **Out** unless an official partner API is licensed |
 | Trendyol / Hepsiburada bots | Skip or fixture if ToS forbids automated access |
 
 **Week 2 cut (done):** live **eBay + Frankfurter FX**, plus **fixtures** for the remaining MVP countries so the five-country Decision Page still has offers. Replace fixtures with live adapters as keys/ToS allow.
+
+### Why most coverage is fixtures
+
+Two constraints meet here, and between them they rule out live access to most of the source list:
+
+- **Crawling is off the table.** The assignment explicitly rules out designing around uncontrolled scraping, and principle 3 above rules out working around ToS, robots.txt, or bot protection. That removes every retailer whose prices are only available by reading their pages.
+- **Retailers do not hand out API keys for a student project.** The sources that *do* publish a product API — Hepsiburada, MediaMarkt, Trendyol, Currys, Amazon — gate it behind a commercial partner or seller agreement. eBay is the exception, which is why eBay is the one live retail adapter.
+
+So a fixture is not a placeholder for work not yet done. For most of these sources it is the only legitimate way to have their data in the project at all, and that is worth stating plainly rather than implying a live integration is one afternoon away.
+
+What matters for the assignment is that the fixture is a **substitute for the transport, not for the logic**. A fixture adapter implements the same `SourceAdapter` contract, returns the same `Offer` shape with the same provenance fields, and goes through the same normalization, matching, FX, landed-cost, and ranking code as the live eBay adapter. Nothing downstream can tell the difference, which is the property that makes the pipeline demonstrable and makes swapping in a live adapter a change to one class.
+
+The fixtures are also written to be *awkward* on purpose, so the normalization paths are genuinely exercised rather than fed pre-cleaned data: battery as `"5.000 mAh"` (dot as a thousands separator) next to display as `"17,5 cm"` (comma as a decimal point, and in centimetres), the same display written `"6,9 inç"` on the Turkish row, delivery as `"2-4 Werktage"` and `"1-3 iş günü"`, warranty as `"24 months"` on one row and `"2 years"` on another, and a `fixture-obscure` source carrying a deliberately low-reputation seller so the confidence gate has something to exclude.
+
+What fixtures cannot demonstrate, and the docs should not claim they do: live rate limits, real ToS behaviour, source downtime, and prices actually moving between searches.
 
 ---
 
@@ -142,12 +159,21 @@ Do **not** invent a customs microservice. Compose:
 | --- | --- |
 | List price | Offer adapter (original currency) |
 | FX | FX provider |
-| Shipping | Listing if quoted; else a **destination rule** (flat/estimated), marked `estimated` |
-| VAT / sales tax | Rule table by destination + offer country (e.g. TR import VAT; EU VAT already in many EU list prices — do not double-count) |
+| Shipping | Per **origin→destination lane** from `data/fixtures/shipping_lanes.json`, scaled by category parcel size, marked `estimated` |
+| Origin VAT removal | Origin-country VAT rate table — a foreign sticker usually includes it and an export sale does not charge it. Recorded as a negative `otherFees` line |
+| VAT / sales tax | Rule table by destination, charged on the **net** price plus shipping plus duty (EU VAT is already in many EU list prices — do not double-count) |
 | Import duty / ÖTV-like fees | Category + destination **estimate table**, `estimated` or `unavailable` |
 | Registration | Only if the category/destination has a known mandatory fee; else omit |
 
-If shipping or duty cannot be estimated honestly, set `LandedCost.completeness = partial | unknown` and say so in the explanation. Ranking prefers complete landed costs over fake precision.
+Shipping is keyed on **both** ends of the journey, not the destination alone: DE→TR is a short regional hop and JP→TR is long-haul, and a single per-destination figure was wrong in both directions. The lanes are curated fixtures for the same reason the offers are — no crawling, and carrier rate APIs are not freely available. Replacing them with a licensed carrier rate API, or with per-source published shipping tables, is the intended next step and needs no change to the rest of the pipeline.
+
+`completeness` records **whether a figure was looked up or invented**:
+
+- `complete` — domestic, published lane, no border crossed.
+- `partial` — cross-border with every lane and rate coming from a table. Still estimates, not seller quotes.
+- `unknown` — at least one component could not be looked up and a generic figure stood in. That line is marked `unavailable`, the user sees a caveat, and the ×0.75 confidence multiplier down-ranks the offer.
+
+Ranking prefers complete landed costs over fake precision.
 
 ---
 
@@ -188,27 +214,25 @@ Offers whose **effective confidence** (`dataConfidence × landed-cost completene
 
 - Adapters must capture `stockStatus` from the listing (not guess from "page exists").
 - `out_of_stock` offers are **excluded from ranking** entirely — they are not offers.
-- `unknown` stock is allowed but carries a lower `dataConfidence` and an explanation caveat.
+- `unknown` stock is allowed but carries a lower `dataConfidence` (a ×0.85 factor). Only `unknown` is discounted: `in_stock`, `limited` and `out_of_stock` are all facts the source reported, and confidence rates the **data**, not the attractiveness of the offer. No separate explanation caveat is raised for it — the planned freshness work, which surfaces `collectedAt` and warns on stale listings, is the right place to tell the user about purchasability.
 - `limited` stock is included with a visible warning on the card.
 
-### 2. Cache TTL — don't serve stale offers
+### 2. Freshness — show when the price was seen
 
-- Offer cache TTL: **15–30 minutes** max.
-- After expiry, the next search re-fetches live.
 - The Decision Page shows `collectedAt` visibly on every card (e.g. "price seen 3 min ago").
-
-### 3. On click — re-check before redirect
-
-When the user clicks a retailer link on the Decision Page:
-
-1. **Quick re-check:** lightweight re-fetch of stock/price for that one listing (adapter's `check_availability` method — not a full search).
-2. **If still available and price is close:** redirect to the retailer.
-3. **If gone or price changed materially:** show a warning popup *before* redirecting. Example: "This item appears to be unavailable now" or "Price has changed from €1,399 to €1,499 — continue?"
-4. **If re-check fails or times out (e.g. >3s):** redirect anyway with a disclaimer: "We couldn't verify availability — please confirm on the retailer's page."
+- Nothing is cached today, so every Decision Page comes from a fetch that just ran. If a short offer cache is added, it gets a TTL in the **15–30 minute** range and the card keeps showing the original `collectedAt`, not the cache-read time.
 
 ### What we cannot prevent
 
-A listing can go stale between re-check and the user's actual purchase. We do not control the retailer. The system's job is to **minimize** dead-link clicks and **never pretend** an offer is guaranteed.
+A listing can go stale between the fetch and the user's actual purchase. We do not control the retailer. The system's job is to **minimize** dead-link clicks and **never pretend** an offer is guaranteed, which is what the visible timestamp and the honest `stockStatus` handling above are for.
+
+### Why there is no on-click re-check
+
+Earlier drafts specified a lightweight re-fetch of the single listing when the user clicks through, with a warning popup if it had gone or moved. That is dropped, and the `check_availability` adapter method it needed has been removed rather than left as unused surface.
+
+The idea came from wanting to be sure an offer is really purchasable, and **checking availability during the search already delivers that**: adapters read `stockStatus` from the listing, `out_of_stock` offers never enter the ranking, and `unknown` stock is discounted in confidence. A second check at click time re-answers a question already answered, and it cannot close the gap it was aimed at — the listing can change between the re-check and the purchase just as easily as between the fetch and the re-check.
+
+What it did cost was real: a second live call per click against the same rate limits the search competes for, a redirect the user waits on, and a fallback path ("we couldn't verify") that fires most often for exactly the fixture-backed sources that cannot verify anything. The honest version of this guarantee is a visible `collectedAt` plus a stale-data warning, which is the freshness work above.
 
 ---
 

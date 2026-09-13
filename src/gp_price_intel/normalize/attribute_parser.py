@@ -178,3 +178,30 @@ def parse_colour(text: str, valid_colours: list[str]) -> str | None:
         return best_colour
 
     return None
+
+
+def parse_listing_attributes(
+    text: str,
+    valid_options: dict[str, list[Any]],
+) -> dict[str, Any]:
+    """
+    Read every catalog attribute this text states, against a family's option lists.
+
+    A marketplace listing title is the same kind of string as a user's query — both
+    are free text naming a build ("Galaxy S26 Ultra 512GB 12GB RAM EU Black") — so
+    query normalization and listing normalization share one parser instead of
+    drifting apart. Keys the text does not mention come back as None.
+    """
+    storage, memory = parse_capacities(
+        text,
+        valid_options.get("storage_gb", []),
+        valid_options.get("memory_gb", []),
+    )
+    return {
+        "storage_gb": storage,
+        "memory_gb": memory,
+        "region_version": parse_region_version(text),
+        "colour": parse_colour(text, valid_options.get("colour", [])),
+        "processor": parse_processor(text, valid_options.get("processor", [])),
+        "connectivity": parse_connectivity(text, valid_options.get("connectivity", [])),
+    }

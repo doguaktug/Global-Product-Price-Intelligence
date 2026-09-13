@@ -13,7 +13,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Global Product Price Intelligence",
         version=__version__,
-        description="Decision-support API skeleton (Week 2).",
+        description="Decision-support API for cross-border product price comparison.",
     )
     app.include_router(router)
 

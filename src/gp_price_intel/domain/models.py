@@ -109,6 +109,19 @@ class AlternativeKind(str, Enum):
     COMPARABLE_PRODUCT = "comparable_product"
 
 
+class AlternativeBadge(str, Enum):
+    """
+    Why an alternative is worth a second look, when it passes the value tests.
+
+    Unbadged alternatives are still shown and still ranked — they simply did not
+    clear a threshold that makes a specific case for them.
+    """
+
+    UPGRADE = "upgrade"
+    DOWNGRADE = "downgrade"
+    RIVAL = "rival"
+
+
 # --- Value objects ---
 
 
@@ -125,8 +138,16 @@ class FxQuote(BaseModel):
     base_currency: str
     quote_currency: str
     rate: Decimal
-    as_of: datetime
+    #: When the *provider* published this rate, not when we fetched it. ECB rates are
+    #: published once per business day, so this is a date, and two searches minutes
+    #: apart legitimately share it. None when no conversion happened (see `is_identity`).
+    as_of: datetime | None = None
     provider: str
+
+    @property
+    def is_identity(self) -> bool:
+        """True when base and quote are the same currency, so no rate was involved."""
+        return self.base_currency.upper() == self.quote_currency.upper()
 
 
 class ConvertedMoney(BaseModel):
@@ -351,7 +372,11 @@ class DecisionHighlight(BaseModel):
 class Alternative(BaseModel):
     offer_id: str
     kind: AlternativeKind
+    #: Set when the alternative clears one of the documented value tests.
+    badge: AlternativeBadge | None = None
     differing_attributes: list[str] = Field(default_factory=list)
+    #: Difference against the top pick's landed cost, not this offer's own total.
+    #: Negative means this alternative is cheaper.
     landed_cost_delta: Money | None = None
     explanation: Explanation
 

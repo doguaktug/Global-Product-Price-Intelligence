@@ -21,7 +21,7 @@ from gp_price_intel.matching.matcher import ProductMatcher
 
 def _offer(
     *,
-    source_id: str = "bestbuy-us",
+    source_id: str = "ebay",
     retailer_sku: str | None = None,
     gtin: str | None = None,
     model_number: str | None = None,
@@ -67,7 +67,7 @@ def test_retailer_sku_match_is_identical_in_scope() -> None:
         constraints={"storage_gb": 512},
         variant_ids=["samsung-galaxy-s26-ultra-512-12-eu-black"],
     )
-    offer = _offer(source_id="bestbuy-us", retailer_sku="6575028")
+    offer = _offer(source_id="ebay", retailer_sku="v1|123456789|0")
 
     matched = matcher.match([offer], scope)[0]
 
@@ -90,18 +90,54 @@ def test_gtin_match_when_sku_missing() -> None:
     assert any("GTIN" in note for note in matched.match_notes)
 
 
-def test_same_family_different_variant_sku_is_similar() -> None:
+def test_retailer_skus_do_not_cross_sources() -> None:
+    """
+    A SKU only means something on the site that issued it.
+
+    Retailer SKUs are per-source namespaces, so the same string from another site is
+    a coincidence, not a match. With no attributes to fall back on, the offer is
+    unmatched rather than wrongly identified.
+    """
     matcher = ProductMatcher(CatalogRepository())
     scope = SearchScope(
         family_id="samsung-galaxy-s26-ultra",
         variant_ids=["samsung-galaxy-s26-ultra-512-12-eu-black"],
     )
-    offer = _offer(source_id="bestbuy-us", retailer_sku="6575099")  # 1 TB variant SKU
+    offer = _offer(source_id="fixture-tr", retailer_sku="v1|123456789|0")
+
+    assert matcher.match([offer], scope)[0].match_kind == MatchKind.UNMATCHED
+
+
+def test_absent_identifiers_do_not_block_an_attribute_match() -> None:
+    """
+    No GTIN/model/SKU is missing evidence, not contradicting evidence.
+
+    This is what lets marketplace listings match at all: eBay publishes no catalog
+    identifiers we share, so the identity tier finds nothing and matching has to
+    fall through to the specs parsed out of the listing title.
+    """
+    matcher = ProductMatcher(CatalogRepository())
+    scope = SearchScope(
+        family_id="samsung-galaxy-s26-ultra",
+        variant_ids=["samsung-galaxy-s26-ultra-512-12-eu-black"],
+    )
+    offer = _offer(
+        source_id="ebay",
+        retailer_sku=None,
+        gtin=None,
+        model_number=None,
+        raw_specs=[
+            NormalizedSpec(key="storage_gb", value=512),
+            NormalizedSpec(key="memory_gb", value=12),
+            NormalizedSpec(key="region_version", value="EU"),
+            NormalizedSpec(key="colour", value="Black"),
+        ],
+    )
 
     matched = matcher.match([offer], scope)[0]
 
-    assert matched.match_kind == MatchKind.SIMILAR
-    assert matched.matched_variant_id == "samsung-galaxy-s26-ultra-1024-12-eu-black"
+    assert matched.match_kind == MatchKind.IDENTICAL
+    assert matched.matched_variant_id == "samsung-galaxy-s26-ultra-512-12-eu-black"
 
 
 def test_no_identifiers_falls_back_to_attribute_match() -> None:

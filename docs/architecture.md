@@ -14,13 +14,13 @@ Personal project draft. Full decision-support model (not only a ranking engine).
 | Reference Catalog | Small reference data for normalization / validation (not a price warehouse) |
 | Confirmation Gate | Popup on search when the catalog match is missing, invalid, or ambiguous |
 | Live Data Acquisition | API / scraping / headless browser adapters per source |
-| Product Matching | Catalog + attributes + text similarity; same product vs near variant |
+| Product Matching | Catalog identifiers, then normalized attributes; same product vs near variant |
 | FX Service | Live exchange rates into a common currency |
 | Landed Cost Layer | Shipping, border/import tax, registration and similar destination fees |
 | Ranking Engine | User weights + total cost + trust + reviews (+ delivery signals) |
 | Explanation Builder | Why each highlighted choice won (or lost) before presentation |
 | Alternative Scout | Same-product different specs, or different but comparable products |
-| Result Presentation | Best price, best for you, best rated, and close alternatives — each with rationale |
+| Result Presentation | Five highlight lenses (best for you, lowest list price, lowest total landed cost, most trusted seller, best warranty) and close alternatives — each with rationale |
 
 ## Architectural principles
 
@@ -60,7 +60,7 @@ The user types what they want to buy (need not be a perfect product name).
 
 This is a first-class user step, not a hidden ranking default. On the **welcome / search** screen, next to the search bar:
 
-- **Criterion weights** (sliders) that must sum to 1, e.g. landed price, seller trust, warranty, specs, reviews, delivery
+- **Criterion weights** (sliders) over the five scored criteria: landed price, seller trust, reviews, delivery, warranty. Specs are not among them — only offers matching the confirmed variant exactly are ranked, so their specs are identical and cannot separate them. The sliders are **relative**: the engine re-normalizes them, so they do not have to sum to 1 and each can move on its own
 - **Destination country** and **reference currency** — optional controls next to the sliders
 - Optional **catalogue browse** if they want to explore instead of typing
 
@@ -77,6 +77,10 @@ Search uses whatever is in effect at submit. Manual choice is not snapped back t
 ### 3. Understand and normalize
 
 The user does not need a perfect product name (`Aple`, wrong capacity, etc.). The normalizer extracts category, brand, model, and technical attributes; fixes typos; and checks against valid catalog options.
+
+The same parser is reused on **listing titles** during matching (step 7), because a title is the same kind of string as a query — free text naming a build. Keeping one implementation means a query and a listing can never disagree about what `"512GB 12GB RAM"` means.
+
+Separately, a **unit parser** normalizes measurement specs that sources write in their own units and punctuation: `5,000 mAh`, `5.000 mAh`, `5000mAh` and `5 Ah` are one battery, and `6.9"`, `6,9 inç`, `6.9型` and `17,5 cm` are one screen. See [data-model.md](data-model.md#normalizedspec) for the canonical unit per key and the disambiguation rules.
 
 Colors and other non-core, frequently changing fields need not live in the catalog. The catalog answers “what product could this be?” Live data answers “where, how much, under what conditions — now?”
 
@@ -113,12 +117,18 @@ See [data-source-strategy.md](data-source-strategy.md) for MVP countries, source
 
 Same physical product can appear under different titles across stores.
 
-| Approach | Logic | Strong when |
+Matching is **two tiers, tried in order**:
+
+| Tier | Logic | Strong when |
 | --- | --- | --- |
-| Identity-based | EAN/UPC/GTIN, model code, SKU | Strong IDs exist across listings |
-| Attribute-based | Brand, model, RAM, storage, screen, etc. | Phones / laptops / tablets |
-| Text similarity | Title/description similarity | Missing model codes / messy titles |
-| Hybrid | Identity → attributes → text | Default overall strategy |
+| 1. Identity | EAN/UPC/GTIN, manufacturer model code, per-source retailer SKU | Strong IDs exist across listings |
+| 2. Attributes | Category identity keys — storage, RAM, region, chip, connectivity — compared against catalog variants | Phones / laptops / tablets, where the build is what distinguishes one SKU from another |
+
+An **absent** identifier is missing evidence, not contradicting evidence: when tier 1 finds nothing, matching falls through to tier 2 rather than rejecting the offer. Only a *stated conflict* rules a variant out. This is what makes marketplace listings usable at all — eBay publishes no identifier the catalog shares, so every eBay offer is decided by tier 2.
+
+Tier 2 needs structured attributes, and most sources do not publish any. The attributes therefore come from **normalizing the listing title** with the same parser that reads user queries (see step 5): `"Galaxy S26 Ultra 512GB 12GB RAM EU Black"` yields `storage_gb=512, memory_gb=12, region_version=EU, colour=Black`. Where a source does publish structured specs, those are preferred and passed through the unit parser first.
+
+There is deliberately **no free-text similarity tier**. Fuzzy title scoring is used to pick the product *family* from the user's query (step 5), where a wrong guess only opens a confirmation popup. Using it to decide which *build* an offer is would silently merge a 256 GB listing with a 512 GB one, and a wrong answer there corrupts the price comparison itself. When the two tiers cannot decide, the offer is `unmatched` and excluded, which is the honest outcome.
 
 Matching must distinguish:
 
@@ -130,25 +140,32 @@ Matching must distinguish:
 
 Convert offer list prices into a common currency via a live exchange-rate provider (no custom FX engine). Example: USD/EUR offers → TRY (or user’s preferred currency) using current rates, then pass amounts into landed-cost and ranking on the same scale. If conversion fails for a single offer, drop that offer and continue ranking the rest. If every offer is dropped (conversion or another pipeline step), fail the search with a reason instead of returning an empty Decision Page.
 
+An offer already priced in the reference currency is **not converted** — the quote records `rate = 1`, `provider = identity` and no rate date, and explanations say so instead of quoting a meaningless rate. The timestamp shown with a real conversion is the provider's **publication date** for that rate (ECB publishes daily), not the moment we fetched it; listing freshness is a separate field, `Offer.collectedAt`. See [data-model.md](data-model.md#fxquote).
+
+Flat fees inside landed cost are authored in USD (`FEE_CURRENCY`) and restated into the reference currency through the same FX service, so a shipping or registration figure is never silently read as "450 EUR" for a user pricing in EUR. A fee already in the reference currency skips conversion.
+
 ### 9. Landed cost (after FX)
 
 For **worldwide** options, list price in common currency is not enough. After FX, compute an estimated **total landed cost** toward the user’s destination:
 
-- shipping / delivery to destination
+- **origin VAT removed** — a foreign sticker usually includes the seller's local VAT, which an export sale does not charge
+- shipping / delivery on the specific **origin→destination lane**
 - border / import / VAT / duty estimates where applicable
 - registration or other mandatory destination fees when relevant to the category/region
 
 ```
-LandedCost ≈ FX(ListPrice) + Shipping + BorderTaxEstimate + RegistrationFees + OtherKnownFees
+Net         = FX(ListPrice) − OriginVAT
+LandedCost ≈ FX(ListPrice) − OriginVAT + Shipping(origin→destination) + Duty(Net) + VAT(Net + Shipping + Duty) + RegistrationFees
 ```
 
 Rules of thumb for the prototype:
 
-- Prefer source-provided shipping when available; otherwise use a transparent estimate and label it as estimated.
+- **Shipping depends on both ends of the journey.** DE→TR is a short regional hop and JP→TR is long-haul, so a per-destination figure was wrong in both directions. Lanes are curated fixtures (`data/fixtures/shipping_lanes.json`) scaled by category parcel size; a carrier rate API or per-source published shipping is the intended replacement.
+- **Do not tax the buyer twice.** Strip the origin country's VAT before applying destination duty and VAT, and show the removal as its own visible (negative) line so the breakdown still adds up to the total.
 - Keep fee breakdowns visible in explanations (so “cheaper list price, higher landed cost” is understandable).
-- If a fee cannot be estimated reliably, mark the offer’s total cost as **partial / uncertain** and down-rank or flag confidence — do not pretend precision.
+- **Distinguish a rate we looked up from a rate we invented.** If a lane or rate is genuinely unavailable, mark that line `unavailable`, set `completeness` to `unknown`, and let the confidence multiplier down-rank the offer — do not pretend precision.
 
-Ranking and “best price” should prefer **landed cost**, not raw list price, when comparing across countries.
+Ranking prefers **landed cost**, not raw list price, when comparing across countries. List price keeps a lens of its own (`lowest_list_price`) so the user can see the difference the border made, but it is not what the score is built on.
 
 ### 10. Ranking with user preferences
 
@@ -172,7 +189,9 @@ FinalScore = confidenceMultiplier × (
 )
 ```
 
-Lower landed cost → higher PriceScore. Uncertain landed-cost offers carry a confidence multiplier. Offers below the **0.7** effective-confidence floor stay in the ranked list with a warning but are excluded from highlight recommendations. Missing criteria are excluded per offer with weight re-normalization.
+Lower landed cost → higher PriceScore, and fewer delivery days likewise. `SellerScore` blends the seller's own rating with the reputation of the hosting site, the site counting for 30% so a strong seller on a mid-tier marketplace is not capped by it. `ReviewScore` comes from review volume on a log scale. Delivery and warranty are parsed out of each source's own free text (`"2-4 Werktage"`, `"24 months"`); text with no usable unit makes the criterion missing rather than a guessed number.
+
+Uncertain landed-cost offers carry a confidence multiplier. Offers below the **0.7** effective-confidence floor stay in the ranked list with a warning but are excluded from highlight recommendations. Missing criteria are excluded per offer with weight re-normalization.
 
 Full algorithm: [proposed-algorithm.md](proposed-algorithm.md) — normalization, missing-data rules, confidence, highlight selection, alternative guardrails, and explanation generation.
 
@@ -186,7 +205,7 @@ Examples:
 - **Best landed price:** “Lowest estimated total after FX + shipping + import estimate (list price was not the cheapest).”
 - **Passed-over cheaper list:** “Lower sticker price, but border fees and shipping make landed cost higher.”
 
-Explanations should cite the decisive factors (weights, landed-cost components, confidence), not a black-box rank.
+Explanations cite the factors that were actually decisive, not a black-box rank and not a list of everything the offer happened to score well on. A criterion is stated as a reason only when the offer's **weighted** contribution on it (slider weight × normalized score) exceeds that of the offer it had to outrank, so what the user reads is the margin that produced the result under their own weights.
 
 ### 12. Close alternatives (careful)
 
@@ -200,28 +219,34 @@ Alternatives are **not** random similar titles. They are deliberate “you might
 **Guardrails (important):**
 
 - Never present a different-spec SKU as the same offer; keep exact matches and alternatives separate.
-- Spec upgrades should clear a **value test**, e.g. meaningful capacity/RAM/CPU gain vs modest landed-cost delta — threshold configurable (illustrative: large storage jump for ≤ ~5–10% cost increase).
-- Spec downgrades only if they save clearly and still meet confirmed minimum requirements from the confirmation gate.
+- Alternatives are scored in the **same normalization pass** as the ranked list, then split off. Scoring them separately would put them on their own 0–1 scale and make any comparison against the top pick meaningless.
+- Alternatives are ranked by final score and each may carry a **badge** — upgrade, downgrade, or rival — awarded by a value test: a meaningful spec gain for a modest cost increase, a clear saving that still meets the confirmed minimum, or a different product with enough attribute overlap and a score close to the top pick. Thresholds are listed in [parameters.md](parameters.md#alternatives) and explained in [proposed-algorithm.md](proposed-algorithm.md).
+- The value tests gate the **badge, not the listing**. A near-offer that clears none is still shown, ranked, with a caveat saying so — the badge is a claim about value and must be earned, but the user is not served by hiding that an option exists.
 - Different products need shared category + comparable form factor; require enough attribute overlap; avoid “alternative” drift into unrelated devices.
-- Cap alternatives (e.g. ~3). Prefer diversity of *reason* (better value upgrade, cheaper acceptable downgrade, strong rival) over three near-duplicates.
-- Each alternative gets its own explanation: what differs, cost delta, and why it might beat the primary pick for this user.
-- If no candidate passes the guardrails, show fewer alternatives (or none) rather than weak suggestions.
+- Cap alternatives at 3. Fill the slots with one upgrade, one downgrade and one rival where possible before topping up with the highest-scoring unbadged candidates — three near-duplicates say one thing three times.
+- Each alternative gets its own explanation: what differs, its landed cost **minus the top pick's** (negative means cheaper), and why it might beat the primary pick for this user.
 
 ### 13. Decision Page
 
 The main UI. Show **why**, original price + FX (rate and timestamp), landed-cost add-ons (shipping, tax, duty — mark estimates), commercial terms, spec diffs, and the lenses below. Full layout: [ui-concept.md](ui-concept.md).
 
-**Availability freshness:** every offer card shows a visible `collectedAt` timestamp ("price seen 3 min ago"). When the user clicks a retailer link, the system performs a **quick re-check** of that listing (lightweight re-fetch of stock/price) before redirecting. If the item is no longer available or the price has changed materially, show a warning instead of silently forwarding to a dead page. If re-check fails or times out, redirect anyway with a disclaimer: "We couldn't verify — confirm on the retailer's page."
+**Availability freshness:** every offer card shows a visible `collectedAt` timestamp ("price seen 3 min ago"), and a stale reading is warned about rather than presented as current. Purchasability is established **during the search** — adapters read `stockStatus` from the listing, `out_of_stock` offers never enter the ranking, and `unknown` stock is discounted in confidence. There is deliberately no second re-check when the user clicks through; see [data-source-strategy.md](data-source-strategy.md#why-there-is-no-on-click-re-check).
 
-| Card | Meaning |
-| --- | --- |
-| Best landed price | Lowest estimated total cost in the common currency (FX + fees). |
-| Best rated / trust | Strong on reviews and related quality signals. |
-| Best warranty | Longest / strongest warranty among confidence-eligible offers. |
-| Best for you | Highest final score under the user’s weights. |
-| Close alternatives | Up to ~3: same model different specs and/or comparable products, each with rationale. |
+There are exactly five highlight lenses, and they are the five members of `HighlightKind`. The card label is what the user reads; the kind is what the API returns.
 
-“Cheapest sticker” and “best for you” stay distinct. Reasoning is shown with (or immediately under) each card — not buried.
+| `HighlightKind` | Card label | Meaning |
+| --- | --- | --- |
+| `best_overall` | Best for you | Highest final score under the user’s weights. Picked first |
+| `lowest_list_price` | Lowest list price | Cheapest sticker after currency conversion, before shipping and border fees |
+| `lowest_total_cost` | Lowest total landed cost | Cheapest estimated total. Only offers with a usable cost estimate compete |
+| `best_seller` | Most trusted seller | Highest score on the seller criterion (seller record blended with site reputation) |
+| `best_warranty` | Best warranty | Longest parsed warranty. Offers with unparseable or absent warranty do not compete |
+
+“Lowest list price” and “lowest total landed cost” are separate lenses on purpose: the gap between them is the whole cross-border argument, and collapsing them would hide it. Reasoning is shown with (or immediately under) each card — not buried.
+
+A lens is skipped rather than filled with a weak answer when nothing qualifies: no offer with a complete landed cost means no “lowest total landed cost” card. And one offer holds at most one highlight — “best for you” is assigned first, so any other lens that would name the same offer is dropped rather than duplicating the card.
+
+There is no “best rated” lens. Review volume is a criterion inside the score, not a lens of its own, because a review count is only meaningful next to the seller it belongs to. There is no “best specification” lens either: every offer in the ranked list matched the confirmed build, so they all share the same specs.
 
 ---
 
