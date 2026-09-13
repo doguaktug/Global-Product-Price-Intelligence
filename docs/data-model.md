@@ -465,12 +465,12 @@ Each highlight: `{ kind, offerId, explanation }`.
 | --- | --- | --- |
 | `offerId` | string | |
 | `kind` | enum | `spec_variant` (same family, different specs) \| `comparable_product` |
-| `badge` | enum? | `upgrade` \| `downgrade` \| `rival`, or absent. See below |
+| `badge` | enum | `upgrade` \| `downgrade` \| `rival` \| `similar`. Required on shown alternatives — see below |
 | `differingAttributes` | list | e.g. storage 512 → 1024 |
 | `landedCostDelta` | `Money`? | **This offer's landed cost minus the top pick's.** Negative means cheaper |
-| `explanation` | `Explanation` | What differs, the cost delta, and the value test passed (or a caveat that none was) |
+| `explanation` | `Explanation` | What differs, the cost delta, and the value test that earned the badge |
 
-`kind` says what sort of thing the alternative is; `badge` says whether the system is prepared to make a claim about its value. They are separate because an alternative can be a legitimate option to show without clearing a value test — see [proposed-algorithm.md](proposed-algorithm.md) step 6 for the thresholds.
+`kind` says what sort of thing the alternative is; `badge` says which value test it cleared. Only badged alternatives are returned — a near-offer that clears none is omitted. Thresholds: [proposed-algorithm.md](proposed-algorithm.md) step 6.
 
 `landedCostDelta` is a **delta, not a total**. The alternatives panel answers "what would switching cost me?", so the difference is the number the reader wants; the alternative's own total is still reachable through its `Offer`. A `Money` of `-2100 TRY` therefore means "2,100 TRY cheaper than the offer we recommended", not "costs -2,100 TRY".
 
@@ -485,7 +485,7 @@ What the UI renders.
 | `offers` | list of `Offer` | Matched + ranked by `finalScore` (full list) |
 | `offerScores` | map `offerId` → `ScoreBreakdown` | Parallel scores / warnings for the full list UI |
 | `highlights` | list of `DecisionHighlight` | Only offers with effective confidence ≥ 0.7 |
-| `alternatives` | list of `Alternative` | Ranked by `finalScore` alongside the main list; cap 3. Empty only when there were no near-offers |
+| `alternatives` | list of `Alternative` | Badged near-offers only; ranked by `finalScore`; cap 3. Empty when none clear a value test |
 | `generatedAt` | datetime | |
 
 ---

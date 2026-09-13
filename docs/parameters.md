@@ -45,9 +45,13 @@ Raising `HIGHLIGHT_MIN_CONFIDENCE` makes the Decision Page quieter and more cons
 | `DOWNGRADE_MAX_SPEC_LOSS` | `0.50` | `alternatives/scout.py` | No spec may fall further than this for a downgrade to be recommended |
 | `COMPARABLE_OVERLAP_RATIO` | `0.60` | `alternatives/scout.py` | Share of comparable specs a different product must agree on to earn the `rival` badge |
 | `COMPARABLE_SCORE_FLOOR` | `0.85` | `alternatives/scout.py` | A rival's score must exceed this fraction of the top pick's |
+| `COMPARABLE_MAX_COST_DELTA` | `0.15` | `alternatives/scout.py` | A rival's landed price must stay within this fraction of the top pick |
+| `SIMILAR_MAX_SPEC_DELTA` | `0.10` | `alternatives/scout.py` | Max relative numeric-spec drift for a same-family `similar` badge |
+| `SIMILAR_MAX_COST_DELTA` | `0.10` | `alternatives/scout.py` | Max relative cost drift for a `similar` badge |
+| `SIMILAR_SCORE_FLOOR` | `0.90` | `alternatives/scout.py` | A similar build's score must exceed this fraction of the top pick's |
 | `MAX_ALTERNATIVES` | `3` | `alternatives/scout.py` | Cap on the alternatives panel |
 
-These gate the **badge, not the listing**. A near-offer that clears none is still shown and still ranked; it simply carries no claim. Loosening them therefore does not surface more options, it attaches more claims to the options already there.
+These gate **whether an alternative is shown**. A near-offer that clears none is omitted — not listed "for comparison."
 
 `COMPARABLE_SCORE_FLOOR` only means anything because alternatives are scored in the same normalization pass as the ranked list. If that changes, this parameter stops being comparable to anything.
 

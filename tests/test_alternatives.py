@@ -1,4 +1,4 @@
-"""Alternatives are ranked and badged, never silently dropped."""
+"""Alternatives are shown only when they clear a value test."""
 
 from __future__ import annotations
 
@@ -94,21 +94,12 @@ def test_more_storage_for_a_little_more_money_is_an_upgrade() -> None:
     assert alternatives[0].landed_cost_delta == Money(amount=Decimal("50"), currency="TRY")
 
 
-def test_more_storage_at_a_steep_premium_earns_no_badge_but_is_still_shown() -> None:
-    """
-    The spec gain clears the bar; the price does not. It stays in the list.
-
-    Badges are claims about value, so an alternative that fails a value test loses
-    the claim, not its place — the user still gets to see the option exists.
-    """
+def test_more_storage_at_a_steep_premium_is_hidden() -> None:
+    """Spec gain clears the bar but price does not — omit, do not show for comparison."""
     best = _scored("pick", "1000", CONFIRMED, final_score=0.9)
     bigger = _scored("bigger", "1330", BIGGER_STORAGE)
 
-    alternatives = _select([bigger], best)
-
-    assert len(alternatives) == 1
-    assert alternatives[0].badge is None
-    assert any("does not clear a value test" in c for c in alternatives[0].explanation.caveats)
+    assert _select([bigger], best) == []
 
 
 def test_halving_storage_to_save_a_fifth_is_a_downgrade() -> None:
@@ -122,20 +113,18 @@ def test_halving_storage_to_save_a_fifth_is_a_downgrade() -> None:
     assert alternatives[0].landed_cost_delta == Money(amount=Decimal("-200"), currency="TRY")
 
 
-def test_a_saving_too_small_to_matter_is_not_a_downgrade() -> None:
+def test_a_saving_too_small_to_matter_is_hidden() -> None:
     best = _scored("pick", "1000", BIGGER_STORAGE, final_score=0.9)
     smaller = _scored("smaller", "950", CONFIRMED)
 
-    alternatives = _select([smaller], best, confirmed_id=BIGGER_STORAGE)
-
-    assert alternatives[0].badge is None
+    assert _select([smaller], best, confirmed_id=BIGGER_STORAGE) == []
 
 
 def test_a_different_product_that_scores_close_and_shares_specs_is_a_rival() -> None:
     """Last year's flagship: same storage, memory, screen and battery, lower price."""
     best = _scored("pick", "1000", CONFIRMED, final_score=0.90)
     older = _scored(
-        "older", "820", LAST_GENERATION, final_score=0.86, match_kind=MatchKind.DIFFERENT
+        "older", "900", LAST_GENERATION, final_score=0.86, match_kind=MatchKind.DIFFERENT
     )
 
     alternatives = _select([older], best)
@@ -143,74 +132,73 @@ def test_a_different_product_that_scores_close_and_shares_specs_is_a_rival() -> 
     assert [a.badge for a in alternatives] == [AlternativeBadge.RIVAL]
 
 
-def test_a_different_product_scoring_well_below_the_pick_is_not_a_rival() -> None:
-    """Same shared specs, but 85% of the top score is the floor and this misses it."""
+def test_a_different_product_scoring_well_below_the_pick_is_hidden() -> None:
+    """Same shared specs, but below the score floor — omit entirely."""
     best = _scored("pick", "1000", CONFIRMED, final_score=0.90)
     older = _scored(
         "older", "820", LAST_GENERATION, final_score=0.70, match_kind=MatchKind.DIFFERENT
     )
 
-    alternatives = _select([older], best)
-
-    assert alternatives[0].badge is None
+    assert _select([older], best) == []
 
 
-def test_a_different_product_sharing_few_specs_is_not_a_rival() -> None:
-    """A smaller phone scores well but agrees on only half the core specs."""
+def test_a_different_product_sharing_few_specs_is_hidden() -> None:
+    """A smaller phone scores well but agrees on too few core specs."""
     best = _scored("pick", "1000", CONFIRMED, final_score=0.90)
     smaller_phone = _scored(
         "plus", "900", SMALLER_PHONE, final_score=0.89, match_kind=MatchKind.DIFFERENT
     )
 
-    alternatives = _select([smaller_phone], best)
-
-    assert alternatives[0].badge is None
+    assert _select([smaller_phone], best) == []
 
 
-def test_alternatives_are_ordered_by_score_not_by_arrival() -> None:
+def test_similar_colour_variant_with_close_price_and_score_is_shown() -> None:
+    """Cosmetic / near-identical build with close price and score earns similar."""
     best = _scored("pick", "1000", CONFIRMED, final_score=0.95)
-    near = [
-        _scored("weak", "1000", OTHER_COLOUR, final_score=0.30),
-        _scored("strong", "1000", OTHER_COLOUR, final_score=0.80),
-        _scored("middling", "1000", OTHER_COLOUR, final_score=0.55),
-    ]
+    twin = _scored("twin", "1020", OTHER_COLOUR, final_score=0.92)
 
-    alternatives = _select(near, best)
+    alternatives = _select([twin], best)
 
-    assert [a.offer_id for a in alternatives] == ["strong", "middling", "weak"]
+    assert [a.badge for a in alternatives] == [AlternativeBadge.SIMILAR]
+    assert alternatives[0].offer_id == "twin"
 
 
 def test_selection_prefers_one_of_each_badge_over_three_of_a_kind() -> None:
     """
-    Three cheaper-but-smaller options tell the user one thing three times.
-
-    Two unbadged listings outrank the downgrade on score, but a slot is kept for a
-    second kind of reason so the shortlist is not a single theme repeated.
+    Prefer a spread of reasons; failed value tests never fill remaining slots.
     """
     best = _scored("pick", "1000", BIGGER_STORAGE, final_score=0.95)
     near = [
-        _scored("same-a", "1000", BIGGER_STORAGE, final_score=0.90),
-        _scored("same-b", "1000", BIGGER_STORAGE, final_score=0.88),
-        _scored("cheaper", "800", CONFIRMED, final_score=0.40),
+        _scored("same-a", "1000", BIGGER_STORAGE, final_score=0.90),  # similar
+        _scored("same-b", "1330", BIGGER_STORAGE, final_score=0.88),  # fails upgrade
+        _scored("cheaper", "800", CONFIRMED, final_score=0.40),  # downgrade
     ]
 
     alternatives = _select(near, best, confirmed_id=BIGGER_STORAGE, max_alternatives=2)
 
-    assert [a.offer_id for a in alternatives] == ["cheaper", "same-a"]
-    assert alternatives[0].badge is AlternativeBadge.DOWNGRADE
+    assert [a.offer_id for a in alternatives] == ["same-a", "cheaper"]
+    assert {a.badge for a in alternatives} == {
+        AlternativeBadge.SIMILAR,
+        AlternativeBadge.DOWNGRADE,
+    }
 
 
-def test_every_alternative_carries_a_reason_and_a_cost_delta() -> None:
+def test_every_shown_alternative_carries_a_badge_reason_and_cost_delta() -> None:
     best = _scored("pick", "1000", CONFIRMED, final_score=0.9)
     near = [
-        _scored("colour", "1000", OTHER_COLOUR, final_score=0.7),
+        _scored("colour", "1000", OTHER_COLOUR, final_score=0.88),
         _scored("bigger", "1050", BIGGER_STORAGE, final_score=0.6),
+        _scored("steep", "1400", BIGGER_STORAGE, final_score=0.7),  # hidden
     ]
 
-    for alternative in _select(near, best):
+    alternatives = _select(near, best)
+    assert {a.offer_id for a in alternatives} == {"colour", "bigger"}
+    for alternative in alternatives:
+        assert alternative.badge is not None
         assert alternative.explanation.reasons
         assert any(r.factor == "cost" for r in alternative.explanation.reasons)
         assert alternative.landed_cost_delta is not None
+        assert alternative.explanation.caveats == []
 
 
 def test_the_top_pick_is_never_offered_as_its_own_alternative() -> None:

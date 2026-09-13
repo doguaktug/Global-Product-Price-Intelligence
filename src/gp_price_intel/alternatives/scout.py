@@ -20,15 +20,18 @@ from gp_price_intel.domain.models import (
 
 Scored = tuple[Offer, ScoreBreakdown]
 
-# Value tests from docs/proposed-algorithm.md. These decide whether an alternative
-# earns a badge — not whether it is shown — so a near-offer that misses every
-# threshold still appears, ranked, without a claim attached to it.
+# Value tests from docs/proposed-algorithm.md. An alternative is shown only when
+# it earns a badge: upgrade, downgrade, rival, or near-identical similar.
 UPGRADE_MIN_SPEC_GAIN = 0.25
 UPGRADE_MAX_COST_INCREASE = 0.10
 DOWNGRADE_MIN_COST_SAVING = 0.15
 DOWNGRADE_MAX_SPEC_LOSS = 0.50
 COMPARABLE_OVERLAP_RATIO = 0.60
 COMPARABLE_SCORE_FLOOR = 0.85
+COMPARABLE_MAX_COST_DELTA = 0.15
+SIMILAR_MAX_SPEC_DELTA = 0.10
+SIMILAR_MAX_COST_DELTA = 0.10
+SIMILAR_SCORE_FLOOR = 0.90
 MAX_ALTERNATIVES = 3
 
 
@@ -77,28 +80,30 @@ class AlternativeScout:
         ):
             if offer.id == best_offer.id:
                 continue
-            candidates.append(
-                self._describe(
-                    offer,
-                    score,
-                    best_offer=best_offer,
-                    best_score=best_score,
-                    base_cost=base_cost,
-                    currency=currency,
-                    confirmed_variant=confirmed_variant,
-                )
+            alternative = self._describe(
+                offer,
+                score,
+                best_offer=best_offer,
+                best_score=best_score,
+                base_cost=base_cost,
+                currency=currency,
+                confirmed_variant=confirmed_variant,
             )
+            # Fail the value tests → omit. No "shown for comparison" filler.
+            if alternative.badge is None:
+                continue
+            candidates.append(alternative)
 
         return self._pick_a_spread(candidates, max_alternatives)
 
     @staticmethod
     def _pick_a_spread(candidates: list[Alternative], limit: int) -> list[Alternative]:
         """
-        Prefer one upgrade, one downgrade and one rival over three of a kind.
+        Prefer one of each badge over three of a kind.
 
-        Three cheaper-but-smaller variants tell the user one thing three times.
-        Badged alternatives come first (best-scoring within each badge, since the
-        input is already ranked), then the strongest unbadged ones fill the slots.
+        Candidates are already badge-only. Keep the best-scoring example of each
+        reason (upgrade / downgrade / rival / similar), then fill remaining slots
+        by score.
         """
         chosen: list[Alternative] = []
         seen_badges: set[AlternativeBadge] = set()
@@ -133,7 +138,9 @@ class AlternativeScout:
         delta_money = Money(amount=delta, currency=currency)
 
         if offer.match_kind == MatchKind.DIFFERENT:
-            badge = self._rival_badge(offer, score, best_offer, best_score)
+            badge = self._rival_badge(
+                offer, score, best_offer, best_score, delta=delta, base_cost=base_cost
+            )
             return Alternative(
                 offer_id=offer.id,
                 kind=AlternativeKind.COMPARABLE_PRODUCT,
@@ -147,6 +154,8 @@ class AlternativeScout:
         differences = self._spec_differences(confirmed_variant, offer)
         badge = self._variant_badge(
             offer,
+            score=score,
+            best_score=best_score,
             confirmed_variant=confirmed_variant,
             delta=delta,
             base_cost=base_cost,
@@ -166,6 +175,8 @@ class AlternativeScout:
         self,
         offer: Offer,
         *,
+        score: ScoreBreakdown,
+        best_score: ScoreBreakdown,
         confirmed_variant: ProductVariant | None,
         delta: Decimal,
         base_cost: Decimal,
@@ -193,6 +204,18 @@ class AlternativeScout:
             loss is None or loss <= Decimal(str(DOWNGRADE_MAX_SPEC_LOSS))
         ):
             return AlternativeBadge.DOWNGRADE
+
+        # Near-identical build: tiny spec drift, close price, close score.
+        max_gain = gain if gain is not None else Decimal("0")
+        max_loss = loss if loss is not None else Decimal("0")
+        if (
+            max_gain <= Decimal(str(SIMILAR_MAX_SPEC_DELTA))
+            and max_loss <= Decimal(str(SIMILAR_MAX_SPEC_DELTA))
+            and abs(cost_ratio) <= Decimal(str(SIMILAR_MAX_COST_DELTA))
+            and best_score.final_score > 0
+            and score.final_score >= best_score.final_score * SIMILAR_SCORE_FLOOR
+        ):
+            return AlternativeBadge.SIMILAR
         return None
 
     def _spec_change_ratios(
@@ -231,18 +254,22 @@ class AlternativeScout:
         score: ScoreBreakdown,
         best_offer: Offer,
         best_score: ScoreBreakdown,
+        *,
+        delta: Decimal,
+        base_cost: Decimal,
     ) -> AlternativeBadge | None:
         """
         A different product only earns the badge if it is genuinely comparable.
 
-        Both halves matter: enough shared attributes that it answers the same need,
-        and a score close enough to the top pick to be worth the switch. Scores are
+        Shared specs, a close score, and a close landed price all matter. Scores are
         comparable here only because alternatives were normalized alongside the
         ranked list.
         """
-        if best_score.final_score <= 0:
+        if best_score.final_score <= 0 or base_cost <= 0:
             return None
         if score.final_score <= best_score.final_score * COMPARABLE_SCORE_FLOOR:
+            return None
+        if abs(delta / base_cost) > Decimal(str(COMPARABLE_MAX_COST_DELTA)):
             return None
         overlap = self._attribute_overlap(offer, best_offer)
         if overlap is None or overlap < COMPARABLE_OVERLAP_RATIO:
@@ -317,13 +344,25 @@ class AlternativeScout:
                     ),
                 )
             )
+        elif badge is AlternativeBadge.SIMILAR:
+            headline = f"Very similar build: {offer.listing_title}"
+            reasons.append(
+                ExplanationReason(
+                    factor="value",
+                    detail=(
+                        f"Specs stay within {SIMILAR_MAX_SPEC_DELTA:.0%}, price within "
+                        f"{SIMILAR_MAX_COST_DELTA:.0%}, and score within "
+                        f"{1 - SIMILAR_SCORE_FLOOR:.0%} of your pick."
+                    ),
+                )
+            )
         else:
             headline = f"Same family, different build: {offer.listing_title}"
 
         return Explanation(
             headline=headline,
             reasons=reasons,
-            caveats=[] if badge else ["Shown for comparison — it does not clear a value test."],
+            caveats=[],
         )
 
     def _rival_explanation(
@@ -345,27 +384,22 @@ class AlternativeScout:
                 ),
             ),
         ]
-        if badge is AlternativeBadge.RIVAL:
-            headline = f"Different product, real contender: {offer.listing_title}"
-            reasons.append(
-                ExplanationReason(
-                    factor="value",
-                    detail=(
-                        f"Shares at least {COMPARABLE_OVERLAP_RATIO:.0%} of the core specs and "
-                        f"stays within {1 - COMPARABLE_SCORE_FLOOR:.0%} of the top score."
-                    ),
-                )
+        headline = f"Different product, real contender: {offer.listing_title}"
+        reasons.append(
+            ExplanationReason(
+                factor="value",
+                detail=(
+                    f"Shares at least {COMPARABLE_OVERLAP_RATIO:.0%} of the core specs, "
+                    f"stays within {1 - COMPARABLE_SCORE_FLOOR:.0%} of the top score, "
+                    f"and within {COMPARABLE_MAX_COST_DELTA:.0%} on landed price."
+                ),
             )
-            caveats = ["Different product family — check the specs that differ."]
-        else:
-            headline = f"Comparable product: {offer.listing_title}"
-            caveats = [
-                (
-                    "Different product family, and it does not clear the comparability "
-                    "test — review specs carefully."
-                )
-            ]
-        return Explanation(headline=headline, reasons=reasons, caveats=caveats)
+        )
+        return Explanation(
+            headline=headline,
+            reasons=reasons,
+            caveats=["Different product family — check the specs that differ."],
+        )
 
     @staticmethod
     def _cost_phrase(delta: Decimal, currency: str) -> str:

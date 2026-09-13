@@ -111,15 +111,16 @@ class AlternativeKind(str, Enum):
 
 class AlternativeBadge(str, Enum):
     """
-    Why an alternative is worth a second look, when it passes the value tests.
+    Why an alternative is worth a second look.
 
-    Unbadged alternatives are still shown and still ranked — they simply did not
-    clear a threshold that makes a specific case for them.
+    Only badged alternatives are shown. A near-offer that fails every value test is
+    omitted — not listed as "for comparison."
     """
 
     UPGRADE = "upgrade"
     DOWNGRADE = "downgrade"
     RIVAL = "rival"
+    SIMILAR = "similar"
 
 
 # --- Value objects ---
