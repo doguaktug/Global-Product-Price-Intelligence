@@ -362,9 +362,10 @@ body {
 .picture {
   display: grid;
   place-items: center;
+  width: min(11rem, 100%);
+  min-height: 9.5rem;
   aspect-ratio: 1.05;
   margin: 0 auto 0.9rem;
-  max-width: 11rem;
   overflow: hidden;
   border: 2px solid var(--ink);
   border-radius: 1.5rem;
