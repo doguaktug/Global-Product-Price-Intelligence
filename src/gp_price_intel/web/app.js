@@ -396,10 +396,24 @@ function renderFullList(page, offersById, highlightedIds) {
   void offersById;
 }
 
+function specLabel(key) {
+  return String(key)
+    .replace(/_gb$/, "")
+    .replace(/_inch$/, "")
+    .replace(/_mah$/, "")
+    .replaceAll("_", " ");
+}
+
+function specUnit(key, given) {
+  if (given) return given;
+  return { storage_gb: "GB", memory_gb: "GB RAM", display_inch: "in", battery_mah: "mAh" }[key] || "";
+}
+
 function specLines(offer) {
   const lines = [];
   for (const spec of offer.raw_specs || []) {
-    lines.push(`${spec.key}: ${spec.value}${spec.unit ? ` ${spec.unit}` : ""}`);
+    const unit = specUnit(spec.key, spec.unit);
+    lines.push(`${specLabel(spec.key)}: ${spec.value}${unit ? ` ${unit}` : ""}`);
   }
   if (!lines.length) {
     if (offer.model_number) lines.push(`model: ${offer.model_number}`);
