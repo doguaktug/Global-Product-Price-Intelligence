@@ -28,7 +28,7 @@ Personal project draft. Full decision-support model (not only a ranking engine).
 - Prices are **not** pre-filled into a giant database. On search, fetch as-current data via API, scraping, or headless browser where appropriate.
 - Keep a **small reference catalog**: brand, model family, category, and valid technical options for normalization — not “the whole product internet.”
 - Variable fields (price, stock, shipping quotes, fees) are acquired at query time. A search always fetches; the only cache is a short-lived memory of a completed fetch that lets a weight change re-rank without re-fetching.
-- First scope: **phone, laptop, tablet**.
+- First scope: **phone, laptop, tablet**. All three run the whole pipeline, including the confirmation each category needs in its own right — a laptop is pinned by its `processor`, a tablet by its `connectivity`, and neither question is asked of the other.
 - Prefer official APIs when available; each retailer/source gets its own adapter. Respect rate limits, ToS, robots.txt, and data licenses.
 
 ---
