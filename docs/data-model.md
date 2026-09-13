@@ -466,7 +466,7 @@ Each highlight: `{ kind, offerId, explanation }`.
 | `offerId` | string | |
 | `kind` | enum | `spec_variant` (same family, different specs) \| `comparable_product` |
 | `badge` | enum? | `upgrade` \| `downgrade` \| `rival`, or absent. See below |
-| `differingAttributes` | list | e.g. storage 512 → 1024 |
+| `differingAttributes` | list | e.g. storage 512 GB → 1024 GB |
 | `landedCostDelta` | `Money`? | **This offer's landed cost minus the top pick's.** Negative means cheaper |
 | `explanation` | `Explanation` | What differs, the cost delta, and the value test passed (or a caveat that none was) |
 

@@ -325,12 +325,26 @@ function fillOfferEconomics(card, offer) {
   card.append(fresh);
 }
 
+function originalSearchName(page) {
+  const variant = page.confirmed_variant;
+  const query = (state.session?.raw_query || "").trim();
+  if (variant?.model_name) {
+    const bits = [variant.model_name];
+    if (variant.storage_gb != null) bits.push(`${variant.storage_gb} GB`);
+    if (variant.memory_gb != null) bits.push(`${variant.memory_gb} GB RAM`);
+    if (variant.colour) bits.push(variant.colour);
+    return bits.join(" · ");
+  }
+  return query;
+}
+
 function renderHighlights(page, offersById) {
   const row = $("highlight-row");
   row.innerHTML = "";
   const groups = collapseHighlights(page.highlights);
   row.style.setProperty("--count", String(Math.max(groups.length, 1)));
   row.dataset.count = String(groups.length);
+  const searched = originalSearchName(page);
   for (const group of groups) {
     const offer = offersById.get(group[0].offer_id);
     if (!offer) continue;
@@ -340,6 +354,12 @@ function renderHighlights(page, offersById) {
     title.className = "card-title";
     title.textContent = group.map((item) => HIGHLIGHT_LABELS[item.kind] || item.kind).join(" · ");
     card.append(title);
+    if (searched) {
+      const product = document.createElement("p");
+      product.className = "searched-name";
+      product.textContent = searched;
+      card.append(product);
+    }
     card.append(pictureNode(offer));
     fillOfferEconomics(card, offer);
     const best = group.find((item) => item.kind === "best_overall") || group[0];
@@ -432,7 +452,10 @@ function renderAlternatives(page, altById) {
     specHead.textContent = "specs:";
     copy.append(specHead);
     for (const line of specLines(offer)) appendMeta(copy, `— ${line}`);
-    for (const key of alt.differing_attributes || []) appendMeta(copy, `— differs: ${key}`);
+    for (const reason of alt.explanation?.reasons || []) {
+      if (reason.factor === "cost" || reason.factor === "value") continue;
+      appendMeta(copy, `— ${reason.detail}`);
+    }
     card.append(copy);
     const why = explanationBlock(alt.explanation, "why this is recommended as an alternative");
     why.classList.add("alt-why");

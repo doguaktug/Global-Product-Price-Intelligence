@@ -24,6 +24,8 @@ def test_ui_assets_are_served() -> None:
     assert css.status_code == 200
     assert js.status_code == 200
     assert "collapseHighlights" in js.text
+    assert "originalSearchName" in js.text
+    assert "searched-name" in css.text
     assert "scroll down for the best alternatives" in client.get("/").text
     assert ".view[hidden]" in css.text
 

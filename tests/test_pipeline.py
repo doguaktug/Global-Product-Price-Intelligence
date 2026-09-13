@@ -222,7 +222,7 @@ async def test_laptop_search_ranks_the_confirmed_build_and_offers_spec_variants(
     assert "memory_gb" in upgrade.differing_attributes
     assert "processor" not in upgrade.differing_attributes  # same chip, bigger build
     storage_reason = next(r for r in upgrade.explanation.reasons if r.factor == "storage_gb")
-    assert storage_reason.detail == "512 → 1024"
+    assert storage_reason.detail == "512 GB → 1024 GB"
 
     # landedCostDelta is the difference against the top pick, not the alternative's
     # own total, because the card renders it as "+X vs your pick". A 1 TB machine
