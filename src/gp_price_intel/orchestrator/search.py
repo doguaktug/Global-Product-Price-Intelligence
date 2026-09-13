@@ -5,13 +5,14 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import NoReturn
+from typing import Any, NoReturn
 from uuid import uuid4
 
 from gp_price_intel.adapters.base import SourceAdapter
 from gp_price_intel.adapters.registry import build_adapters
 from gp_price_intel.alternatives.scout import AlternativeScout
 from gp_price_intel.catalog.repository import CatalogRepository
+from gp_price_intel.config import Settings, get_settings
 from gp_price_intel.domain.models import (
     DecisionPage,
     MatchKind,
@@ -103,7 +104,9 @@ class SearchOrchestrator:
         adapters: list[SourceAdapter] | None = None,
         fx: FxService | None = None,
         memory: SearchMemory | None = None,
+        settings: Settings | None = None,
     ) -> None:
+        self.settings = settings or get_settings()
         self.catalog = catalog or CatalogRepository()
         self.normalizer = QueryNormalizer(self.catalog)
         self.matcher = ProductMatcher(self.catalog)
@@ -120,7 +123,7 @@ class SearchOrchestrator:
         raw_query: str,
         preferences: UserPreferences | None = None,
     ) -> SearchSession:
-        prefs = self._stamp_origin(preferences)
+        prefs = self._resolve_preferences(preferences)
         normalized = self.normalizer.normalize(raw_query)
         status = (
             SessionStatus.NEEDS_CONFIRMATION
@@ -357,26 +360,45 @@ class SearchOrchestrator:
             generated_at=datetime.now(timezone.utc),
         )
 
-    @staticmethod
-    def _stamp_origin(preferences: UserPreferences | None) -> UserPreferences:
+    def _resolve_preferences(self, preferences: UserPreferences | None) -> UserPreferences:
         """
-        Record where the destination and currency came from.
+        Apply the configured defaults, and record where the destination came from.
 
-        Two origins are reachable today: `default` when the caller sent nothing, and
-        `manual` when it sent preferences. `geolocation` sits between them and is a
-        documented proposal only — no code infers a country from an IP or a browser
-        API, so nothing may claim that origin. Stamping the two we do have keeps the
-        Decision Page able to say "we assumed Türkiye" rather than implying the user
-        chose it.
+        `UserPreferences` carries literal fallbacks so the domain model stays a leaf
+        that can be built without an environment. They are not the deployment's
+        defaults, though, so anything the caller left unset is filled in from
+        `Settings` here. Otherwise `/health` would advertise
+        `DEFAULT_REFERENCE_CURRENCY` while ranking quietly used the literal.
 
-        An explicit non-default origin from the caller is left alone, so a future
-        geolocation step can set its own without this overwriting it.
+        `origin` exists to tell a destination the user chose from one we assumed, so
+        it turns on whether the caller actually sent a country or currency — not on
+        whether it sent preferences at all. Someone who only moved the weight
+        sliders still has not chosen a country, and the Decision Page has to be able
+        to say "we assumed Türkiye" in that case.
+
+        `geolocation` is a documented proposal rather than code: nothing infers a
+        country from an IP or a browser API, so nothing claims that origin. An
+        explicit non-default origin is left alone, so that step can set its own
+        without this overwriting it.
         """
         if preferences is None:
-            return UserPreferences()
-        if preferences.origin != PreferenceOrigin.DEFAULT:
-            return preferences
-        return preferences.model_copy(update={"origin": PreferenceOrigin.MANUAL})
+            return UserPreferences(
+                destination_country=self.settings.default_destination_country,
+                reference_currency=self.settings.default_reference_currency,
+            )
+
+        chosen = preferences.model_fields_set
+        update: dict[str, Any] = {}
+        if "destination_country" not in chosen:
+            update["destination_country"] = self.settings.default_destination_country
+        if "reference_currency" not in chosen:
+            update["reference_currency"] = self.settings.default_reference_currency
+        if preferences.origin is PreferenceOrigin.DEFAULT and (
+            "destination_country" in chosen or "reference_currency" in chosen
+        ):
+            update["origin"] = PreferenceOrigin.MANUAL
+
+        return preferences.model_copy(update=update) if update else preferences
 
     def _source_registry(self) -> dict[str, Source]:
         """Map `Offer.sourceId` back to the source, so ranking can weigh site reputation."""

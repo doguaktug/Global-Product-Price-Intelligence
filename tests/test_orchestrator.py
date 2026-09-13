@@ -2,8 +2,11 @@
 
 from decimal import Decimal
 
+from gp_price_intel.config import Settings
 from gp_price_intel.domain.models import Money, PreferenceOrigin, UserPreferences
 from gp_price_intel.orchestrator.search import SearchOrchestrator
+
+QUERY = "Samsung Galaxy S26 Ultra 512 GB"
 
 
 def test_money_is_immutable_value_object() -> None:
@@ -51,3 +54,66 @@ def test_an_explicit_origin_is_not_overwritten() -> None:
     )
 
     assert session.preferences.origin is PreferenceOrigin.GEOLOCATION
+
+
+def _configured(**overrides: str) -> SearchOrchestrator:
+    return SearchOrchestrator(settings=Settings(**overrides))
+
+
+def test_the_configured_defaults_are_what_ranking_uses() -> None:
+    """
+    `/health` advertises these settings, so a search has to honour the same ones.
+
+    The literals on `UserPreferences` keep the domain model a leaf that needs no
+    environment; they are not the deployment's defaults.
+    """
+    orch = _configured(
+        default_destination_country="DE", default_reference_currency="EUR"
+    )
+
+    prefs = orch.start_session(QUERY, None).preferences
+
+    assert prefs.destination_country == "DE"
+    assert prefs.reference_currency == "EUR"
+
+
+def test_moving_only_the_sliders_is_not_a_chosen_destination() -> None:
+    """
+    Weights are not a country.
+
+    A caller that sent preferences without one has still not chosen where they are
+    buying to, so the configured default applies and the page must be able to say
+    it was assumed.
+    """
+    orch = _configured(
+        default_destination_country="DE", default_reference_currency="EUR"
+    )
+
+    prefs = orch.start_session(QUERY, UserPreferences(weights={"price": 1.0})).preferences
+
+    assert prefs.destination_country == "DE"
+    assert prefs.reference_currency == "EUR"
+    assert prefs.origin is PreferenceOrigin.DEFAULT
+
+
+def test_an_explicit_choice_beats_the_configured_default() -> None:
+    orch = _configured(
+        default_destination_country="DE", default_reference_currency="EUR"
+    )
+
+    prefs = orch.start_session(QUERY, UserPreferences(reference_currency="GBP")).preferences
+
+    assert prefs.reference_currency == "GBP"
+    assert prefs.destination_country == "DE"
+    assert prefs.origin is PreferenceOrigin.MANUAL
+
+
+def test_a_choice_equal_to_the_default_still_counts_as_chosen() -> None:
+    """Sending `TR` explicitly is a decision, even where it matches the default."""
+    prefs = (
+        _configured(default_destination_country="TR")
+        .start_session(QUERY, UserPreferences(destination_country="TR"))
+        .preferences
+    )
+
+    assert prefs.origin is PreferenceOrigin.MANUAL
