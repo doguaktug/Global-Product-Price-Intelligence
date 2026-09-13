@@ -223,3 +223,21 @@ async def test_published_lanes_and_rates_yield_partial_not_unknown(
     for line in (landed.shipping, landed.taxes, landed.import_duties):
         assert line is not None
         assert line.origin != CostOrigin.UNAVAILABLE
+
+
+@pytest.mark.asyncio
+async def test_an_unpriceable_category_reports_unknown_shipping(
+    service: LandedCostService,
+) -> None:
+    """
+    Parcel size comes from the category, so an unknown one has no shipping estimate.
+
+    This used to fall back to the handset factor, which would bill a category we
+    have never sized as a phone parcel and label the result an estimate.
+    """
+    landed = await service.estimate(_converted("40000"), "DE", "TR", "smartwatch")
+
+    assert landed.shipping is not None
+    assert landed.shipping.origin == CostOrigin.UNAVAILABLE
+    assert landed.shipping.amount.amount == Decimal("0")
+    assert landed.completeness == LandedCostCompleteness.UNKNOWN

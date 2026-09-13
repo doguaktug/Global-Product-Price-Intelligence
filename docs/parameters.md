@@ -97,7 +97,7 @@ Rate tables rather than single values, all in `landed_cost/service.py`.
 | Parameter | Default | Effect |
 | --- | --- | --- |
 | `FEE_CURRENCY` | `USD` | Currency flat estimates are authored in, before conversion to the user's reference currency |
-| `_CATEGORY_SHIPPING_FACTOR` | `smartphone 1.0, tablet 1.4, laptop 2.2` | Parcel-size multiplier on the lane rate |
+| `_CATEGORY_SHIPPING_FACTOR` | `smartphone 1.0, tablet 1.4, laptop 2.2` | Parcel-size multiplier on the lane rate. A category not listed here has no shipping estimate at all — there is no default factor, because assuming the handset one would bill a large parcel as an envelope |
 | `_VAT_RATE` | `TR 0.20, DE 0.19, GB 0.20, US 0.00, JP 0.10` | Destination VAT, and the origin VAT removed on export |
 | `_DEFAULT_VAT_RATE` | `0.10` | Used for a destination not in the table — marks the estimate as guessed |
 | `_DUTY_RATE` | `TR 0.10, DE 0.00, GB 0.00, US 0.03, JP 0.00` | Customs duty by destination |
