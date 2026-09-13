@@ -65,6 +65,7 @@ const state = {
   session: null,
   catalog: { families: [], variants: [] },
   factTimer: null,
+  busy: false,
 };
 
 function $(id) {
@@ -161,6 +162,7 @@ function showView(name) {
   for (const view of document.querySelectorAll(".view")) {
     view.hidden = view.dataset.view !== name;
   }
+  window.scrollTo(0, 0);
 }
 
 function setError(id, message) {
@@ -607,9 +609,11 @@ async function runSession(session) {
 
 async function startSearch(event) {
   event.preventDefault();
+  if (state.busy) return;
   setError("search-error", "");
   const query = $("query").value.trim();
   if (!query) return;
+  state.busy = true;
   try {
     const session = await api("/api/search/start", {
       method: "POST",
@@ -623,6 +627,8 @@ async function startSearch(event) {
     await runSession(session);
   } catch (error) {
     setError("search-error", error.message);
+  } finally {
+    state.busy = false;
   }
 }
 
@@ -666,7 +672,8 @@ function bindUi() {
   $("confirm-cancel").addEventListener("click", () => $("confirm-dialog").close());
   $("confirm-form").addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!state.session) return;
+    if (!state.session || state.busy) return;
+    state.busy = true;
     try {
       const choices = readChoices(state.session);
       const session = await api("/api/search/confirm", {
@@ -678,6 +685,8 @@ function bindUi() {
       await runSession(session);
     } catch (error) {
       setError("confirm-error", error.message);
+    } finally {
+      state.busy = false;
     }
   });
   $("toggle-full-list").addEventListener("click", () => {

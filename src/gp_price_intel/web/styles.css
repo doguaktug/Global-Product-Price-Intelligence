@@ -112,6 +112,10 @@ body {
   padding: 2.4rem 3vw 4rem;
 }
 
+.view[hidden] {
+  display: none !important;
+}
+
 .view-search {
   display: flex;
   flex-direction: column;

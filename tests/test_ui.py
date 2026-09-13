@@ -25,6 +25,7 @@ def test_ui_assets_are_served() -> None:
     assert js.status_code == 200
     assert "collapseHighlights" in js.text
     assert "scroll down for the best alternatives" in client.get("/").text
+    assert ".view[hidden]" in css.text
 
 
 def _hl(kind: HighlightKind, offer_id: str) -> DecisionHighlight:
