@@ -64,8 +64,8 @@ async def test_rerank_does_not_fetch_again(
     await pipeline_orchestrator.run(session)
     assert counting.calls == 1
 
-    await pipeline_orchestrator.rerank(session, _warranty_heavy())
-    await pipeline_orchestrator.rerank(session, _price_heavy())
+    await pipeline_orchestrator.rerank(session.id, _warranty_heavy())
+    await pipeline_orchestrator.rerank(session.id, _price_heavy())
 
     assert counting.calls == 1
 
@@ -81,12 +81,36 @@ async def test_rerank_actually_changes_the_recommendation(
     """
     session = pipeline_orchestrator.start_session(QUERY, _price_heavy())
     on_price = await pipeline_orchestrator.run(session)
-    on_warranty = await pipeline_orchestrator.rerank(session, _warranty_heavy())
+    on_warranty = await pipeline_orchestrator.rerank(session.id, _warranty_heavy())
 
     assert [o.id for o in on_price.offers] != [o.id for o in on_warranty.offers]
 
     cheapest = min(on_price.offers, key=lambda o: o.landed_cost.total.amount)
     assert on_price.offers[0].id == cheapest.id
+
+
+@pytest.mark.asyncio
+async def test_rerank_needs_nothing_but_the_id(
+    pipeline_orchestrator: SearchOrchestrator,  # noqa: F811
+) -> None:
+    """
+    The id is the whole key.
+
+    Everything else a re-rank needs — the offers, and the destination and currency
+    they were priced for — comes from the remembered fetch, so a caller that threw
+    the session away and kept one string can still re-rank.
+    """
+    session = pipeline_orchestrator.start_session(QUERY, _price_heavy())
+    await pipeline_orchestrator.run(session)
+
+    session_id = str(session.id)
+    del session
+
+    page = await pipeline_orchestrator.rerank(session_id, _warranty_heavy())
+
+    assert page.session_id == session_id
+    assert page.offers
+    assert page.confirmed_variant is not None
 
 
 @pytest.mark.asyncio
@@ -96,7 +120,7 @@ async def test_rerank_compares_the_same_offers(
     """Same set, reordered — a re-rank must not quietly add or drop a listing."""
     session = pipeline_orchestrator.start_session(QUERY, _price_heavy())
     first = await pipeline_orchestrator.run(session)
-    second = await pipeline_orchestrator.rerank(session, _warranty_heavy())
+    second = await pipeline_orchestrator.rerank(session.id, _warranty_heavy())
 
     assert {o.id for o in first.offers} == {o.id for o in second.offers}
     for before, after in zip(
@@ -122,11 +146,11 @@ async def test_rerank_refuses_to_change_destination_or_currency(
 
     with pytest.raises(SearchExpired, match="landed cost"):
         await pipeline_orchestrator.rerank(
-            session, UserPreferences(destination_country="DE", reference_currency="TRY")
+            session.id, UserPreferences(destination_country="DE", reference_currency="TRY")
         )
     with pytest.raises(SearchExpired, match="landed cost"):
         await pipeline_orchestrator.rerank(
-            session, UserPreferences(destination_country="TR", reference_currency="EUR")
+            session.id, UserPreferences(destination_country="TR", reference_currency="EUR")
         )
 
 
@@ -137,7 +161,7 @@ async def test_rerank_without_a_remembered_search_is_refused(
     session = pipeline_orchestrator.start_session(QUERY, TR_TRY)
 
     with pytest.raises(SearchExpired, match="no longer in memory"):
-        await pipeline_orchestrator.rerank(session, _warranty_heavy())
+        await pipeline_orchestrator.rerank(session.id, _warranty_heavy())
 
 
 @pytest.mark.asyncio
@@ -150,7 +174,7 @@ async def test_an_expired_search_is_refused_rather_than_served_stale(
     await pipeline_orchestrator.run(session)
 
     with pytest.raises(SearchExpired, match="no longer in memory"):
-        await pipeline_orchestrator.rerank(session, _warranty_heavy())
+        await pipeline_orchestrator.rerank(session.id, _warranty_heavy())
 
 
 @pytest.mark.asyncio

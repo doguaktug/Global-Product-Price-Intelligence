@@ -517,6 +517,7 @@ Avoiding the re-fetch is not only about speed. Prices move. If a slider change t
 This does not weaken the stateless contract above, and the distinction is worth being precise about:
 
 - It is a cache **in front of the adapters**, not a session store. It holds fetched offers, not the user's confirmation state, which still travels in the payload.
+- The request body is the **session id and the new weights**, not a `SearchSession`. This is the one endpoint that does not take the whole session, because it is the one endpoint that does not need it: the offers, and the destination and currency they were priced for, come from the remembered fetch. Accepting a session here would mean accepting fields and ignoring them. The client keeps owning its copy — nothing server-side writes back to it.
 - **Nothing requires it.** `POST /search/run` never reads it, so a cold instance answers a search identically to a warm one.
 - **A miss is an ordinary outcome, not an error state.** It costs a re-fetch. `POST /search/rerank` answers `409` and the client calls `/search/run` again.
 - It is **bounded** (`MAX_REMEMBERED_SEARCHES`) and expires on a monotonic clock, so a clock adjustment cannot make a stale fetch look current.

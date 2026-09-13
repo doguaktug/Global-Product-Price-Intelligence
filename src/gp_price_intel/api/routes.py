@@ -37,7 +37,14 @@ class ConfirmRequest(BaseModel):
 
 
 class ReRankRequest(BaseModel):
-    session: SearchSession
+    """
+    A re-rank needs the session id, not the session.
+
+    The offers and the destination they were priced for come from the remembered
+    fetch, so the rest of a `SearchSession` would be accepted and ignored.
+    """
+
+    session_id: str
     preferences: UserPreferences
 
 
@@ -99,9 +106,12 @@ async def rerank_search(body: ReRankRequest) -> DecisionPage:
     retailer. A 409 means the remembered fetch has expired or the request tried to
     change destination or currency; either way the client should call
     `/search/run` again.
+
+    The client keeps owning its `SearchSession`; nothing here writes to it, so a
+    client that tracks the weights locally should update its own copy.
     """
     try:
-        return await _orchestrator.rerank(body.session, body.preferences)
+        return await _orchestrator.rerank(body.session_id, body.preferences)
     except SearchExpired as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except SearchFailed as exc:

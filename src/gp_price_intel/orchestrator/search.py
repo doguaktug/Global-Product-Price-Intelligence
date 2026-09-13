@@ -236,31 +236,38 @@ class SearchOrchestrator:
                 ),
             )
 
+        variant_id = confirmed_variant_id or session.confirmed_variant_id
         self.memory.remember(
             session.id,
             RememberedSearch(
                 offers=enriched,
-                confirmed_variant_id=confirmed_variant_id or session.confirmed_variant_id,
+                confirmed_variant_id=variant_id,
                 destination_country=destination,
                 reference_currency=ref_currency,
             ),
         )
-        return self._decide(session, enriched, confirmed_variant_id)
+        session.status = SessionStatus.RANKED
+        session.failure_reason = None
+        return self._decide(session.id, session.preferences, enriched, variant_id)
 
     async def rerank(
         self,
-        session: SearchSession,
+        session_id: str,
         preferences: UserPreferences,
     ) -> DecisionPage:
         """
         Rebuild the Decision Page under new weights, reusing the offers already fetched.
+
+        Takes only the session id: the offers, and the destination and currency they
+        were priced for, all come from the remembered fetch. Accepting a whole
+        `SearchSession` would invite the caller to think the rest of it was read.
 
         Only the weighting is allowed to change. Destination and reference currency
         are refused rather than honoured, because landed cost and FX were computed
         against the old ones — re-ranking on them would present numbers that answer
         a question the user is no longer asking.
         """
-        remembered = self.memory.recall(session.id)
+        remembered = self.memory.recall(session_id)
         if remembered is None:
             raise SearchExpired(
                 "This search is no longer in memory, so its offers cannot be re-ranked. "
@@ -275,12 +282,14 @@ class SearchOrchestrator:
                 "landed cost and currency conversion depend on them. Run the search again."
             )
 
-        session.preferences = preferences
-        return self._decide(session, remembered.offers, remembered.confirmed_variant_id)
+        return self._decide(
+            session_id, preferences, remembered.offers, remembered.confirmed_variant_id
+        )
 
     def _decide(
         self,
-        session: SearchSession,
+        session_id: str,
+        preferences: UserPreferences,
         enriched: list[Offer],
         confirmed_variant_id: str | None,
     ) -> DecisionPage:
@@ -290,13 +299,16 @@ class SearchOrchestrator:
         Split out from `run` so a re-rank can reuse it verbatim: the guarantee worth
         having is that changing a weight goes through exactly the same code as the
         original search, and cannot drift from it.
+
+        Takes the four things it reads rather than a `SearchSession`, because a
+        re-rank has no session to hand it — only an id and the new weights.
         """
         # Confirmed builds and near-offers are scored in ONE normalization pass, then
         # split. Min–max scaling is relative to the set it is given, so scoring
         # alternatives separately would produce numbers that cannot be compared to
         # the ranked list — and the rival test is exactly such a comparison.
         identical = [offer for offer in enriched if offer.match_kind == MatchKind.IDENTICAL]
-        ranked = self.ranking.score(enriched, session.preferences, self._source_registry())
+        ranked = self.ranking.score(enriched, preferences, self._source_registry())
 
         if identical:
             confirmed_scored = [
@@ -326,18 +338,17 @@ class SearchOrchestrator:
             )
             for offer, breakdown in confirmed_scored
         ]
-        highlights = pick_highlights(scored, session.preferences, self.explanations)
+        highlights = pick_highlights(scored, preferences, self.explanations)
 
-        variant_id = confirmed_variant_id or session.confirmed_variant_id
-        confirmed_variant = self.catalog.get_variant(variant_id) if variant_id else None
+        confirmed_variant = (
+            self.catalog.get_variant(confirmed_variant_id) if confirmed_variant_id else None
+        )
 
         best = scored[0] if scored else None
         alt_list = self.alternatives.select(near_scored, best, confirmed_variant)
 
-        session.status = SessionStatus.RANKED
-        session.failure_reason = None
         return DecisionPage(
-            session_id=session.id,
+            session_id=session_id,
             confirmed_variant=confirmed_variant,
             offers=[offer for offer, _ in scored],
             offer_scores={offer.id: breakdown for offer, breakdown in scored},

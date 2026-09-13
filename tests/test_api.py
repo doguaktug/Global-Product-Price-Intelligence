@@ -77,6 +77,35 @@ def test_confirm_endpoint_rejects_an_unmatched_query() -> None:
     assert "No catalog family matched" in confirmed.json()["detail"]
 
 
+def test_rerank_endpoint_takes_a_session_id_not_a_session() -> None:
+    """
+    The request body is the id and the new weights, nothing else.
+
+    Checked through an unknown id, which is refused before any fetch happens, so
+    this pins the wire contract without going near the network.
+    """
+    client = TestClient(create_app())
+    response = client.post(
+        "/api/search/rerank",
+        json={"session_id": "never-ran-this-one", "preferences": {}},
+    )
+    assert response.status_code == 409
+    assert "no longer in memory" in response.json()["detail"]
+
+
+def test_rerank_endpoint_rejects_a_body_without_a_session_id() -> None:
+    """A whole session is not accepted-and-ignored; the narrower body is required."""
+    client = TestClient(create_app())
+    started = client.post("/api/search/start", json={"query": "Samsung Galaxy S26 Ultra 512GB"})
+    assert started.status_code == 200
+
+    response = client.post(
+        "/api/search/rerank",
+        json={"session": started.json(), "preferences": {}},
+    )
+    assert response.status_code == 422
+
+
 def test_tablet_category_is_browsable() -> None:
     client = TestClient(create_app())
     response = client.get("/api/catalog/families", params={"category_id": "tablet"})
