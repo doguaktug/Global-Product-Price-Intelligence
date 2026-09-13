@@ -69,13 +69,17 @@ If they do not move the sliders, **published defaults** apply (price 40%, seller
 
 **Country / currency waterfall** (each later step overwrites the one before):
 
-1. **Default:** TR + TRY — **implemented**, recorded as `origin = default`
+1. **Default:** `DEFAULT_DESTINATION_COUNTRY` + `DEFAULT_REFERENCE_CURRENCY`, shipping as TR + TRY — **implemented**, recorded as `origin = default`
 2. **If they permit geolocation:** inferred country + that country’s usual currency replaces the default — **proposed, not implemented**
 3. **If they manually select** next to the sliders: that replaces default or geo — **implemented**, recorded as `origin = manual`
 
 Search uses whatever is in effect at submit. Manual choice is not snapped back to location.
 
-`UserPreferences.origin` records which step last set the country, so the Decision Page can say "we assumed Türkiye" instead of implying the user chose it. Only `default` and `manual` are reachable today; nothing in the code infers a country from an IP or a browser API, so nothing claims `geolocation`. The enum member exists because that step is a designed part of the waterfall rather than a hypothetical, and an explicitly supplied origin is never overwritten — a geolocation step can set its own when it is built.
+Step 1 is the configured default, not a literal. `UserPreferences` does carry `TR`/`TRY` as field fallbacks, so the domain model stays a leaf that can be constructed without an environment — but the orchestrator fills in anything the caller left unset from `Settings`. Those are the same two settings `/health` advertises, so what the API reports and what ranking uses cannot drift apart.
+
+`UserPreferences.origin` records which step last set the country, so the Decision Page can say "we assumed Türkiye" instead of implying the user chose it. It therefore turns on whether the request actually carried a country or currency, not on whether it carried preferences at all: a user who moves only the weight sliders has still not chosen a destination. One flag covers both the country and the currency, which is a deliberate simplification — choosing either marks the pair as chosen.
+
+Only `default` and `manual` are reachable today; nothing in the code infers a country from an IP or a browser API, so nothing claims `geolocation`. The enum member exists because that step is a designed part of the waterfall rather than a hypothetical, and an explicitly supplied origin is never overwritten — a geolocation step can set its own when it is built.
 
 ### 3. Understand and normalize
 

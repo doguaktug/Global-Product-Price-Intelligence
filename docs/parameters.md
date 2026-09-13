@@ -116,10 +116,12 @@ The distinction the `_DEFAULT_*` entries carry is the point of `LandedCostComple
 
 Read from the environment or `.env` via `config.py` (`Settings`), not from code constants.
 
+`UserPreferences.destination_country` and `.reference_currency` carry the literals `TR` and `TRY`, but those are field fallbacks that keep `domain/models.py` free of any dependency on configuration — not the deployment's defaults. The orchestrator overwrites whichever of the two the request left unset, so the settings below are what a search actually runs with.
+
 | Setting | Default | Effect |
 | --- | --- | --- |
-| `DEFAULT_DESTINATION_COUNTRY` | `TR` | Where the user is buying to, before geolocation or a manual override |
-| `DEFAULT_REFERENCE_CURRENCY` | `TRY` | Currency every offer is compared in |
+| `DEFAULT_DESTINATION_COUNTRY` | `TR` | Where the user is buying to, when the request does not say. Applied by `SearchOrchestrator._resolve_preferences`, and reported by `/health` |
+| `DEFAULT_REFERENCE_CURRENCY` | `TRY` | Currency every offer is compared in, when the request does not say. Same two readers |
 | `OFFER_CACHE_TTL_SECONDS` | `900` | How long a completed fetch stays re-rankable. `0` disables the memory entirely |
 | `EBAY_APP_ID` / `EBAY_CERT_ID` | unset | eBay Browse API credentials. Without them the eBay adapter returns nothing and other sources continue |
 | `EBAY_SANDBOX` | `false` | Point the eBay adapter at the sandbox host |
