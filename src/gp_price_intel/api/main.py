@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from gp_price_intel import __version__
 from gp_price_intel.api.routes import router
 from gp_price_intel.config import get_settings
+
+WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
 
 def create_app() -> FastAPI:
@@ -27,6 +33,11 @@ def create_app() -> FastAPI:
             "default_currency": settings.default_reference_currency,
         }
 
+    @app.get("/")
+    def index() -> FileResponse:
+        return FileResponse(WEB_DIR / "index.html")
+
+    app.mount("/ui", StaticFiles(directory=WEB_DIR), name="ui")
     return app
 
 

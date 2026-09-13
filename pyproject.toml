@@ -30,6 +30,9 @@ gp-price-intel = "gp_price_intel.api.main:run"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+gp_price_intel = ["web/*"]
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]

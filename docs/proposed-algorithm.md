@@ -192,9 +192,7 @@ Eligible offers are then selected by lens (not only by overall score):
 | **Most trusted seller** | Max seller criterion score (the seller's own rating blended with the hosting site's reputation) |
 | **Best warranty** | Max parsed warranty duration among eligible offers that have warranty data |
 
-If “best for you” is the same offer as another lens, **drop the other highlight**. Identical-product offers share the same specs, so there is no “best specification” Decision Page lens. AlternativeScout still compares specs when choosing close (same-family variant) or far (comparable product) alternatives.
-
-One offer holds at most one highlight label.
+If two or more lenses name the same offer, the API still returns each lens; the Decision Page **collapses** them into one card so a listing is never drawn twice. That yields 1–5 highlight cards, spread equally. Identical-product offers share the same specs, so there is no “best specification” Decision Page lens. AlternativeScout still compares specs when choosing close (same-family variant) or far (comparable product) alternatives.
 
 ---
 

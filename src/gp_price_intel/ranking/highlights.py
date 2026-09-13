@@ -36,13 +36,10 @@ def pick_highlights(
 
     builder = explanations or ExplanationBuilder()
     highlights: list[DecisionHighlight] = []
-    used_offer_ids: set[str] = set()
 
     def add_highlight(kind: HighlightKind, label: str, offer: Offer, breakdown: ScoreBreakdown) -> None:
-        # One offer, one highlight. "Best for you" is added first, so any other
-        # lens that would reuse that offer is dropped.
-        if offer.id in used_offer_ids:
-            return
+        # Lenses stay independent. If two lenses name the same offer, the UI collapses
+        # those rows into one card rather than dropping a winning lens.
         highlights.append(
             DecisionHighlight(
                 kind=kind,
@@ -53,7 +50,6 @@ def pick_highlights(
                 explanation=builder.build(offer, breakdown, label, scored),
             )
         )
-        used_offer_ids.add(offer.id)
 
     best_for_you = max(eligible, key=lambda item: item[1].final_score)
     add_highlight(HighlightKind.BEST_OVERALL, "Best for you", best_for_you[0], best_for_you[1])
@@ -104,3 +100,20 @@ def pick_highlights(
         )
 
     return highlights
+
+
+def collapse_highlights(highlights: list[DecisionHighlight]) -> list[list[DecisionHighlight]]:
+    """
+    Group highlight lenses that point at the same offer.
+
+    Order is first-seen (best-for-you first). The Decision Page spreads 1–5 of
+    these groups equally; a single offer that wins several lenses becomes one card.
+    """
+    groups: dict[str, list[DecisionHighlight]] = {}
+    order: list[str] = []
+    for highlight in highlights:
+        if highlight.offer_id not in groups:
+            order.append(highlight.offer_id)
+            groups[highlight.offer_id] = []
+        groups[highlight.offer_id].append(highlight)
+    return [groups[offer_id] for offer_id in order]

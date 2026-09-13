@@ -269,6 +269,10 @@ class SearchOrchestrator:
 
         best = scored[0] if scored else None
         alt_list = self.alternatives.select(near_scored, best, confirmed_variant)
+        near_by_id = {offer.id: offer for offer, _ in near_scored}
+        alternative_offers = [
+            near_by_id[alt.offer_id] for alt in alt_list if alt.offer_id in near_by_id
+        ]
 
         session.status = SessionStatus.RANKED
         session.failure_reason = None
@@ -279,6 +283,7 @@ class SearchOrchestrator:
             offer_scores={offer.id: breakdown for offer, breakdown in scored},
             highlights=highlights,
             alternatives=alt_list,
+            alternative_offers=alternative_offers,
             generated_at=datetime.now(timezone.utc),
         )
 
