@@ -66,6 +66,15 @@ These gate **whether an alternative is shown**. A near-offer that clears none is
 
 ---
 
+## Locale aliases (app language: English)
+
+| Resource | Location | Effect |
+| --- | --- | --- |
+| `colour_aliases.json` | `data/catalog/colour_aliases.json` | Maps TR/DE/JP (and other) colour words onto English catalog colours so online listings still match scope |
+| `display_name` | set in `matching/matcher.py` | English label shown beside the original `listing_title` |
+
+The app language is English. Original marketplace wording stays on `listing_title`; Decision Page copy should lead with `display_name` and still show the original when it differs.
+
 ## Query normalization and confirmation
 
 | Parameter | Default | Defined in | Effect |

@@ -267,6 +267,9 @@ class Offer(BaseModel):
     seller: Seller
     country: str
     listing_title: str
+    #: English app-language label (usually from the matched catalog variant).
+    #: ``listing_title`` stays the marketplace's original wording (TR/DE/JP/…).
+    display_name: str | None = None
     listing_url: str
     image_url: str | None = None
     list_price: Money

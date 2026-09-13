@@ -315,7 +315,8 @@ One listing, at collection time. This is the unit of comparison.
 | `sourceId` | string | |
 | `seller` | `Seller` | |
 | `country` | ISO country | Country of the offer |
-| `listingTitle` | string | Raw title |
+| `listingTitle` | string | Raw marketplace title (keeps the seller language: TR/DE/JP/…) |
+| `displayName` | string? | English app-language label after matching (catalog variant name + distinguishing specs). Always prefer this in UI copy; keep `listingTitle` visible as the original |
 | `listingUrl` | string | |
 | `imageUrl` | string? | |
 | `listPrice` | `Money` | **Original; never overwritten** |

@@ -61,6 +61,9 @@ ASPECT_SPEC_KEYS: dict[str, str] = {
     "display size": "display_inch",
     "colour": "colour",
     "color": "colour",
+    "farbe": "colour",
+    "renk": "colour",
+    "色": "colour",
 }
 
 
@@ -248,7 +251,7 @@ class EbayAdapter(SourceAdapter):
                     else []
                 ),
                 *self._specs_from_title(str(title), valid_options),
-                *self._specs_from_aspects(item),
+                *self._specs_from_aspects(item, valid_options),
             ],
             collected_at=datetime.now(timezone.utc),
             data_confidence=confidence,
@@ -276,14 +279,21 @@ class EbayAdapter(SourceAdapter):
         ]
 
     @staticmethod
-    def _specs_from_aspects(item: dict[str, Any]) -> list[NormalizedSpec]:
+    def _specs_from_aspects(
+        item: dict[str, Any],
+        valid_options: dict[str, list[Any]] | None = None,
+    ) -> list[NormalizedSpec]:
         """
         Take specs from `localizedAspects` when a seller filled them in.
 
         These are more trustworthy than the title but optional and inconsistently
         named, so they supplement the title rather than replace it. Values arrive as
-        display strings ("5,000 mAh", "6.9 in") and go through the unit parser.
+        display strings ("5,000 mAh", "6.9 in", "Schwarz") and go through the unit
+        parser; colours are further mapped to English catalog labels.
         """
+        from gp_price_intel.normalize.colour_aliases import canonicalize_colour
+
+        options = valid_options or {}
         specs: list[NormalizedSpec] = []
         for aspect in item.get("localizedAspects") or []:
             key = ASPECT_SPEC_KEYS.get(str(aspect.get("name", "")).casefold())
@@ -292,6 +302,11 @@ class EbayAdapter(SourceAdapter):
             values = aspect.get("value") or []
             raw = str(values[0]) if isinstance(values, list) and values else str(values or "")
             parsed = parse_spec_value(key, raw)
+            if key == "colour" and parsed is not None:
+                colours = [str(c) for c in options.get("colour", [])]
+                english = canonicalize_colour(str(parsed), colours or None)
+                if english is not None:
+                    parsed = english
             if parsed is not None:
                 specs.append(NormalizedSpec(key=key, value=parsed, raw_text=raw))
         return specs

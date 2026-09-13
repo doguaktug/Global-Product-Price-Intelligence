@@ -10,6 +10,7 @@ from gp_price_intel.matching.identifiers import (
     gtin_matches,
     variant_retailer_sku,
 )
+from gp_price_intel.normalize.offer_labels import english_variant_label
 
 
 class ProductMatcher:
@@ -80,6 +81,7 @@ class ProductMatcher:
                     "matched_variant_id": variant.id,
                     "match_kind": kind,
                     "match_notes": notes,
+                    "display_name": english_variant_label(variant),
                 }
             )
 
@@ -93,6 +95,7 @@ class ProductMatcher:
                     "matched_variant_id": variant.id,
                     "match_kind": kind,
                     "match_notes": notes,
+                    "display_name": english_variant_label(variant),
                 }
             )
 

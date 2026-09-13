@@ -11,6 +11,7 @@ from gp_price_intel.domain.models import (
     ScoreBreakdown,
 )
 from gp_price_intel.ranking.confidence import HIGHLIGHT_MIN_CONFIDENCE, effective_confidence
+from gp_price_intel.normalize.offer_labels import original_listing_name, primary_offer_name
 
 Scored = tuple[Offer, ScoreBreakdown]
 
@@ -125,7 +126,15 @@ class ExplanationBuilder:
         if offer.match_notes:
             caveats.extend(offer.match_notes)
 
-        headline = f"{label}: {offer.listing_title}"
+        headline = f"{label}: {primary_offer_name(offer)}"
+        original = original_listing_name(offer)
+        if original is not None:
+            reasons.append(
+                ExplanationReason(
+                    factor="listing",
+                    detail=f"Original listing title: {original}",
+                )
+            )
         if not reasons:
             reasons.append(
                 ExplanationReason(

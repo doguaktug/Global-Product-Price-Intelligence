@@ -159,6 +159,13 @@ def parse_colour(text: str, valid_colours: list[str]) -> str | None:
     if not valid_colours:
         return None
 
+    # Localized marketplace words ("Gök Mavisi", "Schwarz", "ブラック") → English catalog.
+    from gp_price_intel.normalize.colour_aliases import resolve_colour_alias
+
+    aliased = resolve_colour_alias(text, valid_colours)
+    if aliased is not None:
+        return aliased
+
     residue = strip_spec_tokens(text)
     query_tokens = tokenize(residue)
 

@@ -17,6 +17,7 @@ from gp_price_intel.domain.models import (
     ProductVariant,
     ScoreBreakdown,
 )
+from gp_price_intel.normalize.offer_labels import original_listing_name, primary_offer_name
 
 Scored = tuple[Offer, ScoreBreakdown]
 
@@ -323,7 +324,7 @@ class AlternativeScout:
             0, ExplanationReason(factor="cost", detail=self._cost_phrase(delta, currency))
         )
         if badge is AlternativeBadge.UPGRADE:
-            headline = f"Worth the upgrade: {offer.listing_title}"
+            headline = f"Worth the upgrade: {primary_offer_name(offer)}"
             reasons.append(
                 ExplanationReason(
                     factor="value",
@@ -334,7 +335,7 @@ class AlternativeScout:
                 )
             )
         elif badge is AlternativeBadge.DOWNGRADE:
-            headline = f"Cheaper and probably still enough: {offer.listing_title}"
+            headline = f"Cheaper and probably still enough: {primary_offer_name(offer)}"
             reasons.append(
                 ExplanationReason(
                     factor="value",
@@ -345,7 +346,7 @@ class AlternativeScout:
                 )
             )
         elif badge is AlternativeBadge.SIMILAR:
-            headline = f"Very similar build: {offer.listing_title}"
+            headline = f"Very similar build: {primary_offer_name(offer)}"
             reasons.append(
                 ExplanationReason(
                     factor="value",
@@ -357,8 +358,16 @@ class AlternativeScout:
                 )
             )
         else:
-            headline = f"Same family, different build: {offer.listing_title}"
+            headline = f"Same family, different build: {primary_offer_name(offer)}"
 
+        original = original_listing_name(offer)
+        if original is not None:
+            reasons.append(
+                ExplanationReason(
+                    factor="listing",
+                    detail=f"Original listing title: {original}",
+                )
+            )
         return Explanation(
             headline=headline,
             reasons=reasons,
@@ -384,7 +393,7 @@ class AlternativeScout:
                 ),
             ),
         ]
-        headline = f"Different product, real contender: {offer.listing_title}"
+        headline = f"Different product, real contender: {primary_offer_name(offer)}"
         reasons.append(
             ExplanationReason(
                 factor="value",
@@ -395,6 +404,14 @@ class AlternativeScout:
                 ),
             )
         )
+        original = original_listing_name(offer)
+        if original is not None:
+            reasons.append(
+                ExplanationReason(
+                    factor="listing",
+                    detail=f"Original listing title: {original}",
+                )
+            )
         return Explanation(
             headline=headline,
             reasons=reasons,
