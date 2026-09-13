@@ -220,7 +220,8 @@ Offers whose **effective confidence** (`dataConfidence × landed-cost completene
 ### 2. Freshness — show when the price was seen
 
 - The Decision Page shows `collectedAt` visibly on every card (e.g. "price seen 3 min ago").
-- Nothing is cached today, so every Decision Page comes from a fetch that just ran. If a short offer cache is added, it gets a TTL in the **15–30 minute** range and the card keeps showing the original `collectedAt`, not the cache-read time.
+- `POST /search/run` always fetches. Nothing is served to a search from cache, so every Decision Page comes from a fetch that just ran.
+- A completed fetch is remembered for `OFFER_CACHE_TTL_SECONDS` (default 15 minutes) so that moving a weight slider can re-rank the same offers instead of asking every retailer again. Those cards keep the original `collectedAt` — the timestamp is when the price was seen, not when it was re-scored. Past the TTL a re-rank is refused and the user searches again rather than being shown stale prices.
 
 ### What we cannot prevent
 

@@ -16,6 +16,8 @@ from gp_price_intel.domain.models import (
     DecisionPage,
     MatchKind,
     NormalizedQuery,
+    Offer,
+    PreferenceOrigin,
     PropertyChoice,
     SearchScope,
     SearchSession,
@@ -30,6 +32,11 @@ from gp_price_intel.landed_cost.service import LandedCostService
 from gp_price_intel.matching.matcher import ProductMatcher
 from gp_price_intel.normalize.confirmation import ConfirmationError, resolve_search_scope
 from gp_price_intel.normalize.query_normalizer import QueryNormalizer
+from gp_price_intel.orchestrator.search_memory import (
+    RememberedSearch,
+    SearchExpired,
+    SearchMemory,
+)
 from gp_price_intel.ranking.engine import RankingEngine
 from gp_price_intel.ranking.highlights import pick_highlights
 
@@ -95,6 +102,7 @@ class SearchOrchestrator:
         catalog: CatalogRepository | None = None,
         adapters: list[SourceAdapter] | None = None,
         fx: FxService | None = None,
+        memory: SearchMemory | None = None,
     ) -> None:
         self.catalog = catalog or CatalogRepository()
         self.normalizer = QueryNormalizer(self.catalog)
@@ -105,13 +113,14 @@ class SearchOrchestrator:
         self.explanations = ExplanationBuilder()
         self.alternatives = AlternativeScout(catalog=self.catalog)
         self.adapters = adapters if adapters is not None else build_adapters(self.catalog)
+        self.memory = memory or SearchMemory()
 
     def start_session(
         self,
         raw_query: str,
         preferences: UserPreferences | None = None,
     ) -> SearchSession:
-        prefs = preferences or UserPreferences()
+        prefs = self._stamp_origin(preferences)
         normalized = self.normalizer.normalize(raw_query)
         status = (
             SessionStatus.NEEDS_CONFIRMATION
@@ -227,12 +236,79 @@ class SearchOrchestrator:
                 ),
             )
 
+        variant_id = confirmed_variant_id or session.confirmed_variant_id
+        self.memory.remember(
+            session.id,
+            RememberedSearch(
+                offers=enriched,
+                confirmed_variant_id=variant_id,
+                destination_country=destination,
+                reference_currency=ref_currency,
+            ),
+        )
+        session.status = SessionStatus.RANKED
+        session.failure_reason = None
+        return self._decide(session.id, session.preferences, enriched, variant_id)
+
+    async def rerank(
+        self,
+        session_id: str,
+        preferences: UserPreferences,
+    ) -> DecisionPage:
+        """
+        Rebuild the Decision Page under new weights, reusing the offers already fetched.
+
+        Takes only the session id: the offers, and the destination and currency they
+        were priced for, all come from the remembered fetch. Accepting a whole
+        `SearchSession` would invite the caller to think the rest of it was read.
+
+        Only the weighting is allowed to change. Destination and reference currency
+        are refused rather than honoured, because landed cost and FX were computed
+        against the old ones — re-ranking on them would present numbers that answer
+        a question the user is no longer asking.
+        """
+        remembered = self.memory.recall(session_id)
+        if remembered is None:
+            raise SearchExpired(
+                "This search is no longer in memory, so its offers cannot be re-ranked. "
+                "Run the search again to get current prices."
+            )
+        if (
+            preferences.destination_country != remembered.destination_country
+            or preferences.reference_currency != remembered.reference_currency
+        ):
+            raise SearchExpired(
+                "Destination and reference currency cannot be changed by re-ranking: "
+                "landed cost and currency conversion depend on them. Run the search again."
+            )
+
+        return self._decide(
+            session_id, preferences, remembered.offers, remembered.confirmed_variant_id
+        )
+
+    def _decide(
+        self,
+        session_id: str,
+        preferences: UserPreferences,
+        enriched: list[Offer],
+        confirmed_variant_id: str | None,
+    ) -> DecisionPage:
+        """
+        Score, explain, highlight and scout alternatives. No I/O.
+
+        Split out from `run` so a re-rank can reuse it verbatim: the guarantee worth
+        having is that changing a weight goes through exactly the same code as the
+        original search, and cannot drift from it.
+
+        Takes the four things it reads rather than a `SearchSession`, because a
+        re-rank has no session to hand it — only an id and the new weights.
+        """
         # Confirmed builds and near-offers are scored in ONE normalization pass, then
         # split. Min–max scaling is relative to the set it is given, so scoring
         # alternatives separately would produce numbers that cannot be compared to
         # the ranked list — and the rival test is exactly such a comparison.
         identical = [offer for offer in enriched if offer.match_kind == MatchKind.IDENTICAL]
-        ranked = self.ranking.score(enriched, session.preferences, self._source_registry())
+        ranked = self.ranking.score(enriched, preferences, self._source_registry())
 
         if identical:
             confirmed_scored = [
@@ -262,18 +338,17 @@ class SearchOrchestrator:
             )
             for offer, breakdown in confirmed_scored
         ]
-        highlights = pick_highlights(scored, session.preferences, self.explanations)
+        highlights = pick_highlights(scored, preferences, self.explanations)
 
-        variant_id = confirmed_variant_id or session.confirmed_variant_id
-        confirmed_variant = self.catalog.get_variant(variant_id) if variant_id else None
+        confirmed_variant = (
+            self.catalog.get_variant(confirmed_variant_id) if confirmed_variant_id else None
+        )
 
         best = scored[0] if scored else None
         alt_list = self.alternatives.select(near_scored, best, confirmed_variant)
 
-        session.status = SessionStatus.RANKED
-        session.failure_reason = None
         return DecisionPage(
-            session_id=session.id,
+            session_id=session_id,
             confirmed_variant=confirmed_variant,
             offers=[offer for offer, _ in scored],
             offer_scores={offer.id: breakdown for offer, breakdown in scored},
@@ -281,6 +356,27 @@ class SearchOrchestrator:
             alternatives=alt_list,
             generated_at=datetime.now(timezone.utc),
         )
+
+    @staticmethod
+    def _stamp_origin(preferences: UserPreferences | None) -> UserPreferences:
+        """
+        Record where the destination and currency came from.
+
+        Two origins are reachable today: `default` when the caller sent nothing, and
+        `manual` when it sent preferences. `geolocation` sits between them and is a
+        documented proposal only — no code infers a country from an IP or a browser
+        API, so nothing may claim that origin. Stamping the two we do have keeps the
+        Decision Page able to say "we assumed Türkiye" rather than implying the user
+        chose it.
+
+        An explicit non-default origin from the caller is left alone, so a future
+        geolocation step can set its own without this overwriting it.
+        """
+        if preferences is None:
+            return UserPreferences()
+        if preferences.origin != PreferenceOrigin.DEFAULT:
+            return preferences
+        return preferences.model_copy(update={"origin": PreferenceOrigin.MANUAL})
 
     def _source_registry(self) -> dict[str, Source]:
         """Map `Offer.sourceId` back to the source, so ranking can weigh site reputation."""
