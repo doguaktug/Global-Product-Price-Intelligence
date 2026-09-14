@@ -14,7 +14,7 @@ The algorithm must:
 2. Apply **user-chosen weights** (or published defaults)
 3. Handle **missing and unreliable** data honestly
 4. Produce a **score** and a **plain-language explanation**
-5. Select the five **highlights** (best for you, lowest list price, lowest total landed cost, most trusted seller, best warranty) and rank **alternatives**, badging the ones that pass a value test
+5. Select the five **highlights** (best for you, lowest list price, lowest total landed cost, most trusted seller, best warranty) and rank **alternatives**, showing only those that pass a value test
 
 ---
 
@@ -206,11 +206,9 @@ Near-offers go through steps 1–4 **together with** the identical-match offers,
 
 Alternatives are therefore **ranked by `finalScore`** exactly like the main list, and their scores are directly comparable to it.
 
-### 6.0b. The value tests award badges; they do not filter
+### 6.0b. The value tests filter the panel
 
-Every candidate that survives matching is shown, ranked. What the value tests decide is whether it carries a **badge** — `upgrade`, `downgrade`, or `rival` — which is a claim the system is making about the offer's value. An alternative that clears no test keeps its place in the list but loses the claim, and says so in its caveats ("Shown for comparison — it does not clear a value test").
-
-The reason is that a badge and a listing answer different questions. "Is this worth your money?" deserves a guarded answer; "does this option exist?" does not. Suppressing an unbadged near-offer hides a real option from the user and makes the alternatives panel look empty for no stated reason.
+A near-offer is shown only when it earns a **badge** — `upgrade`, `downgrade`, `rival`, or `similar`. Failing every test means the candidate is omitted, not listed "for comparison." The panel is for recommendations the system is prepared to stand behind, not for every nearby listing the matcher found.
 
 ### 6a. Same-family spec variants
 
@@ -241,6 +239,15 @@ These are the implemented defaults, not illustrations. They are module constants
 
 **`specGain` and `specLoss` are measured per spec, not on one hand-picked field.** Every numeric key in the category's identity, optional, and core spec lists is compared between the confirmed variant and the candidate; the largest gain and the largest loss are what the thresholds are tested against. So "≥25% gain" means *some* spec improved by at least that much, and "≤50% loss" means *nothing* fell further than that. This matters because a laptop that doubles its RAM while keeping the same storage is a genuine upgrade, and a rule that only looked at storage would miss it.
 
+**Value test for similar builds** (same family, neither a clear upgrade nor a clear downgrade):
+
+```python
+isSimilar = maxSpecGain <= SIMILAR_MAX_SPEC_DELTA      # e.g. 0.10
+        and maxSpecLoss <= SIMILAR_MAX_SPEC_DELTA
+        and abs(costDeltaRatio) <= SIMILAR_MAX_COST_DELTA  # e.g. 0.10
+        and finalScore >= bestOverall.finalScore × SIMILAR_SCORE_FLOOR  # e.g. 0.90
+```
+
 ### 6b. Comparable different products
 
 Offers where `matchKind = different` but same category + comparable form factor.
@@ -249,9 +256,10 @@ Offers where `matchKind = different` but same category + comparable form factor.
 isComparable = sameCategory
            and attributeOverlapRatio >= 0.6     # ≥60% of core spec keys overlap
            and finalScore > bestOverall.finalScore × 0.85  # competitive with the best pick
+           and abs(costDeltaRatio) <= 0.15      # landed price stays close
 ```
 
-Both halves are required, and they check different things: overlap asks whether the product answers the same need, and the score floor asks whether it is close enough to be worth switching to. A cheap product that shares most specs but scores poorly is not a contender, and a high scorer that shares few specs is not comparable.
+Overlap, score floor, and price proximity are all required. A cheap product that shares most specs but scores poorly is not a contender; a high scorer that shares few specs is not comparable; a high-overlap rival that is far more expensive is not close enough to recommend.
 
 ### 6c. Cost delta
 
@@ -259,11 +267,12 @@ Each alternative carries `landedCostDelta`: **its landed cost minus the top pick
 
 ### 6d. Selection and cap
 
-- Rank all candidates by `finalScore`
+- Drop every candidate that failed every value test
+- Rank remaining (badged) candidates by `finalScore`
 - **Cap at 3** alternatives
-- Prefer **diversity of reason**: fill slots with one upgrade, one downgrade, and one rival before topping up with the highest-scoring unbadged candidates. Three cheaper-but-smaller variants tell the user one thing three times
-- Each gets its own explanation (what differs, cost delta, and either the value test it passed or a caveat that it passed none)
-- If there are no near-offers at all, show zero alternatives — but a near-offer is never dropped for failing a value test
+- Prefer **diversity of reason**: fill slots with one of each badge before topping up with the highest-scoring remaining badged candidates. Three cheaper-but-smaller variants tell the user one thing three times
+- Each gets its own explanation (what differs, cost delta, and the value test it passed)
+- If no near-offer clears a value test, show zero alternatives
 
 ---
 
@@ -293,7 +302,7 @@ Explanation(
 2. **Reasons must be the criteria that actually won the comparison.** For each criterion, compute this offer's **weighted contribution** (`weightUsed × criterionScore`) minus the runner-up's on the same criterion. Every criterion with a positive margin is a reason the offer is where it is; they are stated **largest margin first** and capped at `MAX_DECISIVE_REASONS` (3). Criteria the offer merely scored ≥ 0.7 on are appended after those, so a strong all-rounder still reads as one — but they never displace a decisive reason.
 3. **Caveats:** for each entry in `missingCriteria`, each `partial`/`unknown` landed-cost line, or any low `dataConfidence`, add a caveat.
 4. **Comparison:** if the offer is the best-for-you but NOT the cheapest, name the cheapest offer it beat and the criteria that offer lost on (e.g. "Bargain Bin's listing is 2,100 TL cheaper but loses on seller trust, no stated warranty").
-5. **Alternatives:** state what differs (spec change or product change), the landed-cost delta against the top pick, and either the value test passed or a caveat that none was.
+5. **Alternatives:** state what differs (spec change or product change), the landed-cost delta against the top pick, and the value test that earned the badge.
 
 ### Why margins, and why against the runner-up
 

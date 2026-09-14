@@ -315,7 +315,8 @@ One listing, at collection time. This is the unit of comparison.
 | `sourceId` | string | |
 | `seller` | `Seller` | |
 | `country` | ISO country | Country of the offer |
-| `listingTitle` | string | Raw title |
+| `listingTitle` | string | Raw marketplace title (keeps the seller language: TR/DE/JP/…) |
+| `displayName` | string? | English app-language label after matching (catalog variant name + distinguishing specs). Always prefer this in UI copy; keep `listingTitle` visible as the original |
 | `listingUrl` | string | |
 | `imageUrl` | string? | |
 | `listPrice` | `Money` | **Original; never overwritten** |
@@ -455,7 +456,7 @@ Assignment Decision Page “best of” lenses:
 | `lowest_total_cost` | Cheapest **landed** cost |
 | `best_warranty` | Longest / strongest parsed warranty among eligible offers |
 | `best_seller` | Highest seller criterion — the seller's own rating blended with the hosting site's reputation |
-| `best_overall` | Highest `finalScore` for this user’s weights (“best for you”). If this offer also wins another lens, the other highlight is dropped. |
+| `best_overall` | Highest `finalScore` for this user’s weights (“best for you”). Assigned first; if it also wins another lens the API still returns both rows and the UI collapses them into one card. |
 
 Each highlight: `{ kind, offerId, explanation }`.
 
@@ -465,12 +466,12 @@ Each highlight: `{ kind, offerId, explanation }`.
 | --- | --- | --- |
 | `offerId` | string | |
 | `kind` | enum | `spec_variant` (same family, different specs) \| `comparable_product` |
-| `badge` | enum? | `upgrade` \| `downgrade` \| `rival`, or absent. See below |
+| `badge` | enum | `upgrade` \| `downgrade` \| `rival` \| `similar`. Required on shown alternatives — see below |
 | `differingAttributes` | list | e.g. storage 512 GB → 1024 GB |
 | `landedCostDelta` | `Money`? | **This offer's landed cost minus the top pick's.** Negative means cheaper |
-| `explanation` | `Explanation` | What differs, the cost delta, and the value test passed (or a caveat that none was) |
+| `explanation` | `Explanation` | What differs, the cost delta, and the value test that earned the badge |
 
-`kind` says what sort of thing the alternative is; `badge` says whether the system is prepared to make a claim about its value. They are separate because an alternative can be a legitimate option to show without clearing a value test — see [proposed-algorithm.md](proposed-algorithm.md) step 6 for the thresholds.
+`kind` says what sort of thing the alternative is; `badge` says which value test it cleared. Only badged alternatives are returned — a near-offer that clears none is omitted. Thresholds: [proposed-algorithm.md](proposed-algorithm.md) step 6.
 
 `landedCostDelta` is a **delta, not a total**. The alternatives panel answers "what would switching cost me?", so the difference is the number the reader wants; the alternative's own total is still reachable through its `Offer`. A `Money` of `-2100 TRY` therefore means "2,100 TRY cheaper than the offer we recommended", not "costs -2,100 TRY".
 
@@ -485,7 +486,7 @@ What the UI renders.
 | `offers` | list of `Offer` | Matched + ranked by `finalScore` (full list) |
 | `offerScores` | map `offerId` → `ScoreBreakdown` | Parallel scores / warnings for the full list UI |
 | `highlights` | list of `DecisionHighlight` | Only offers with effective confidence ≥ 0.7. Multiple rows may share an `offerId`; the UI collapses those into one card |
-| `alternatives` | list of `Alternative` | Ranked by `finalScore` alongside the main list; cap 3. Empty only when there were no near-offers |
+| `alternatives` | list of `Alternative` | Badged near-offers only; ranked by `finalScore`; cap 3. Empty when none clear a value test |
 | `alternativeOffers` | list of `Offer` | Bodies for the alternative listings (they are not in `offers`) |
 | `generatedAt` | datetime | |
 

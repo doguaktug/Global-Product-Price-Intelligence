@@ -126,7 +126,7 @@ Matching is **two tiers, tried in order**:
 
 An **absent** identifier is missing evidence, not contradicting evidence: when tier 1 finds nothing, matching falls through to tier 2 rather than rejecting the offer. Only a *stated conflict* rules a variant out. This is what makes marketplace listings usable at all — eBay publishes no identifier the catalog shares, so every eBay offer is decided by tier 2.
 
-Tier 2 needs structured attributes, and most sources do not publish any. The attributes therefore come from **normalizing the listing title** with the same parser that reads user queries (see step 5): `"Galaxy S26 Ultra 512GB 12GB RAM EU Black"` yields `storage_gb=512, memory_gb=12, region_version=EU, colour=Black`. Where a source does publish structured specs, those are preferred and passed through the unit parser first.
+Tier 2 needs structured attributes, and most sources do not publish any. The attributes therefore come from **normalizing the listing title** with the same parser that reads user queries (see step 5): `"Galaxy S26 Ultra 512GB 12GB RAM EU Black"` yields `storage_gb=512, memory_gb=12, region_version=EU, colour=Black`. Localized colour words (`Gök Mavisi`, `Schwarz`, `ブラック`) are mapped to the English catalog colour via `data/catalog/colour_aliases.json` before matching. Where a source does publish structured specs, those are preferred and passed through the unit parser (and the same colour alias map) first. After a match, the offer keeps the original `listingTitle` and gains an English `displayName` for the Decision Page.
 
 There is deliberately **no free-text similarity tier**. Fuzzy title scoring is used to pick the product *family* from the user's query (step 5), where a wrong guess only opens a confirmation popup. Using it to decide which *build* an offer is would silently merge a 256 GB listing with a 512 GB one, and a wrong answer there corrupts the price comparison itself. When the two tiers cannot decide, the offer is `unmatched` and excluded, which is the honest outcome.
 
@@ -220,11 +220,11 @@ Alternatives are **not** random similar titles. They are deliberate “you might
 
 - Never present a different-spec SKU as the same offer; keep exact matches and alternatives separate.
 - Alternatives are scored in the **same normalization pass** as the ranked list, then split off. Scoring them separately would put them on their own 0–1 scale and make any comparison against the top pick meaningless.
-- Alternatives are ranked by final score and each may carry a **badge** — upgrade, downgrade, or rival — awarded by a value test: a meaningful spec gain for a modest cost increase, a clear saving that still meets the confirmed minimum, or a different product with enough attribute overlap and a score close to the top pick. Thresholds are listed in [parameters.md](parameters.md#alternatives) and explained in [proposed-algorithm.md](proposed-algorithm.md).
-- The value tests gate the **badge, not the listing**. A near-offer that clears none is still shown, ranked, with a caveat saying so — the badge is a claim about value and must be earned, but the user is not served by hiding that an option exists.
+- Alternatives are ranked by final score and shown **only when badged** — upgrade, downgrade, rival, or similar — by a value test: a meaningful spec gain for a modest cost increase, a clear saving that still meets the confirmed minimum, a different product with enough attribute overlap plus a close score and price, or a near-identical build with tiny spec/price/score drift. Thresholds are listed in [parameters.md](parameters.md#alternatives) and explained in [proposed-algorithm.md](proposed-algorithm.md).
+- The value tests gate **whether the alternative is shown**. A near-offer that clears none is omitted — not listed "for comparison."
 - Different products need shared category + comparable form factor; require enough attribute overlap; avoid “alternative” drift into unrelated devices.
-- Cap alternatives at 3. Fill the slots with one upgrade, one downgrade and one rival where possible before topping up with the highest-scoring unbadged candidates — three near-duplicates say one thing three times.
-- Each alternative gets its own explanation: what differs, its landed cost **minus the top pick's** (negative means cheaper), and why it might beat the primary pick for this user.
+- Cap alternatives at 3. Fill the slots with one of each badge where possible before topping up with the highest-scoring remaining badged candidates — three near-duplicates say one thing three times.
+- Each alternative gets its own explanation: what differs, its landed cost **minus the top pick's** (negative means cheaper), and which value test it passed.
 
 ### 13. Decision Page
 
