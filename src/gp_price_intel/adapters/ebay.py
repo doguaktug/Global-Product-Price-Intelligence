@@ -116,7 +116,14 @@ class EbayAdapter(SourceAdapter):
             return None
         return "eBay was not searched: EBAY_APP_ID / EBAY_CERT_ID are not set"
 
-    async def search(self, scope: SearchScope, destination_country: str) -> list[Offer]:
+    async def fetch_listings(self, scope: SearchScope) -> list[dict[str, Any]]:
+        """
+        Raw Browse `itemSummaries` for this scope, before parsing or filtering.
+
+        Separate from `search` so a caller can tell "eBay returned nothing" apart from
+        "eBay returned listings that were all discarded" — two very different problems
+        that produce the same empty offer list.
+        """
         if not self.is_configured():
             logger.info("eBay adapter skipped — EBAY_APP_ID or EBAY_CERT_ID not set.")
             return []
@@ -127,12 +134,17 @@ class EbayAdapter(SourceAdapter):
 
         try:
             token = await self._access_token()
-            summaries = await self._search_items(token, query)
+            return await self._search_items(token, query)
         except SourceFetchError:
             raise
         except Exception as exc:
             logger.exception("eBay search failed for query=%r", query)
             raise SourceFetchError(f"eBay request failed: {exc}") from exc
+
+    async def search(self, scope: SearchScope, destination_country: str) -> list[Offer]:
+        summaries = await self.fetch_listings(scope)
+        if not summaries:
+            return []
 
         # The Browse API returns a title and little else, so the family's option
         # lists are what let us read specs out of that title. Without them the
@@ -173,7 +185,7 @@ class EbayAdapter(SourceAdapter):
         if self._token and time.time() < self._token_expires_at - 60:
             return self._token
 
-        host = self._api_host()
+        host = self.api_host()
         credentials = f"{self.settings.ebay_app_id}:{self.settings.ebay_cert_id}"
         encoded = base64.b64encode(credentials.encode()).decode()
         client = await self._get_client()
@@ -199,7 +211,7 @@ class EbayAdapter(SourceAdapter):
         return self._token
 
     async def _search_items(self, token: str, query: str) -> list[dict[str, Any]]:
-        host = self._api_host()
+        host = self.api_host()
         client = await self._get_client()
         response = await client.get(
             f"https://{host}/buy/browse/v1/item_summary/search",
@@ -237,7 +249,8 @@ class EbayAdapter(SourceAdapter):
                     return message
         return str(payload)[:200]
 
-    def _api_host(self) -> str:
+    def api_host(self) -> str:
+        """Which eBay host this adapter talks to. Public so it can be reported."""
         return "api.sandbox.ebay.com" if self.settings.ebay_sandbox else "api.ebay.com"
 
     def _parse_item(

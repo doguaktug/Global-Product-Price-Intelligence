@@ -85,11 +85,13 @@ async def diagnose_ebay(query: str, destination: str) -> int:
         print(f"\nRESULT         {query!r} matched no catalog family, so no search was built.")
         return 1
 
-    print(f"\nfamily         {scope.family_id}")
+    print(f"\nhost           {adapter.api_host()}")
+    print(f"family         {scope.family_id}")
     print(f"constraints    {scope.constraints or '{}'}")
     print(f"eBay query     {adapter.build_search_query(scope)!r}")
 
     try:
+        summaries = await adapter.fetch_listings(scope)
         offers = await adapter.search(scope, destination)
     except SourceFetchError as exc:
         print(f"\nRESULT         eBay call FAILED\n               {exc}")
@@ -97,12 +99,27 @@ async def diagnose_ebay(query: str, destination: str) -> int:
     finally:
         await adapter.aclose()
 
-    print(f"\nlistings kept  {len(offers)}")
+    print(f"\nlistings returned  {len(summaries)}")
+    print(f"listings usable    {len(offers)}")
+
+    if not summaries:
+        print("\nRESULT         eBay authenticated fine, then returned zero listings.")
+        if settings.ebay_sandbox:
+            print(
+                "               EBAY_SANDBOX is on, so this hit the sandbox host, which "
+                "carries almost\n               no inventory — an empty result there is "
+                "normal and says nothing about\n               your query. Set "
+                "EBAY_SANDBOX=false and use your *production* keyset;\n               "
+                "sandbox and production credentials are separate on eBay."
+            )
+        else:
+            print("               eBay lists nothing for this keyword query.")
+        return 1
+
     if not offers:
         print(
-            "RESULT         eBay answered, but no usable listing came back. Either it "
-            "lists nothing\n               for this query, or every listing was missing "
-            "a price, URL or stock."
+            "\nRESULT         eBay returned listings, but every one was discarded for "
+            "missing a\n               price, URL, item id, or for being out of stock."
         )
         return 1
 

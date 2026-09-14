@@ -34,7 +34,9 @@ Offers come from `data/fixtures/offers.json` plus eBay, and eBay is only searche
 python -m gp_price_intel.diagnose "Samsung Galaxy S26 512GB"
 ```
 
-It prints which `.env` was loaded, whether the keys are set (never their values), the exact keyword query sent to Browse, and then where the listings stop — credentials rejected, nothing listed, or listings returned but unmatched against the catalog.
+It prints which `.env` was loaded, whether the keys are set (never their values), which eBay host it talked to, the exact keyword query sent to Browse, and then where the listings stop — credentials rejected, nothing returned, returned but discarded, or returned but unmatched against the catalog.
+
+Keep **`EBAY_SANDBOX=false`**. The sandbox is a separate eBay with its own keyset and virtually no inventory, so it authenticates fine and returns zero listings, which looks exactly like a product nobody sells.
 
 Note that fixtures only cover **Galaxy S26 Ultra**, **MacBook Air M4** and **iPad Air 11 M3**. Any other product depends entirely on live eBay, so an empty Decision Page there is expected without keys.
 

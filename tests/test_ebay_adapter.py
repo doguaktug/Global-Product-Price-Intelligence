@@ -334,6 +334,52 @@ async def test_an_empty_shelf_is_not_an_error() -> None:
     assert offers == []
 
 
+def test_the_sandbox_flag_picks_the_sandbox_host() -> None:
+    """
+    Sandbox is a separate eBay with its own keys and virtually no inventory, so which
+    host was used has to be visible — an empty sandbox result means nothing.
+    """
+    live = EbayAdapter(settings=Settings(ebay_app_id="a", ebay_cert_id="c"))
+    sandbox = EbayAdapter(
+        settings=Settings(ebay_app_id="a", ebay_cert_id="c", ebay_sandbox=True)
+    )
+
+    assert live.api_host() == "api.ebay.com"
+    assert sandbox.api_host() == "api.sandbox.ebay.com"
+
+
+@pytest.mark.asyncio
+async def test_listings_that_arrive_are_countable_before_they_are_filtered() -> None:
+    """
+    "eBay sent nothing" and "eBay sent listings we threw away" are different faults.
+
+    The offer list alone cannot tell them apart, so the raw summaries stay reachable.
+    """
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/oauth2/token"):
+            return httpx.Response(200, json={"access_token": "t", "expires_in": 60})
+        return httpx.Response(
+            200,
+            json={
+                "itemSummaries": [
+                    # No price block, so it cannot become an Offer.
+                    {
+                        "itemId": "v1|1|0",
+                        "title": "Samsung Galaxy S26 512GB",
+                        "itemWebUrl": "https://www.ebay.com/itm/1",
+                    }
+                ]
+            },
+        )
+
+    adapter = _adapter(httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    scope = SearchScope(family_id="samsung-galaxy-s26-ultra", constraints={"storage_gb": 512})
+
+    assert len(await adapter.fetch_listings(scope)) == 1
+    assert await adapter.search(scope, "TR") == []
+
+
 def test_missing_credentials_are_reported_rather_than_hidden() -> None:
     without = EbayAdapter(settings=Settings())
     assert without.is_configured() is False
