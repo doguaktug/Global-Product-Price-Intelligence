@@ -27,7 +27,19 @@ def test_ui_assets_are_served() -> None:
     assert "originalSearchName" in js.text
     assert "searched-name" in css.text
     assert "scroll down for the best alternatives" in client.get("/").text
-    assert ".view[hidden]" in css.text
+    # `hidden` has to beat the class `display` rules, or the views and the ranked
+    # list render on top of each other instead of staying closed.
+    assert "[hidden] {\n  display: none !important;\n}" in css.text
+
+
+def test_the_ranked_list_starts_hidden_behind_its_toggle() -> None:
+    client = TestClient(create_app())
+    html = client.get("/").text
+    js = client.get("/ui/app.js").text
+    assert 'id="full-list" hidden' in html
+    assert "list all other options" in html
+    # Re-hidden on every render, so a second search cannot inherit an open list.
+    assert "list.hidden = true;" in js
 
 
 def _hl(kind: HighlightKind, offer_id: str) -> DecisionHighlight:
