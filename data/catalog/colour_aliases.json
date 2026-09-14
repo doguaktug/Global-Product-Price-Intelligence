@@ -1,0 +1,216 @@
+{
+  "Black": [
+    "schwarz",
+    "siyah",
+    "ブラック",
+    "くろ",
+    "noir",
+    "nero",
+    "negro"
+  ],
+  "White": [
+    "weiss",
+    "weiß",
+    "beyaz",
+    "ホワイト",
+    "blanc",
+    "bianco",
+    "blanco"
+  ],
+  "Silver": [
+    "silber",
+    "gümüş",
+    "gumus",
+    "シルバー",
+    "argent",
+    "argento",
+    "plata"
+  ],
+  "Blue": [
+    "blau",
+    "mavi",
+    "ブルー",
+    "bleu",
+    "blu",
+    "azul"
+  ],
+  "Sky Blue": [
+    "gök mavisi",
+    "gok mavisi",
+    "himmelblau",
+    "スカイブルー",
+    "bleu ciel"
+  ],
+  "Navy": [
+    "navy blue",
+    "marineblau",
+    "lacivert",
+    "ネイビー"
+  ],
+  "Green": [
+    "grün",
+    "grun",
+    "yeşil",
+    "yesil",
+    "グリーン",
+    "vert",
+    "verde"
+  ],
+  "Pink": [
+    "rosa",
+    "pembe",
+    "ピンク",
+    "rose"
+  ],
+  "Purple": [
+    "lila",
+    "mor",
+    "パープル",
+    "violet",
+    "viola"
+  ],
+  "Yellow": [
+    "gelb",
+    "sarı",
+    "sari",
+    "イエロー",
+    "jaune",
+    "giallo"
+  ],
+  "Teal": [
+    "petrol",
+    "turkuaz",
+    "ティール"
+  ],
+  "Mint": [
+    "mintgrün",
+    "mintgrun",
+    "nane yeşili",
+    "ミント"
+  ],
+  "Midnight": [
+    "mitternacht",
+    "gece yarısı",
+    "gece yarisi",
+    "ミッドナイト"
+  ],
+  "Starlight": [
+    "polarstern",
+    "étoile polaire",
+    "etoile polaire",
+    "スターライト",
+    "yıldız ışığı",
+    "yildiz isigi"
+  ],
+  "Space Gray": [
+    "space grau",
+    "spacegrau",
+    "uzay grisi",
+    "スペースグレイ",
+    "スペースグレー",
+    "gris sidéral"
+  ],
+  "Space Black": [
+    "space schwarz",
+    "uzay siyahı",
+    "uzay siyahi",
+    "スペースブラック"
+  ],
+  "Ultramarine": [
+    "ultramarin",
+    "ultramarin mavi",
+    "ウルトラマリン"
+  ],
+  "Black Titanium": [
+    "schwarz titan",
+    "siyah titanyum",
+    "ブラックチタニウム",
+    "ブラックチタン"
+  ],
+  "White Titanium": [
+    "weiss titan",
+    "weiß titan",
+    "beyaz titanyum",
+    "ホワイトチタニウム",
+    "ホワイトチタン"
+  ],
+  "Natural Titanium": [
+    "natur titan",
+    "natural titan",
+    "doğal titanyum",
+    "dogal titanyum",
+    "ナチュラルチタニウム",
+    "ナチュラルチタン"
+  ],
+  "Desert Titanium": [
+    "wüsten titan",
+    "wusten titan",
+    "çöl titanyum",
+    "col titanyum",
+    "デザートチタニウム",
+    "デザートチタン"
+  ],
+  "Blue Titanium": [
+    "blau titan",
+    "mavi titanyum",
+    "ブルーチタニウム",
+    "ブルーチタン"
+  ],
+  "Basalt Gray": [
+    "basalt grau",
+    "bazalt gri",
+    "バサルトグレー"
+  ],
+  "Foggy Silver": [
+    "nebliges silber",
+    "sisli gümüş",
+    "sisli gumus",
+    "フォギーシルバー"
+  ],
+  "Quiet Blue": [
+    "ruhiges blau",
+    "sakin mavi",
+    "クワイエットブルー"
+  ],
+  "Cool Silver": [
+    "kühles silber",
+    "kuhles silber",
+    "soğuk gümüş",
+    "soguk gumus",
+    "クールシルバー"
+  ],
+  "Eclipse Gray": [
+    "finsternis grau",
+    "tutulma grisi",
+    "エクリプスグレー"
+  ],
+  "Platinum White": [
+    "platinweiss",
+    "platinweiß",
+    "platin beyaz",
+    "プラチナホワイト"
+  ],
+  "Jaeger Gray": [
+    "jaeger grau",
+    "jäger grau",
+    "jägergrau",
+    "イエーガーグレー"
+  ],
+  "Graphite Black": [
+    "graphitschwarz",
+    "grafit siyah",
+    "グラファイトブラック"
+  ],
+  "Moonstone Gray": [
+    "mondstein grau",
+    "ay taşı grisi",
+    "ay tasi grisi",
+    "ムーンストーングレー"
+  ],
+  "Platinum Silver": [
+    "platinsilber",
+    "platin gümüş",
+    "platin gumus",
+    "プラチナシルバー"
+  ]
+}

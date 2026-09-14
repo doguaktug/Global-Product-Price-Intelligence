@@ -49,10 +49,10 @@
         "storage_gb": "512 GB",
         "memory_gb": "12 GB RAM",
         "battery_mah": "5.000 mAh",
-        "display_inch": "6,9 inç"
+        "display_inch": "6,9 in\u00e7"
       },
       "stock_status": "in_stock",
-      "delivery_time": "1-3 iş günü",
+      "delivery_time": "1-3 i\u015f g\u00fcn\u00fc",
       "seller_name": "TR Electronics (fixture)",
       "seller_reliability": 0.82,
       "review_count": 2400,
@@ -91,7 +91,7 @@
       "source_id": "fixture-jp",
       "family_id": "samsung-galaxy-s26-ultra",
       "variant_id": "samsung-galaxy-s26-ultra-512-12-eu-black",
-      "listing_title": "Samsung Galaxy S26 Ultra 512GB ブラック",
+      "listing_title": "Samsung Galaxy S26 Ultra 512GB \u30d6\u30e9\u30c3\u30af",
       "listing_url": "https://example.com/jp/s26-ultra-512",
       "price": 189800.0,
       "currency": "JPY",
@@ -105,10 +105,10 @@
         "storage_gb": "512GB",
         "memory_gb": "12GB RAM",
         "battery_mah": "5000mAh",
-        "display_inch": "6.9型"
+        "display_inch": "6.9\u578b"
       },
       "stock_status": "in_stock",
-      "delivery_time": "2-5日",
+      "delivery_time": "2-5\u65e5",
       "seller_name": "JP Electronics (fixture)",
       "seller_reliability": 0.62,
       "review_count": 18,
@@ -119,7 +119,7 @@
       "source_id": "fixture-obscure",
       "family_id": "samsung-galaxy-s26-ultra",
       "variant_id": "samsung-galaxy-s26-ultra-512-12-eu-black",
-      "listing_title": "Galaxy S26 Ultra 512GB — obscure marketplace deal",
+      "listing_title": "Galaxy S26 Ultra 512GB \u2014 obscure marketplace deal",
       "listing_url": "https://example.com/obscure/s26-ultra-512",
       "price": 899.0,
       "currency": "EUR",
@@ -203,7 +203,7 @@
       "source_id": "fixture-tr",
       "family_id": "apple-macbook-air-m4",
       "variant_id": "apple-macbook-air-m4-512-16-us-sky-blue",
-      "listing_title": "Apple MacBook Air 13\" M4 512 GB 16 GB Gök Mavisi",
+      "listing_title": "Apple MacBook Air 13\" M4 512 GB 16 GB G\u00f6k Mavisi",
       "listing_url": "https://example.com/tr/mba-m4-512",
       "price": 62999.0,
       "currency": "TRY",
@@ -217,10 +217,10 @@
       "source_specs": {
         "storage_gb": "512 GB",
         "memory_gb": "16 GB RAM",
-        "display_inch": "13,6 inç"
+        "display_inch": "13,6 in\u00e7"
       },
       "stock_status": "in_stock",
-      "delivery_time": "1-3 iş günü",
+      "delivery_time": "1-3 i\u015f g\u00fcn\u00fc",
       "seller_name": "TR Electronics (fixture)",
       "seller_reliability": 0.82,
       "review_count": 2400,
@@ -261,7 +261,7 @@
       "variant_id": "apple-macbook-air-m4-256-16-us-sky-blue",
       "listing_title": "Apple MacBook Air 13\" M4 256 GB 16 GB Sky Blue",
       "listing_url": "https://example.com/de/mba-m4-256",
-      "price": 1299.0,
+      "price": 1249.0,
       "currency": "EUR",
       "country": "DE",
       "gtin": "0195949832001",
@@ -290,7 +290,7 @@
       "variant_id": "apple-macbook-air-m4-1024-32-us-silver",
       "listing_title": "Apple MacBook Air 13\" M4 1 TB 32 GB Silber",
       "listing_url": "https://example.com/de/mba-m4-1tb",
-      "price": 1999.0,
+      "price": 1599.0,
       "currency": "EUR",
       "country": "DE",
       "storage_gb": 1024,
@@ -358,10 +358,10 @@
       "source_specs": {
         "storage_gb": "256 GB",
         "memory_gb": "8 GB RAM",
-        "display_inch": "11 inç"
+        "display_inch": "11 in\u00e7"
       },
       "stock_status": "in_stock",
-      "delivery_time": "1-3 iş günü",
+      "delivery_time": "1-3 i\u015f g\u00fcn\u00fc",
       "seller_name": "TR Electronics (fixture)",
       "seller_reliability": 0.82,
       "review_count": 2400,
@@ -372,7 +372,7 @@
       "source_id": "fixture-jp",
       "family_id": "apple-ipad-air-11-m3",
       "variant_id": "apple-ipad-air-11-m3-256-8-wifi-eu-space-gray",
-      "listing_title": "Apple iPad Air 11インチ M3 256GB Wi-Fi スペースグレイ",
+      "listing_title": "Apple iPad Air 11\u30a4\u30f3\u30c1 M3 256GB Wi-Fi \u30b9\u30da\u30fc\u30b9\u30b0\u30ec\u30a4",
       "listing_url": "https://example.com/jp/ipad-air-11-256",
       "price": 109800.0,
       "currency": "JPY",
@@ -386,10 +386,10 @@
       "source_specs": {
         "storage_gb": "256GB",
         "memory_gb": "8GB RAM",
-        "display_inch": "11型"
+        "display_inch": "11\u578b"
       },
       "stock_status": "in_stock",
-      "delivery_time": "2-5日",
+      "delivery_time": "2-5\u65e5",
       "seller_name": "JP Electronics (fixture)",
       "seller_reliability": 0.62,
       "review_count": 26,
@@ -402,7 +402,7 @@
       "variant_id": "apple-ipad-air-11-m3-128-8-wifi-eu-space-gray",
       "listing_title": "Apple iPad Air 11\" M3 128 GB Wi-Fi Space Grau",
       "listing_url": "https://example.com/de/ipad-air-11-128",
-      "price": 699.0,
+      "price": 669.0,
       "currency": "EUR",
       "country": "DE",
       "gtin": "0195949310010",
