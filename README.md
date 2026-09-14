@@ -15,16 +15,40 @@ Not a conventional price-comparison site. The core question:
 
 ## Quick start
 
+Python 3.11+. Outbound HTTPS is required (live FX via Frankfurter). eBay keys are optional.
+
 ```bash
+git clone https://github.com/doguaktug/Global-Product-Price-Intelligence.git
+cd Global-Product-Price-Intelligence
+
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
-cp .env.example .env
+cp .env.example .env               # empty eBay keys are fine
 pytest
 uvicorn gp_price_intel.api.main:app --reload
 ```
 
-Open `http://127.0.0.1:8000/` for the UI. Health check: `GET http://127.0.0.1:8000/health`. API explorer: `http://127.0.0.1:8000/docs`.
+Then open:
+
+| URL | What it is |
+| --- | --- |
+| `http://127.0.0.1:8000/` | **The product UI** — search → optional confirm → loading → Decision Page |
+| `http://127.0.0.1:8000/docs` | Swagger for the JSON API (not the comparison screens) |
+| `http://127.0.0.1:8000/health` | Process is up |
+
+Listings you see are mostly **fixtures** (`data/fixtures/offers.json`) running through the real pipeline. Live eBay offers appear only if `EBAY_APP_ID` and `EBAY_CERT_ID` are set in `.env`.
+
+**Searches that exercise the UI**
+
+| Query | What happens |
+| --- | --- |
+| `MacBook Air M4 512GB 16GB RAM Sky Blue` | Unique catalog hit — goes straight to loading, then the Decision Page. Scroll down for alternatives |
+| `Samsung Galaxy S26 Ultra 512 GB Black` | Same path, phone fixtures |
+| `Samsung S26` | Confirm popup (model / storage / colour) |
+| `Samsung S26 Ultra 600 GB` | Confirm popup (600 GB is not a real option) |
+
+Leave the sliders and country/currency at defaults (TR + TRY) unless you want to re-rank. Changing destination or currency recomputes FX and landed cost.
 
 ## Package map
 
@@ -51,22 +75,22 @@ The pipeline runs end-to-end on the API: normalize → confirm → fetch → mat
 
 **Process**
 
-Chart and STEP writeup: [architecture.md — End-to-end process flow](docs/architecture.md#end-to-end-process-flow) · [process-framework-and-algorithm.md](docs/process-framework-and-algorithm.md). Below, each step lists the modules/methods that realize it today (UI steps are not coded yet).
+Chart and STEP writeup: [architecture.md — End-to-end process flow](docs/architecture.md#end-to-end-process-flow) · [process-framework-and-algorithm.md](docs/process-framework-and-algorithm.md). Below, each step lists the modules/methods that realize it today.
 
 1. **User enters a product**  
    `api/routes.py` → `start_search` · `orchestrator/search.py` → `SearchOrchestrator.start_session`
 
 2. **User selects preference weights** (optional sliders; country/currency: TR+TRY → geo if permitted → manual; later overwrites earlier)  
-   `domain/models.py` → `UserPreferences` (defaults) · wired through `start_search` / `StartSearchRequest.preferences` · *UI sliders / geo waterfall: not built yet*
+   `web/` search screen · `domain/models.py` → `UserPreferences` (defaults) · wired through `start_search` / `StartSearchRequest.preferences`
 
 3. **Normalize the query against a small reference catalog**  
    `normalize/query_normalizer.py` → `QueryNormalizer.normalize` · `normalize/similarity.py` → `score_query_against_labels`, `similarity`, `strip_spec_tokens` · `normalize/attribute_parser.py` → `parse_storage_gb`, `parse_memory_gb`, `parse_region_version`, `parse_colour` · `catalog/repository.py` → `CatalogRepository` (`get_family`, `list_variants`, …) · preview: `api/routes.py` → `normalize_query` / `SearchOrchestrator.preview_normalization`
 
 4. **Confirm popup only if needed** — skip when fully specified; missing identity props (e.g. storage on `Samsung S26`) require a choice; optional props (e.g. colour) may be **Not important**  
-   `normalize/confirmation.py` → `resolve_search_scope`, `filter_variants` · `orchestrator/search.py` → `SearchOrchestrator.apply_choices` · `api/routes.py` → `confirm_search` · *popup UI: not built yet*
+   `web/` confirm popup · `normalize/confirmation.py` → `resolve_search_scope`, `filter_variants` · `orchestrator/search.py` → `SearchOrchestrator.apply_choices` · `api/routes.py` → `confirm_search`
 
 5. **Loading** (animation / fun facts over real work)  
-   Work starts in `api/routes.py` → `run_search` → `SearchOrchestrator.run` · *loading screen UI: not built yet*
+   `web/` loading view over `api/routes.py` → `run_search` → `SearchOrchestrator.run`
 
 6. **Acquire live worldwide offers**  
    `adapters/registry.py` → `build_adapters`, `load_sources` · `adapters/ebay.py` → `EbayAdapter.search` · `adapters/fixture.py` → `FixtureAdapter.search` · `adapters/base.py` → `SourceAdapter` · orchestrated by `SearchOrchestrator._fetch_offers`
