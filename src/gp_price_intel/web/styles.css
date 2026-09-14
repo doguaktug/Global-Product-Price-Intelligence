@@ -112,7 +112,8 @@ body {
   padding: 2.4rem 3vw 4rem;
 }
 
-.view[hidden] {
+/* Class `display` rules otherwise beat the HTML hidden attribute. */
+[hidden] {
   display: none !important;
 }
 
