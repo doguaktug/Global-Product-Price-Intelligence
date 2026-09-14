@@ -26,6 +26,18 @@ uvicorn gp_price_intel.api.main:app --reload
 
 Open `http://127.0.0.1:8000/` for the UI. Health check: `GET http://127.0.0.1:8000/health`. API explorer: `http://127.0.0.1:8000/docs`.
 
+### Checking the live eBay adapter
+
+Offers come from `data/fixtures/offers.json` plus eBay, and eBay is only searched when `EBAY_APP_ID` and `EBAY_CERT_ID` are set in `.env`. A Decision Page cannot tell you *why* a source contributed nothing, so ask the adapter directly:
+
+```bash
+python -m gp_price_intel.diagnose "Samsung Galaxy S26 512GB"
+```
+
+It prints which `.env` was loaded, whether the keys are set (never their values), the exact keyword query sent to Browse, and then where the listings stop — credentials rejected, nothing listed, or listings returned but unmatched against the catalog.
+
+Note that fixtures only cover **Galaxy S26 Ultra**, **MacBook Air M4** and **iPad Air 11 M3**. Any other product depends entirely on live eBay, so an empty Decision Page there is expected without keys.
+
 ## Package map
 
 | Path | Role |

@@ -7,6 +7,7 @@ import base64
 import httpx
 import pytest
 
+from gp_price_intel.adapters.base import SourceFetchError
 from gp_price_intel.adapters.ebay import EbayAdapter
 from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.config import Settings
@@ -249,6 +250,10 @@ async def test_ebay_query_carries_the_category_identity_specs() -> None:
     assert "16GB RAM" in laptop
     assert "256GB" in tablet
     assert "Wi-Fi + Cellular" in tablet
+    # The family name already ends in "M4"; repeating it searches a phrase no seller
+    # writes and quietly narrows the result set.
+    assert laptop.count("M4") == 1
+    assert laptop == "Apple MacBook Air M4 512GB 16GB RAM"
 
 
 @pytest.mark.asyncio
@@ -268,3 +273,71 @@ async def test_ebay_oauth_uses_basic_auth() -> None:
 
     expected = "Basic " + base64.b64encode(b"my-app:my-cert").decode()
     assert seen_auth == [expected]
+
+
+@pytest.mark.asyncio
+async def test_rejected_credentials_raise_instead_of_looking_like_an_empty_shelf() -> None:
+    """
+    A 401 must not be reported as "no offers found".
+
+    Swallowing it leaves the Decision Page saying the product is unlisted when the
+    real problem is the keys, which is the one thing the operator has to be told.
+    """
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            401,
+            json={"error": "invalid_client", "error_description": "client authentication failed"},
+        )
+
+    with pytest.raises(SourceFetchError) as caught:
+        await _adapter(httpx.AsyncClient(transport=httpx.MockTransport(handler))).search(
+            SearchScope(family_id="samsung-galaxy-s26-ultra", constraints={"storage_gb": 512}),
+            "TR",
+        )
+
+    assert "401" in str(caught.value)
+    assert "client authentication failed" in str(caught.value)
+
+
+@pytest.mark.asyncio
+async def test_a_failing_browse_search_reports_ebays_own_message() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/oauth2/token"):
+            return httpx.Response(200, json={"access_token": "t", "expires_in": 60})
+        return httpx.Response(
+            429,
+            json={"errors": [{"longMessage": "Application request limit reached"}]},
+        )
+
+    with pytest.raises(SourceFetchError, match="Application request limit reached"):
+        await _adapter(httpx.AsyncClient(transport=httpx.MockTransport(handler))).search(
+            SearchScope(family_id="samsung-galaxy-s26-ultra", constraints={"storage_gb": 512}),
+            "TR",
+        )
+
+
+@pytest.mark.asyncio
+async def test_an_empty_shelf_is_not_an_error() -> None:
+    """eBay answering "nothing here" is a valid answer, not a failure."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/oauth2/token"):
+            return httpx.Response(200, json={"access_token": "t", "expires_in": 60})
+        return httpx.Response(200, json={"itemSummaries": []})
+
+    offers = await _adapter(httpx.AsyncClient(transport=httpx.MockTransport(handler))).search(
+        SearchScope(family_id="samsung-galaxy-s26-ultra", constraints={"storage_gb": 512}),
+        "TR",
+    )
+
+    assert offers == []
+
+
+def test_missing_credentials_are_reported_rather_than_hidden() -> None:
+    without = EbayAdapter(settings=Settings())
+    assert without.is_configured() is False
+    assert "EBAY_APP_ID" in (without.unavailable_reason() or "")
+
+    with_keys = EbayAdapter(settings=Settings(ebay_app_id="app", ebay_cert_id="cert"))
+    assert with_keys.unavailable_reason() is None

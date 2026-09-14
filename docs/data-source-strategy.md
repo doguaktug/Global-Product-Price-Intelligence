@@ -47,7 +47,11 @@ search(confirmedVariant, destination) → list of raw listings
 normalize(raw) → Offer (original Money, raw specs, seller, country)
 ```
 
-If a method is blocked (403, robots disallow, missing API key), the adapter fails **soft**: zero offers from that source, logged, other sources continue.
+If a method is blocked (403, robots disallow, rate limit), the adapter fails **soft**: zero offers from that source and the other sources continue. Soft does not mean silent — the adapter raises `SourceFetchError`, the orchestrator records the reason per source, and an otherwise-empty Decision Page reports it. Returning an empty list instead would make "your credentials were rejected" read as "this product is not sold here", which is the one distinction someone wiring up live keys needs.
+
+A source with **no credentials configured** is a different case: it was never asked, so it reports that through `unavailable_reason()` and an empty page says which source was skipped rather than implying the product is unlisted everywhere.
+
+To ask a live adapter directly instead of inferring from the Decision Page: `python -m gp_price_intel.diagnose "<query>"`.
 
 ---
 
