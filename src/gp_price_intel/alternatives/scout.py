@@ -36,8 +36,26 @@ SIMILAR_SCORE_FLOOR = 0.90
 MAX_ALTERNATIVES = 3
 
 
+# Units the Decision Page should print next to a spec change. Bare "512 → 256"
+# is unreadable; the key already encodes the unit (storage_gb, display_inch).
+SPEC_UNITS: dict[str, str] = {
+    "storage_gb": "GB",
+    "memory_gb": "GB RAM",
+    "display_inch": "in",
+    "battery_mah": "mAh",
+}
+
+
 def _format(value: object) -> str:
     return "—" if value is None else str(value)
+
+
+def _format_spec_value(key: str, value: object) -> str:
+    if value is None:
+        return "—"
+    unit = SPEC_UNITS.get(key)
+    text = _format(value)
+    return f"{text} {unit}" if unit else text
 
 
 def _as_number(value: object) -> Decimal | None:
@@ -452,7 +470,11 @@ class AlternativeScout:
             variant_value = variant.attribute(key)
             if confirmed_value != variant_value:
                 differences.append(
-                    (key, f"{_format(confirmed_value)} → {_format(variant_value)}")
+                    (
+                        key,
+                        f"{_format_spec_value(key, confirmed_value)} → "
+                        f"{_format_spec_value(key, variant_value)}",
+                    )
                 )
         return differences or [("match", note) for note in offer.match_notes]
 

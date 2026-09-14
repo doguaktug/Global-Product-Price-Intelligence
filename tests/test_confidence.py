@@ -36,7 +36,7 @@ from gp_price_intel.ranking.engine import (
     delivery_days,
     warranty_months,
 )
-from gp_price_intel.ranking.highlights import pick_highlights
+from gp_price_intel.ranking.highlights import collapse_highlights, pick_highlights
 
 
 def _offer(
@@ -224,8 +224,10 @@ def test_highlight_kinds_are_from_eligible_pool_only() -> None:
     assert all(h.offer_id == "reliable" for h in highlights)
     kinds = {h.kind for h in highlights}
     assert HighlightKind.BEST_OVERALL in kinds
-    # Sole eligible offer is "best for you"; overlapping lenses are dropped.
-    assert kinds == {HighlightKind.BEST_OVERALL}
+    assert HighlightKind.LOWEST_LIST_PRICE in kinds
+    groups = collapse_highlights(highlights)
+    assert len(groups) == 1
+    assert {h.kind for h in groups[0]} == kinds
     assert "best_specification" not in {k.value for k in HighlightKind}
     assert HighlightKind.BEST_WARRANTY.value == "best_warranty"
 
@@ -367,8 +369,8 @@ def test_missing_warranty_is_dropped_and_weights_renormalized() -> None:
     assert by_id["covered"].final_score >= by_id["bare"].final_score
 
 
-def test_best_for_you_overlap_drops_the_other_highlight() -> None:
-    """Cheapest eligible offer that also wins the weighted score keeps only 'best for you'."""
+def test_best_for_you_overlap_keeps_other_lenses_on_the_same_offer() -> None:
+    """The same offer can win several lenses; the UI collapses those into one card."""
     cheap_trusted = _offer(
         offer_id="cheap-trusted",
         price="100",
@@ -391,10 +393,35 @@ def test_best_for_you_overlap_drops_the_other_highlight() -> None:
     for highlight in highlights:
         kinds_by_offer.setdefault(highlight.offer_id, set()).add(highlight.kind)
 
-    assert kinds_by_offer["cheap-trusted"] == {HighlightKind.BEST_OVERALL}
-    assert HighlightKind.LOWEST_LIST_PRICE not in {h.kind for h in highlights}
-    offer_ids = [h.offer_id for h in highlights]
-    assert len(offer_ids) == len(set(offer_ids))
+    assert HighlightKind.BEST_OVERALL in kinds_by_offer["cheap-trusted"]
+    assert HighlightKind.LOWEST_LIST_PRICE in kinds_by_offer["cheap-trusted"]
+    groups = collapse_highlights(highlights)
+    assert 1 <= len(groups) <= 5
+    cheap_group = next(group for group in groups if group[0].offer_id == "cheap-trusted")
+    assert len(cheap_group) >= 2
+
+
+def test_collapse_highlights_spreads_unique_offers() -> None:
+    cheap = _offer(
+        offer_id="cheap-weak-seller",
+        price="100",
+        data_confidence=1.0,
+        seller_reliability=0.2,
+        review_count=10,
+        warranty="6 months",
+    )
+    balanced = _offer(
+        offer_id="balanced",
+        price="400",
+        data_confidence=1.0,
+        seller_reliability=1.0,
+        review_count=50_000,
+        warranty="24 months manufacturer",
+    )
+    scored = RankingEngine().score([cheap, balanced], UserPreferences())
+    groups = collapse_highlights(pick_highlights(scored, UserPreferences()))
+    assert 1 <= len(groups) <= 5
+    assert len(groups) == len({group[0].offer_id for group in groups})
 
 
 def test_distinct_best_for_you_keeps_other_highlights() -> None:

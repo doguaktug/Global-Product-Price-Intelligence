@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Global Product Price Intelligence</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23f3eee4' stroke='%23171410' stroke-width='4'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='28' font-family='serif'%3Egp%3C/text%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,620;9..144,700&family=Outfit:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/ui/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="rail">
+        <a class="logo" href="/" id="logo-link">
+          <span class="logo-mark">gp</span>
+          <span class="logo-name">price intel</span>
+        </a>
+        <nav class="rail-nav" aria-label="Site">
+          <button type="button" class="rail-item" disabled>catalogue</button>
+          <button type="button" class="rail-item" disabled>weight system</button>
+          <button type="button" class="rail-item" disabled>trust system</button>
+          <button type="button" class="rail-item" disabled>settings</button>
+          <button type="button" class="rail-item" disabled>contact</button>
+          <button type="button" class="rail-item" disabled>about</button>
+        </nav>
+      </aside>
+
+      <main class="stage">
+        <section id="view-search" class="view view-search" data-view="search">
+          <h1 class="prompt">what are we looking for today?</h1>
+          <form id="search-form" class="search-form" autocomplete="off">
+            <label class="visually-hidden" for="query">Product search</label>
+            <input
+              id="query"
+              name="query"
+              class="search-oval"
+              type="search"
+              placeholder="search here..."
+              required
+              minlength="1"
+            />
+            <div class="search-actions">
+              <button type="button" class="pill" id="toggle-weights" aria-expanded="false">
+                personalize weights
+              </button>
+              <button type="button" class="pill" id="toggle-geo" aria-expanded="false">
+                change country/currency
+              </button>
+            </div>
+            <p class="search-error" id="search-error" hidden></p>
+            <div class="extend-row" id="extend-row">
+              <section class="panel panel-weights" id="panel-weights" hidden>
+                <h2>personalize weights</h2>
+                <p class="panel-note">Proportions matter, not the total. Zero drops that criterion.</p>
+                <label class="slider-row"
+                  >Price
+                  <input type="range" min="0" max="100" value="40" data-weight="price" />
+                  <span data-weight-value="price">40</span>
+                </label>
+                <label class="slider-row"
+                  >Seller
+                  <input type="range" min="0" max="100" value="20" data-weight="seller" />
+                  <span data-weight-value="seller">20</span>
+                </label>
+                <label class="slider-row"
+                  >Reviews
+                  <input type="range" min="0" max="100" value="15" data-weight="reviews" />
+                  <span data-weight-value="reviews">15</span>
+                </label>
+                <label class="slider-row"
+                  >Warranty
+                  <input type="range" min="0" max="100" value="15" data-weight="warranty" />
+                  <span data-weight-value="warranty">15</span>
+                </label>
+                <label class="slider-row"
+                  >Delivery
+                  <input type="range" min="0" max="100" value="10" data-weight="delivery" />
+                  <span data-weight-value="delivery">10</span>
+                </label>
+              </section>
+              <section class="panel panel-geo" id="panel-geo" hidden>
+                <h2>change country/currency</h2>
+                <label class="geo-row">
+                  <span>
+                    country
+                    <button type="button" class="info" id="geo-info" aria-describedby="geo-tip">
+                      i
+                    </button>
+                  </span>
+                  <select id="country"></select>
+                </label>
+                <p class="tooltip" id="geo-tip" hidden>
+                  This is the location for the estimation of landing fees, cargo fees and tax.
+                </p>
+                <label class="geo-row">
+                  currency
+                  <select id="currency"></select>
+                </label>
+              </section>
+            </div>
+          </form>
+        </section>
+
+        <section id="view-loading" class="view view-loading" data-view="loading" hidden>
+          <div class="loader-ring" aria-hidden="true"></div>
+          <p class="loading-kicker">gathering live offers</p>
+          <p class="loading-fact" id="loading-fact" aria-live="polite"></p>
+        </section>
+
+        <section id="view-decision" class="view view-decision" data-view="decision" hidden>
+          <p class="decision-kicker" id="decision-kicker"></p>
+          <div class="card-row" id="highlight-row"></div>
+          <div class="decision-tools">
+            <button type="button" class="pill" id="toggle-full-list">list all other options</button>
+          </div>
+          <div class="full-list" id="full-list" hidden></div>
+          <p class="scroll-cue" id="scroll-cue" hidden>
+            scroll down for the best alternatives selected for you
+          </p>
+          <section class="alternatives" id="alternatives" hidden>
+            <div class="card-row alt-row" id="alternative-row"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="confirm" id="confirm-dialog">
+      <form method="dialog" id="confirm-form">
+        <h2 id="confirm-title">Just to be sure</h2>
+        <div id="confirm-prompts"></div>
+        <p class="search-error" id="confirm-error" hidden></p>
+        <div class="dialog-actions">
+          <button type="button" class="pill" id="confirm-cancel" value="cancel">Cancel</button>
+          <button type="submit" class="pill pill-solid" id="confirm-continue">Continue</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="/ui/app.js" type="module"></script>
+  </body>
+</html>

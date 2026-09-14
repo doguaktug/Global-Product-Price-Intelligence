@@ -16,6 +16,7 @@ src/gp_price_intel/
   alternatives/   # Guarded alternatives
   orchestrator/   # Search session pipeline
   api/            # FastAPI
+  web/            # Search / loading / Decision Page (static HTML/CSS/JS)
 data/
   catalog/        # categories.json, families.json, variants.json
   sources/        # sources.json (reliability registry)
@@ -23,4 +24,4 @@ data/
 tests/            # pytest (invariants + pipeline)
 ```
 
-**Backend status:** normalize + confirmation; two-tier offer matching; eBay Browse API + multi-country fixtures; Frankfurter FX; landed cost with per-lane shipping; ranking with a confidence floor for highlights; explanations; ranked and badged alternatives. No UI — the Decision Page is served as JSON.
+**Backend status:** normalize + confirmation; two-tier offer matching; eBay Browse API + multi-country fixtures; Frankfurter FX; landed cost with per-lane shipping; ranking with a confidence floor for highlights; explanations; ranked and badged alternatives. **UI:** FastAPI serves the search, loading, Decision, and alternatives views at `/`.

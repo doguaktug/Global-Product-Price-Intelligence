@@ -456,7 +456,7 @@ Assignment Decision Page “best of” lenses:
 | `lowest_total_cost` | Cheapest **landed** cost |
 | `best_warranty` | Longest / strongest parsed warranty among eligible offers |
 | `best_seller` | Highest seller criterion — the seller's own rating blended with the hosting site's reputation |
-| `best_overall` | Highest `finalScore` for this user’s weights (“best for you”). If this offer also wins another lens, the other highlight is dropped. |
+| `best_overall` | Highest `finalScore` for this user’s weights (“best for you”). Assigned first; if it also wins another lens the API still returns both rows and the UI collapses them into one card. |
 
 Each highlight: `{ kind, offerId, explanation }`.
 
@@ -467,7 +467,7 @@ Each highlight: `{ kind, offerId, explanation }`.
 | `offerId` | string | |
 | `kind` | enum | `spec_variant` (same family, different specs) \| `comparable_product` |
 | `badge` | enum | `upgrade` \| `downgrade` \| `rival` \| `similar`. Required on shown alternatives — see below |
-| `differingAttributes` | list | e.g. storage 512 → 1024 |
+| `differingAttributes` | list | e.g. storage 512 GB → 1024 GB |
 | `landedCostDelta` | `Money`? | **This offer's landed cost minus the top pick's.** Negative means cheaper |
 | `explanation` | `Explanation` | What differs, the cost delta, and the value test that earned the badge |
 
@@ -485,8 +485,9 @@ What the UI renders.
 | `confirmedVariant` | `ProductVariant` | Reference product |
 | `offers` | list of `Offer` | Matched + ranked by `finalScore` (full list) |
 | `offerScores` | map `offerId` → `ScoreBreakdown` | Parallel scores / warnings for the full list UI |
-| `highlights` | list of `DecisionHighlight` | Only offers with effective confidence ≥ 0.7 |
+| `highlights` | list of `DecisionHighlight` | Only offers with effective confidence ≥ 0.7. Multiple rows may share an `offerId`; the UI collapses those into one card |
 | `alternatives` | list of `Alternative` | Badged near-offers only; ranked by `finalScore`; cap 3. Empty when none clear a value test |
+| `alternativeOffers` | list of `Offer` | Bodies for the alternative listings (they are not in `offers`) |
 | `generatedAt` | datetime | |
 
 ---

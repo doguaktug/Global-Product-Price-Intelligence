@@ -107,12 +107,8 @@ async def test_pipeline_produces_decision_page_structure(
     kinds = {highlight.kind for highlight in page.highlights}
     assert HighlightKind.BEST_OVERALL in kinds
     assert "best_specification" not in {k.value for k in kinds}
-    best_id = next(h.offer_id for h in page.highlights if h.kind == HighlightKind.BEST_OVERALL)
-    for highlight in page.highlights:
-        if highlight.kind != HighlightKind.BEST_OVERALL:
-            assert highlight.offer_id != best_id
     highlight_ids = [h.offer_id for h in page.highlights]
-    assert len(highlight_ids) == len(set(highlight_ids))
+    assert 1 <= len(set(highlight_ids)) <= 5
 
 
 @pytest.mark.asyncio
@@ -217,6 +213,8 @@ async def test_laptop_search_ranks_the_confirmed_build_and_offers_spec_variants(
     alternative_ids = {alt.offer_id for alt in page.alternatives}
     assert alternative_ids & {"fixture-de-mba-m4-256", "fixture-de-mba-m4-1024"}
     assert not alternative_ids & {offer.id for offer in page.offers}
+    assert {offer.id for offer in page.alternative_offers} == alternative_ids
+    assert 1 <= len(page.alternatives) <= 3
 
     upgrade = next(alt for alt in page.alternatives if alt.offer_id == "fixture-de-mba-m4-1024")
     assert upgrade.kind.value == "spec_variant"
@@ -224,7 +222,7 @@ async def test_laptop_search_ranks_the_confirmed_build_and_offers_spec_variants(
     assert "memory_gb" in upgrade.differing_attributes
     assert "processor" not in upgrade.differing_attributes  # same chip, bigger build
     storage_reason = next(r for r in upgrade.explanation.reasons if r.factor == "storage_gb")
-    assert storage_reason.detail == "512 → 1024"
+    assert storage_reason.detail == "512 GB → 1024 GB"
 
     # landedCostDelta is the difference against the top pick, not the alternative's
     # own total, because the card renders it as "+X vs your pick". A 1 TB machine

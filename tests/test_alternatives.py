@@ -201,6 +201,21 @@ def test_every_shown_alternative_carries_a_badge_reason_and_cost_delta() -> None
         assert alternative.explanation.caveats == []
 
 
+def test_spec_change_reasons_include_the_unit() -> None:
+    best = _scored("pick", "1000", CONFIRMED, final_score=0.9)
+    bigger = _scored("bigger", "1050", BIGGER_STORAGE)
+    colour = _scored("colour", "1000", OTHER_COLOUR, final_score=0.88)
+
+    alternatives = {item.offer_id: item for item in _select([bigger, colour], best)}
+
+    storage = next(r for r in alternatives["bigger"].explanation.reasons if r.factor == "storage_gb")
+    assert storage.detail == "512 GB → 1024 GB"
+    colour_reason = next(
+        r for r in alternatives["colour"].explanation.reasons if r.factor == "colour"
+    )
+    assert colour_reason.detail == "Black → Silver"
+
+
 def test_the_top_pick_is_never_offered_as_its_own_alternative() -> None:
     best = _scored("pick", "1000", CONFIRMED, final_score=0.9)
 

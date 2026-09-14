@@ -24,7 +24,7 @@ pytest
 uvicorn gp_price_intel.api.main:app --reload
 ```
 
-Health check: `GET http://127.0.0.1:8000/health`
+Open `http://127.0.0.1:8000/` for the UI. Health check: `GET http://127.0.0.1:8000/health`. API explorer: `http://127.0.0.1:8000/docs`.
 
 ## Package map
 
@@ -42,11 +42,12 @@ Health check: `GET http://127.0.0.1:8000/health`
 | `src/gp_price_intel/alternatives/` | Guarded close alternatives |
 | `src/gp_price_intel/orchestrator/` | End-to-end search session |
 | `src/gp_price_intel/api/` | FastAPI routes |
+| `src/gp_price_intel/web/` | Search, loading, Decision Page + alternatives |
 | `data/catalog/` | Seed categories / families / variants |
 | `data/sources/` | Source registry |
 | `data/fixtures/` | Demo offer snapshots |
 
-The pipeline runs end-to-end on the API: normalize → confirm → fetch → match → FX → landed cost → rank → explain → Decision Page payload. Catalog seed data and FastAPI routes load today. There is no UI yet; the Decision Page is a JSON payload.
+The pipeline runs end-to-end on the API: normalize → confirm → fetch → match → FX → landed cost → rank → explain → Decision Page payload. FastAPI also serves the comparison UI at `/` (search → optional confirm popup → loading → Decision Page, with alternatives further down the same page).
 
 **Process**
 
@@ -86,7 +87,7 @@ Chart and STEP writeup: [architecture.md — End-to-end process flow](docs/archi
     `alternatives/scout.py` → `AlternativeScout.select`
 
 12. **Present the Decision Page** (why, FX, landed-cost add-ons, the five highlight lenses + alternatives)  
-    `domain/models.py` → `DecisionPage` (`offers`, `offer_scores`, `highlights`, `alternatives`) · returned by `run_search` / `SearchOrchestrator.run` · *Decision Page UI: not built yet*
+    `domain/models.py` → `DecisionPage` (`offers`, `offer_scores`, `highlights`, `alternatives`, `alternative_offers`) · returned by `run_search` / `SearchOrchestrator.run` · rendered by `web/` (overlapping highlight lenses collapse into 1–5 cards)
 
 ## Design docs
 

@@ -392,4 +392,6 @@ class DecisionPage(BaseModel):
     offer_scores: dict[str, ScoreBreakdown] = Field(default_factory=dict)
     highlights: list[DecisionHighlight] = Field(default_factory=list)
     alternatives: list[Alternative] = Field(default_factory=list)
+    #: Offer bodies for ``alternatives`` (those listings are not in ``offers``).
+    alternative_offers: list[Offer] = Field(default_factory=list)
     generated_at: datetime

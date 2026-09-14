@@ -99,7 +99,7 @@ Highlight lenses on the eligible pool:
 - best seller
 - best warranty (longest parsed warranty among eligible offers)
 
-If “best for you” is the same offer as another lens, that other highlight is dropped. Specs do not vary across identical-product offers, so there is no “best specification” highlight. AlternativeScout still compares specs when it picks close (same-family) or far (comparable product) alternatives.
+If two or more lenses name the same offer, they collapse into one Decision Page card. Specs do not vary across identical-product offers, so there is no “best specification” highlight. AlternativeScout still compares specs when it picks close (same-family) or far (comparable product) alternatives.
 
 Close alternatives come from the similar and different offers in STEP 4. They are not random similar titles.
 

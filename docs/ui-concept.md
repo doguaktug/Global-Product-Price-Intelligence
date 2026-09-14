@@ -7,6 +7,8 @@ Welcome (search)
     → confirm popup only if the product/spec is not real or is ambiguous
     → Loading (while results form)
     → Decision Page
+         ↓ scroll
+    → Alternatives (same page; 0–3 cards)
 ```
 
 ---
@@ -64,7 +66,7 @@ Almost everything for the purchasing decision, in one place:
 - Landed-cost add-ons: shipping, border/import tax, registration and similar fees (mark **estimated** vs quoted)
 - Commercial: seller, reliability, stock, delivery, warranty, returns
 - Specs and differences vs the confirmed variant
-- The five lenses: **best for you** (weights), **lowest list price**, **lowest total landed cost**, **most trusted seller**, **best warranty**. “Best for you” is assigned first and one offer holds at most one card, so a lens that would name the same offer is dropped rather than shown twice. A lens with no qualifying offer is omitted, not filled with a weak answer
-- Close alternatives (same family different specs, or a comparable product) with their own why, ranked alongside the main list, each carrying its cost difference against the top pick. Shown only when badged **upgrade / downgrade / rival / similar** after a value test — failed candidates are omitted, not labelled comparison-only
+- The five lenses: **best for you** (weights), **lowest list price**, **lowest total landed cost**, **most trusted seller**, **best warranty**. If two or more lenses name the same offer they **collapse into one card**; the row then holds 1–5 cards, spread equally. A lens with no qualifying offer is omitted, not filled with a weak answer
+- Close alternatives sit **on the same page**, reached by scrolling down (up to 3 cards, or none). Each has its own why and cost difference against the top pick. Shown only when badged **upgrade / downgrade / rival / similar** after a value test — failed candidates are omitted, not labelled comparison-only
 - **Freshness timestamp** on every card ("price seen 3 min ago")
 - Retailer links go straight through. Availability was established during the search, so the card's timestamp and stock state are what the user is trusted with — no interstitial re-check popup
