@@ -373,6 +373,7 @@ function renderHighlights(page, offersById) {
 
 function renderFullList(page, offersById, highlightedIds) {
   const list = $("full-list");
+  list.hidden = true;
   list.innerHTML = "";
   for (const offer of page.offers || []) {
     const item = document.createElement("article");
