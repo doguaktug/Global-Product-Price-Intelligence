@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import re
 import time
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -11,7 +12,7 @@ from typing import Any
 
 import httpx
 
-from gp_price_intel.adapters.base import SourceAdapter
+from gp_price_intel.adapters.base import SourceAdapter, SourceFetchError
 from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.config import Settings, get_settings
 from gp_price_intel.domain.models import (
@@ -67,6 +68,12 @@ ASPECT_SPEC_KEYS: dict[str, str] = {
 }
 
 
+def _already_in(term: str, parts: list[str]) -> bool:
+    """True when `term` is already a whole word in the query built so far."""
+    haystack = " ".join(parts)
+    return re.search(rf"(?<!\w){re.escape(term)}(?!\w)", haystack, re.IGNORECASE) is not None
+
+
 def default_ebay_source() -> Source:
     return Source(
         id="ebay",
@@ -104,20 +111,39 @@ class EbayAdapter(SourceAdapter):
     def is_configured(self) -> bool:
         return bool(self.settings.ebay_app_id and self.settings.ebay_cert_id)
 
-    async def search(self, scope: SearchScope, destination_country: str) -> list[Offer]:
+    def unavailable_reason(self) -> str | None:
+        if self.is_configured():
+            return None
+        return "eBay was not searched: EBAY_APP_ID / EBAY_CERT_ID are not set"
+
+    async def fetch_listings(self, scope: SearchScope) -> list[dict[str, Any]]:
+        """
+        Raw Browse `itemSummaries` for this scope, before parsing or filtering.
+
+        Separate from `search` so a caller can tell "eBay returned nothing" apart from
+        "eBay returned listings that were all discarded" — two very different problems
+        that produce the same empty offer list.
+        """
         if not self.is_configured():
             logger.info("eBay adapter skipped — EBAY_APP_ID or EBAY_CERT_ID not set.")
             return []
 
-        query = self._build_search_query(scope)
+        query = self.build_search_query(scope)
         if not query:
             return []
 
         try:
             token = await self._access_token()
-            summaries = await self._search_items(token, query)
-        except Exception:
+            return await self._search_items(token, query)
+        except SourceFetchError:
+            raise
+        except Exception as exc:
             logger.exception("eBay search failed for query=%r", query)
+            raise SourceFetchError(f"eBay request failed: {exc}") from exc
+
+    async def search(self, scope: SearchScope, destination_country: str) -> list[Offer]:
+        summaries = await self.fetch_listings(scope)
+        if not summaries:
             return []
 
         # The Browse API returns a title and little else, so the family's option
@@ -134,25 +160,32 @@ class EbayAdapter(SourceAdapter):
             offers.append(offer)
         return offers
 
-    def _build_search_query(self, scope: SearchScope) -> str:
+    def build_search_query(self, scope: SearchScope) -> str:
+        """The keyword string sent to Browse. Public so it can be inspected directly."""
         family = self.catalog.get_family(scope.family_id)
         if family is None:
             return ""
 
-        parts = [family.brand, family.family_name]
+        parts = [str(family.brand), str(family.family_name)]
         # Whatever the category made an identity key lands in constraints, so a laptop
         # search carries its RAM and chip and a tablet search carries its radio.
         for key, template in _QUERY_TERMS:
             value = scope.constraints.get(key)
-            if value is not None:
-                parts.append(template.format(value))
-        return " ".join(str(part) for part in parts)
+            if value is None:
+                continue
+            term = template.format(value)
+            # Family names often already carry the chip ("MacBook Air M4"), and
+            # repeating it as a keyword ("... M4 M4 512GB") narrows a Browse search
+            # against a phrase no seller writes.
+            if not _already_in(term, parts):
+                parts.append(term)
+        return " ".join(parts)
 
     async def _access_token(self) -> str:
         if self._token and time.time() < self._token_expires_at - 60:
             return self._token
 
-        host = self._api_host()
+        host = self.api_host()
         credentials = f"{self.settings.ebay_app_id}:{self.settings.ebay_cert_id}"
         encoded = base64.b64encode(credentials.encode()).decode()
         client = await self._get_client()
@@ -165,14 +198,20 @@ class EbayAdapter(SourceAdapter):
             data={"grant_type": "client_credentials", "scope": EBAY_SCOPE},
             timeout=15.0,
         )
-        response.raise_for_status()
+        if response.is_error:
+            # eBay answers bad credentials with `invalid_client`, which is the whole
+            # answer to "are my keys working?" — so it is passed through verbatim.
+            raise SourceFetchError(
+                f"eBay OAuth rejected the credentials (HTTP {response.status_code}): "
+                f"{self._error_detail(response)}"
+            )
         payload = response.json()
         self._token = payload["access_token"]
         self._token_expires_at = time.time() + int(payload.get("expires_in", 7200))
         return self._token
 
     async def _search_items(self, token: str, query: str) -> list[dict[str, Any]]:
-        host = self._api_host()
+        host = self.api_host()
         client = await self._get_client()
         response = await client.get(
             f"https://{host}/buy/browse/v1/item_summary/search",
@@ -183,10 +222,35 @@ class EbayAdapter(SourceAdapter):
             },
             timeout=15.0,
         )
-        response.raise_for_status()
+        if response.is_error:
+            raise SourceFetchError(
+                f"eBay Browse search failed (HTTP {response.status_code}): "
+                f"{self._error_detail(response)}"
+            )
         return list(response.json().get("itemSummaries", []))
 
-    def _api_host(self) -> str:
+    @staticmethod
+    def _error_detail(response: httpx.Response) -> str:
+        """Pull eBay's own error text out of a failed response, without the secrets."""
+        try:
+            payload = response.json()
+        except ValueError:
+            return response.text[:200].strip() or "no response body"
+        for key in ("error_description", "error", "message"):
+            value = payload.get(key)
+            if isinstance(value, str) and value:
+                return value
+        errors = payload.get("errors")
+        if isinstance(errors, list) and errors:
+            first = errors[0]
+            if isinstance(first, dict):
+                message = first.get("longMessage") or first.get("message")
+                if isinstance(message, str) and message:
+                    return message
+        return str(payload)[:200]
+
+    def api_host(self) -> str:
+        """Which eBay host this adapter talks to. Public so it can be reported."""
         return "api.sandbox.ebay.com" if self.settings.ebay_sandbox else "api.ebay.com"
 
     def _parse_item(

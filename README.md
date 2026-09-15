@@ -50,6 +50,20 @@ Listings you see are mostly **fixtures** (`data/fixtures/offers.json`) running t
 
 Leave the sliders and country/currency at defaults (TR + TRY) unless you want to re-rank. Changing destination or currency recomputes FX and landed cost.
 
+### Checking the live eBay adapter
+
+Offers come from `data/fixtures/offers.json` plus eBay, and eBay is only searched when `EBAY_APP_ID` and `EBAY_CERT_ID` are set in `.env`. A Decision Page cannot tell you *why* a source contributed nothing, so ask the adapter directly:
+
+```bash
+python -m gp_price_intel.diagnose "Samsung Galaxy S26 512GB"
+```
+
+It prints which `.env` was loaded, whether the keys are set (never their values), which eBay host it talked to, the exact keyword query sent to Browse, and then where the listings stop — credentials rejected, nothing returned, returned but discarded, or returned but unmatched against the catalog.
+
+Keep **`EBAY_SANDBOX=false`**. The sandbox is a separate eBay with its own keyset and virtually no inventory, so it authenticates fine and returns zero listings, which looks exactly like a product nobody sells.
+
+Note that fixtures only cover **Galaxy S26 Ultra**, **MacBook Air M4** and **iPad Air 11 M3**. Any other product depends entirely on live eBay, so an empty Decision Page there is expected without keys.
+
 ## Package map
 
 | Path | Role |

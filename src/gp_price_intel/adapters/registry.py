@@ -31,14 +31,15 @@ def build_adapters(
     sources = {source.id: source for source in load_sources(settings.data_dir)}
     adapters: list[SourceAdapter] = []
 
-    if settings.ebay_app_id and settings.ebay_cert_id:
-        adapters.append(
-            EbayAdapter(
-                source=sources.get("ebay"),
-                catalog=catalog,
-                settings=settings,
-            )
+    # Registered even without credentials. It returns nothing in that state, but it can
+    # then report *why*, which an adapter omitted from the list cannot do.
+    adapters.append(
+        EbayAdapter(
+            source=sources.get("ebay"),
+            catalog=catalog,
+            settings=settings,
         )
+    )
 
     fixture_sources = [
         source

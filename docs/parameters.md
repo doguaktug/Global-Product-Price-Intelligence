@@ -133,9 +133,11 @@ Read from the environment or `.env` via `config.py` (`Settings`), not from code 
 | --- | --- | --- |
 | `DEFAULT_DESTINATION_COUNTRY` | `TR` | Where the user is buying to, before geolocation or a manual override |
 | `DEFAULT_REFERENCE_CURRENCY` | `TRY` | Currency every offer is compared in |
-| `EBAY_APP_ID` / `EBAY_CERT_ID` | unset | eBay Browse API credentials. Without them the eBay adapter returns nothing and other sources continue |
-| `EBAY_SANDBOX` | `false` | Point the eBay adapter at the sandbox host |
+| `EBAY_APP_ID` / `EBAY_CERT_ID` | unset | eBay Browse API credentials. Without them the eBay adapter reports that it was not searched, and other sources continue |
+| `EBAY_SANDBOX` | `false` | Point the eBay adapter at `api.sandbox.ebay.com` instead of `api.ebay.com`. Keep it **false** for anything you want real offers from — see below |
 | `DATA_DIR` | `<repo>/data` | Where catalog, sources and fixtures are loaded from |
+
+**`EBAY_SANDBOX=true` is not a safe default for demos.** Sandbox is a separate eBay with its own keyset and virtually no listings, so a search there authenticates cleanly and returns nothing — indistinguishable, from the Decision Page, from a product nobody sells. Production credentials are issued separately in the eBay developer portal and do not work against the sandbox host, or the reverse. `python -m gp_price_intel.diagnose "<query>"` prints which host it used for exactly this reason.
 
 Three settings are declared but **read by nothing today**, and are listed separately rather than described as if they worked:
 
