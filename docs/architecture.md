@@ -130,6 +130,21 @@ Tier 2 needs structured attributes, and most sources do not publish any. The att
 
 There is deliberately **no free-text similarity tier**. Fuzzy title scoring is used to pick the product *family* from the user's query (step 5), where a wrong guess only opens a confirmation popup. Using it to decide which *build* an offer is would silently merge a 256 GB listing with a 512 GB one, and a wrong answer there corrupts the price comparison itself. When the two tiers cannot decide, the offer is `unmatched` and excluded, which is the honest outcome.
 
+#### Titles that name no build: ask the source before giving up
+
+A title is written to sell, not to specify. Fixture titles spell the build out because they were authored against the catalog; a marketplace or scraped listing may read only "Samsung Galaxy S26 Ultra" while the seller has typed Storage Capacity and RAM into the listing's own item-specifics table. Deciding such an offer on the title alone throws away a real listing over a publishing habit.
+
+So an offer that named **no single build** gets one more attempt before it is dropped. Two outcomes qualify, both from `matching/matcher.py → needs_more_evidence`:
+
+- `unmatched` — the listing stated nothing the catalog could use.
+- `similar` with an *ambiguous* note — it stated something true of several builds ("512GB" when the family has a 12 GB and a 16 GB 512 GB machine) and was pinned to the first candidate, which keeps it out of the ranked list.
+
+The orchestrator hands those back to the adapter that produced them via `SourceAdapter.enrich`, then re-runs the same matcher on whatever returns. Adapters that have nothing more to give — the fixtures — return the offers untouched, so complete titles cost no extra requests.
+
+For eBay this matters because `item_summary/search` returns a **summary**: no `localizedAspects`, no `gtin`, no `mpn`. Those live on the single-item resource, so the adapter fetches `/buy/browse/v1/item/{item_id}` for unplaced listings only, capped per search. A GTIN found there promotes the offer to tier 1 outright. A spec **declared** in a named field beats the same spec **inferred** from prose, because the typed field is what the marketplace shows the buyer as the item's specification.
+
+This never invents a build. A listing that publishes nothing in its title *and* nothing in its item specifics stays `unmatched` and is excluded, exactly as before.
+
 Matching must distinguish:
 
 - **Exact same product** (same model + same critical specs)

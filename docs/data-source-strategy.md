@@ -45,7 +45,10 @@ Each adapter implements the same contract:
 ```
 search(confirmedVariant, destination) → list of raw listings
 normalize(raw) → Offer (original Money, raw specs, seller, country)
+enrich(unplacedOffers, scope) → same offers with more evidence (optional)
 ```
+
+`enrich` exists because a search result is usually a summary and a title is marketing copy, not a spec sheet. When a listing names no single catalog build, the orchestrator asks its source for more — the eBay adapter fetches the single-item resource for its `localizedAspects`, `gtin` and `mpn`; a future scraper would fetch the product page it already has the URL for — and then re-matches. It is called only for offers the matcher could not place, so the extra requests scale with the vague listings rather than with every result, and a source with nothing more to give simply returns them unchanged. See [architecture.md](architecture.md#titles-that-name-no-build-ask-the-source-before-giving-up).
 
 If a method is blocked (403, robots disallow, rate limit), the adapter fails **soft**: zero offers from that source and the other sources continue. Soft does not mean silent — the adapter raises `SourceFetchError`, the orchestrator records the reason per source, and an otherwise-empty Decision Page reports it. Returning an empty list instead would make "your credentials were rejected" read as "this product is not sold here", which is the one distinction someone wiring up live keys needs.
 

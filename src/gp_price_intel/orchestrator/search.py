@@ -16,6 +16,7 @@ from gp_price_intel.domain.models import (
     DecisionPage,
     MatchKind,
     NormalizedQuery,
+    Offer,
     PropertyChoice,
     SearchScope,
     SearchSession,
@@ -27,7 +28,7 @@ from gp_price_intel.domain.models import (
 from gp_price_intel.explanation.builder import ExplanationBuilder
 from gp_price_intel.fx.service import FxService
 from gp_price_intel.landed_cost.service import LandedCostService
-from gp_price_intel.matching.matcher import ProductMatcher
+from gp_price_intel.matching.matcher import ProductMatcher, needs_more_evidence
 from gp_price_intel.normalize.confirmation import ConfirmationError, resolve_search_scope
 from gp_price_intel.normalize.query_normalizer import QueryNormalizer
 from gp_price_intel.ranking.engine import RankingEngine
@@ -173,6 +174,7 @@ class SearchOrchestrator:
         out_of_stock = fetched - len(in_stock)
 
         matched = self.matcher.match(in_stock, scope)
+        matched = await self._place_unresolved(matched, scope)
         eligible = [offer for offer in matched if offer.match_kind != MatchKind.UNMATCHED]
         unmatched = len(matched) - len(eligible)
 
@@ -293,6 +295,56 @@ class SearchOrchestrator:
             alternative_offers=alternative_offers,
             generated_at=datetime.now(timezone.utc),
         )
+
+    async def _place_unresolved(self, matched: list[Offer], scope: SearchScope) -> list[Offer]:
+        """
+        Give listings that named no single build a second chance, then re-match.
+
+        A marketplace title is written to sell, not to specify: "Galaxy S26 Ultra" may
+        omit the storage the seller nonetheless typed into the listing's item
+        specifics. Dropping it as unmatched would discard a real offer over a
+        publishing habit, so each source is asked for detail on its own unplaced
+        listings and the results go back through the same matcher.
+
+        Only the unplaced ones are re-fetched, and a source with nothing more to give
+        returns them unchanged, so this costs nothing on sources whose titles are
+        already complete — the fixtures included.
+        """
+        unresolved = [offer for offer in matched if needs_more_evidence(offer)]
+        if not unresolved:
+            return matched
+
+        by_source = self._adapters_by_source()
+        grouped: dict[int, list[Offer]] = {}
+        for offer in unresolved:
+            adapter = by_source.get(offer.source_id)
+            if adapter is not None:
+                grouped.setdefault(id(adapter), []).append(offer)
+
+        replacements: dict[str, Offer] = {}
+        for adapter in self.adapters:
+            batch = grouped.get(id(adapter))
+            if not batch:
+                continue
+            try:
+                enriched = await adapter.enrich(batch, scope)
+            except Exception:
+                logger.exception("Enrichment failed for %s", getattr(adapter, "source", adapter))
+                continue
+            for offer in self.matcher.match(list(enriched), scope):
+                replacements[offer.id] = offer
+
+        placed = sum(1 for offer in replacements.values() if not needs_more_evidence(offer))
+        if placed:
+            logger.info("Item detail placed %d of %d unresolved listings", placed, len(unresolved))
+        return [replacements.get(offer.id, offer) for offer in matched]
+
+    def _adapters_by_source(self) -> dict[str, SourceAdapter]:
+        return {
+            source.id: adapter
+            for adapter in self.adapters
+            for source in adapter.known_sources()
+        }
 
     def _skipped_sources(self) -> list[str]:
         """Sources that could not be searched at all, so an empty page can say so."""
