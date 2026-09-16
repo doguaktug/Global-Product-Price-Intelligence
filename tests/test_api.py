@@ -83,3 +83,20 @@ def test_tablet_category_is_browsable() -> None:
     assert response.status_code == 200
     ids = {row["id"] for row in response.json()}
     assert "apple-ipad-air-11-m3" in ids
+
+
+def test_start_search_keeps_include_used_preference() -> None:
+    client = TestClient(create_app())
+    response = client.post(
+        "/api/search/start",
+        json={
+            "query": "Samsung Galaxy S26 Ultra 512 GB Black",
+            "preferences": {
+                "destination_country": "TR",
+                "reference_currency": "TRY",
+                "include_used": True,
+            },
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["preferences"]["include_used"] is True

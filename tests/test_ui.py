@@ -15,6 +15,8 @@ def test_index_serves_the_search_page() -> None:
     assert "what are we looking for today?" in response.text
     assert "personalize weights" in response.text
     assert "change country/currency" in response.text
+    assert 'id="include-used"' in response.text
+    assert "include used / refurbished" in response.text
 
 
 def test_ui_assets_are_served() -> None:
@@ -37,6 +39,9 @@ def test_ui_assets_are_served() -> None:
     assert "heading.append(listingLink(offer.listing_title, offer))" in js.text
     assert "strong.append(listingLink(offer.listing_title, offer))" in js.text
     assert ".product-link {" in css.text
+    assert "include_used: Boolean($(\"include-used\")?.checked)" in js.text
+    assert "function appendCondition(" in js.text
+    assert ".check-row:has(input:checked)" in css.text
 
 
 def test_the_ranked_list_starts_hidden_behind_its_toggle() -> None:
