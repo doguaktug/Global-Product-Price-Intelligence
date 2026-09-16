@@ -16,6 +16,7 @@ from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.config import Settings, get_settings
 from gp_price_intel.domain.models import (
     AcquisitionMethod,
+    ItemCondition,
     Money,
     NormalizedSpec,
     Offer,
@@ -26,6 +27,7 @@ from gp_price_intel.domain.models import (
     StockStatus,
 )
 from gp_price_intel.normalize.attribute_parser import parse_listing_attributes
+from gp_price_intel.normalize.condition import is_non_new_condition, parse_item_condition
 from gp_price_intel.normalize.spec_parser import parse_spec_value
 from gp_price_intel.ranking.confidence import compute_data_confidence_from
 
@@ -129,7 +131,7 @@ class EbayAdapter(SourceAdapter):
         offers: list[Offer] = []
         for item in summaries:
             offer = self._parse_item(item, valid_options)
-            if offer is None or offer.stock_status == StockStatus.OUT_OF_STOCK:
+            if offer is None or offer.stock_status == StockStatus.OUT_OF_STOCK or is_non_new_condition(offer.condition):
                 continue
             offers.append(offer)
         return offers
@@ -176,7 +178,12 @@ class EbayAdapter(SourceAdapter):
         client = await self._get_client()
         response = await client.get(
             f"https://{host}/buy/browse/v1/item_summary/search",
-            params={"q": query, "limit": "20"},
+            params={
+                "q": query,
+                "limit": "20",
+                # Prefer new retail stock; adapters still classify leftovers as a safety net.
+                "filter": "conditions:{NEW|NEW_OTHER}",
+            },
             headers={
                 "Authorization": f"Bearer {token}",
                 "X-EBAY-C-MARKETPLACE-ID": self.marketplace_id,
@@ -217,6 +224,10 @@ class EbayAdapter(SourceAdapter):
 
         image = (item.get("image") or {}).get("imageUrl")
         condition = item.get("condition")
+        item_condition = parse_item_condition(
+            str(condition) if condition else None,
+            str(title),
+        )
         gtin = None
         for aspect in item.get("localizedAspects") or []:
             name = str(aspect.get("name", "")).casefold()
@@ -241,6 +252,7 @@ class EbayAdapter(SourceAdapter):
             retailer_sku=str(item_id),
             gtin=gtin,
             stock_status=stock_status,
+            condition=item_condition,
             warranty=None,
             return_policy=None,
             raw_specs=[

@@ -268,3 +268,60 @@ async def test_ebay_oauth_uses_basic_auth() -> None:
 
     expected = "Basic " + base64.b64encode(b"my-app:my-cert").decode()
     assert seen_auth == [expected]
+
+
+@pytest.mark.asyncio
+async def test_ebay_drops_used_and_refurbished_listings() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/oauth2/token"):
+            return httpx.Response(200, json={"access_token": "token-123", "expires_in": 3600})
+        # Adapter should request new-only filter.
+        from urllib.parse import unquote
+        assert "conditions:{NEW" in unquote(str(request.url))
+        return httpx.Response(
+            200,
+            json={
+                "itemSummaries": [
+                    {
+                        "itemId": "v1|new|0",
+                        "title": "Samsung Galaxy S26 Ultra 512GB Black",
+                        "condition": "New",
+                        "itemWebUrl": "https://www.ebay.com/itm/new",
+                        "price": {"value": "1099.99", "currency": "USD"},
+                        "seller": {"username": "new-shop", "feedbackPercentage": "99.0", "feedbackScore": 100},
+                        "estimatedAvailabilities": [{"estimatedAvailabilityStatus": "IN_STOCK"}],
+                    },
+                    {
+                        "itemId": "v1|used|0",
+                        "title": "Samsung Galaxy S26 Ultra 512GB Black",
+                        "condition": "Used",
+                        "itemWebUrl": "https://www.ebay.com/itm/used",
+                        "price": {"value": "699.99", "currency": "USD"},
+                        "seller": {"username": "used-shop", "feedbackPercentage": "98.0", "feedbackScore": 50},
+                        "estimatedAvailabilities": [{"estimatedAvailabilityStatus": "IN_STOCK"}],
+                    },
+                    {
+                        "itemId": "v1|refurb|0",
+                        "title": "Samsung Galaxy S26 Ultra 512GB",
+                        "condition": "Certified refurbished",
+                        "itemWebUrl": "https://www.ebay.com/itm/refurb",
+                        "price": {"value": "799.99", "currency": "USD"},
+                        "seller": {"username": "refurb-shop", "feedbackPercentage": "97.0", "feedbackScore": 40},
+                        "estimatedAvailabilities": [{"estimatedAvailabilityStatus": "IN_STOCK"}],
+                    },
+                ]
+            },
+        )
+
+    offers = await _adapter(httpx.AsyncClient(transport=httpx.MockTransport(handler))).search(
+        SearchScope(
+            family_id="samsung-galaxy-s26-ultra",
+            constraints={"storage_gb": 512},
+            variant_ids=["samsung-galaxy-s26-ultra-512-12-eu-black"],
+        ),
+        destination_country="TR",
+    )
+    assert len(offers) == 1
+    assert "new" in offers[0].id
+    assert "used" not in offers[0].id
+    assert offers[0].condition.value == "new"

@@ -35,6 +35,16 @@ class StockStatus(str, Enum):
     UNKNOWN = "unknown"
 
 
+class ItemCondition(str, Enum):
+    """Whether the listing is new retail stock or previously owned / renewed."""
+
+    NEW = "new"
+    USED = "used"
+    REFURBISHED = "refurbished"
+    OPEN_BOX = "open_box"
+    UNKNOWN = "unknown"
+
+
 class MatchKind(str, Enum):
     IDENTICAL = "identical"
     SIMILAR = "similar"
@@ -276,6 +286,8 @@ class Offer(BaseModel):
     converted_list_price: ConvertedMoney | None = None
     landed_cost: LandedCost | None = None
     stock_status: StockStatus | None = StockStatus.UNKNOWN
+    #: New vs used/refurbished. Non-new offers are dropped before ranking.
+    condition: ItemCondition = ItemCondition.UNKNOWN
     delivery_time: str | None = None
     warranty: str | None = None
     return_policy: str | None = None

@@ -32,6 +32,7 @@ from gp_price_intel.normalize.confirmation import ConfirmationError, resolve_sea
 from gp_price_intel.normalize.query_normalizer import QueryNormalizer
 from gp_price_intel.ranking.engine import RankingEngine
 from gp_price_intel.ranking.highlights import pick_highlights
+from gp_price_intel.normalize.condition import is_non_new_condition, offer_condition_from_specs_and_title
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,7 @@ def _empty_result_reason(
     adapter_errors: list[str],
     fetched: int,
     out_of_stock: int,
+    used_filtered: int,
     eligible: int,
     unmatched: int,
     conversion_failures: list[str],
@@ -66,6 +68,10 @@ def _empty_result_reason(
         return "No offers were found for this product."
     if fetched == out_of_stock:
         return "All collected offers were out of stock."
+    if fetched == out_of_stock + used_filtered and used_filtered > 0:
+        return "All remaining offers were used, refurbished, or open-box — only new listings are compared."
+    if eligible == 0 and used_filtered > 0 and unmatched == 0:
+        return "Only used, refurbished, or open-box listings were found — only new listings are compared."
     if eligible == 0:
         if unmatched:
             return "None of the collected listings matched the confirmed product."
@@ -166,7 +172,19 @@ class SearchOrchestrator:
         ]
         out_of_stock = fetched - len(in_stock)
 
-        matched = self.matcher.match(in_stock, scope)
+        # Drop used / refurbished / open-box — comparisons are for new retail stock.
+        newish: list = []
+        used_filtered = 0
+        for offer in in_stock:
+            condition = offer_condition_from_specs_and_title(offer)
+            if is_non_new_condition(condition):
+                used_filtered += 1
+                continue
+            if offer.condition != condition:
+                offer = offer.model_copy(update={"condition": condition})
+            newish.append(offer)
+
+        matched = self.matcher.match(newish, scope)
         eligible = [offer for offer in matched if offer.match_kind != MatchKind.UNMATCHED]
         unmatched = len(matched) - len(eligible)
 
@@ -219,6 +237,7 @@ class SearchOrchestrator:
                     adapter_errors=adapter_errors,
                     fetched=fetched,
                     out_of_stock=out_of_stock,
+                    used_filtered=used_filtered,
                     eligible=len(eligible),
                     unmatched=unmatched,
                     conversion_failures=conversion_failures,

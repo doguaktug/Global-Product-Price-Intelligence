@@ -276,6 +276,24 @@ function explanationBlock(explanation, heading) {
   return wrap;
 }
 
+
+function conditionLabel(condition) {
+  switch (condition) {
+    case "new":
+      return "New";
+    case "used":
+      return "Used / second-hand";
+    case "refurbished":
+      return "Refurbished";
+    case "open_box":
+      return "Open box";
+    case "unknown":
+      return "Condition not stated";
+    default:
+      return condition ? String(condition) : "";
+  }
+}
+
 function fillOfferEconomics(card, offer) {
   const price = document.createElement("p");
   price.className = "price-line";
@@ -300,6 +318,12 @@ function fillOfferEconomics(card, offer) {
   }
   for (const line of costLines(offer)) appendMeta(card, line);
   if (offer.warranty) appendMeta(card, `warranty ${offer.warranty}`);
+  if (offer.condition && offer.condition !== "new") {
+    const label = conditionLabel(offer.condition);
+    if (label) appendMeta(card, label);
+  } else if (offer.condition === "new") {
+    appendMeta(card, "New");
+  }
   const seller = offer.seller || {};
   if (seller.reliability != null) {
     appendMeta(card, `trust score ${(Number(seller.reliability) * 100).toFixed(0)}% — ${seller.name || offer.source_id}`);

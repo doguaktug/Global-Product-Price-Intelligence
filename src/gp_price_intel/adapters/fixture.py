@@ -15,6 +15,7 @@ from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.config import Settings, get_settings
 from gp_price_intel.domain.models import (
     AcquisitionMethod,
+    ItemCondition,
     Money,
     NormalizedSpec,
     Offer,
@@ -25,6 +26,7 @@ from gp_price_intel.domain.models import (
     StockStatus,
 )
 from gp_price_intel.normalize.spec_parser import parse_source_specs
+from gp_price_intel.normalize.condition import is_non_new_condition, parse_item_condition
 from gp_price_intel.ranking.confidence import compute_data_confidence_from
 
 logger = logging.getLogger(__name__)
@@ -98,7 +100,7 @@ class FixtureAdapter(SourceAdapter):
                 self.source_by_id[source_id] = source
 
             offer = self._row_to_offer(row, source)
-            if offer.stock_status == StockStatus.OUT_OF_STOCK:
+            if offer.stock_status == StockStatus.OUT_OF_STOCK or is_non_new_condition(offer.condition):
                 continue
             offers.append(offer)
         return offers
@@ -154,6 +156,12 @@ class FixtureAdapter(SourceAdapter):
         currency = str(row.get("currency") or "EUR")
         stock = row.get("stock_status", "in_stock")
         stock_status = StockStatus(stock) if stock in StockStatus._value2member_map_ else StockStatus.UNKNOWN
+        item_condition = parse_item_condition(
+            row.get("condition"),
+            str(row.get("listing_title") or ""),
+        )
+        if row.get("condition") in ItemCondition._value2member_map_:
+            item_condition = ItemCondition(row["condition"])
 
         seller_name = str(row.get("seller_name") or source.display_name)
         review_count = row.get("review_count")
@@ -181,6 +189,7 @@ class FixtureAdapter(SourceAdapter):
             gtin=row.get("gtin"),
             model_number=row.get("model_number"),
             stock_status=stock_status,
+            condition=item_condition,
             delivery_time=row.get("delivery_time"),
             warranty=row.get("warranty"),
             return_policy=row.get("return_policy"),

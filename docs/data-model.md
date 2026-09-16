@@ -323,6 +323,7 @@ One listing, at collection time. This is the unit of comparison.
 | `convertedListPrice` | `ConvertedMoney`? | Filled after FX |
 | `landedCost` | `LandedCost`? | Filled after FX + fees |
 | `stockStatus` | enum? | `in_stock` \| `limited` \| `out_of_stock` \| `unknown`. Out-of-stock offers are **excluded from ranking**; unknown carries lower confidence |
+| `condition` | enum | `new` \| `used` \| `refurbished` \| `open_box` \| `unknown`. Used / refurbished / open-box are **excluded from ranking**; unknown is allowed but indicated |
 | `deliveryTime` | string? | Stored as the source phrased it (`"2-4 Werktage"`, `"1-3 iş günü"`). Ranking parses it to days at scoring time; unparseable text makes delivery a missing criterion rather than a guess |
 | `warranty` | string? | Source phrasing (`"24 months"`, `"2 yıl"`). Parsed to months at scoring time; who issued the cover does not change the parsed length |
 | `returnPolicy` | string? | |
