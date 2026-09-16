@@ -246,6 +246,8 @@ There are exactly five highlight lenses, and they are the five members of `Highl
 
 A lens is skipped rather than filled with a weak answer when nothing qualifies: no offer with a complete landed cost means no “lowest total landed cost” card. Lenses may name the same offer; the Decision Page **collapses** those into one card (1–5 cards, spread equally) instead of repeating the listing.
 
+The product name on each card is the retailer link (`Offer.listingUrl`) and opens in a new tab.
+
 There is no “best rated” lens. Review volume is a criterion inside the score, not a lens of its own, because a review count is only meaningful next to the seller it belongs to. There is no “best specification” lens either: every offer in the ranked list matched the confirmed build, so they all share the same specs.
 
 ---

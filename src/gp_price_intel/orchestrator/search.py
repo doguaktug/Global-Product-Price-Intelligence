@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import NoReturn
 from uuid import uuid4
 
-from gp_price_intel.adapters.base import SourceAdapter
+from gp_price_intel.adapters.base import SourceAdapter, SourceFetchError
 from gp_price_intel.adapters.registry import build_adapters
 from gp_price_intel.alternatives.scout import AlternativeScout
 from gp_price_intel.catalog.repository import CatalogRepository
@@ -57,6 +57,7 @@ def _empty_result_reason(
     conversion_failures: list[str],
     landed_failures: list[str],
     adapters_configured: bool,
+    skipped_sources: list[str] | None = None,
 ) -> str:
     """Build a user-facing reason when no offers remain for a Decision Page."""
     if not adapters_configured:
@@ -65,6 +66,11 @@ def _empty_result_reason(
         if adapter_errors:
             sample = "; ".join(adapter_errors[:3])
             return f"No offers could be collected. Sources failed: {sample}."
+        if skipped_sources:
+            return (
+                "No offers were found for this product. "
+                f"{'; '.join(skipped_sources)}."
+            )
         return "No offers were found for this product."
     if fetched == out_of_stock:
         return "All collected offers were out of stock."
@@ -246,6 +252,7 @@ class SearchOrchestrator:
                     conversion_failures=conversion_failures,
                     landed_failures=landed_failures,
                     adapters_configured=bool(self.adapters),
+                    skipped_sources=self._skipped_sources(),
                 ),
             )
 
@@ -309,6 +316,11 @@ class SearchOrchestrator:
             generated_at=datetime.now(timezone.utc),
         )
 
+    def _skipped_sources(self) -> list[str]:
+        """Sources that could not be searched at all, so an empty page can say so."""
+        reasons = [adapter.unavailable_reason() for adapter in self.adapters]
+        return [reason for reason in reasons if reason]
+
     def _source_registry(self) -> dict[str, Source]:
         """Map `Offer.sourceId` back to the source, so ranking can weigh site reputation."""
         return {
@@ -362,9 +374,14 @@ class SearchOrchestrator:
         offers = []
         for adapter, result in zip(self.adapters, results, strict=True):
             if isinstance(result, Exception):
-                logger.exception("Adapter failed", exc_info=result)
                 source = getattr(adapter, "source", None)
                 label = getattr(source, "id", None) or type(adapter).__name__
+                if isinstance(result, SourceFetchError):
+                    # Anticipated: the source was reachable-but-refused, or offline.
+                    # The message is the useful part, so it is logged without a stack.
+                    logger.warning("Source %s could not be searched: %s", label, result)
+                else:
+                    logger.exception("Adapter %s failed", label, exc_info=result)
                 collected_errors.append(f"{label}: {result}")
                 continue
             offers.extend(result)

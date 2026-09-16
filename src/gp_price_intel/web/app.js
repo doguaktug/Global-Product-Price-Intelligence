@@ -208,6 +208,24 @@ function placeholderLabel(title) {
     .toUpperCase();
 }
 
+function listingLink(label, offer) {
+  // The product name is the retailer link. A separate "open listing" control
+  // would hide the destination of the click, and the page already promised
+  // retailer links go straight through with no interstitial.
+  if (!offer?.listing_url) {
+    const text = document.createElement("span");
+    text.textContent = label;
+    return text;
+  }
+  const link = document.createElement("a");
+  link.className = "product-link";
+  link.href = offer.listing_url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = label;
+  return link;
+}
+
 function pictureNode(offer) {
   const wrap = document.createElement("div");
   wrap.className = "picture";
@@ -382,7 +400,7 @@ function renderHighlights(page, offersById) {
     if (searched) {
       const product = document.createElement("p");
       product.className = "searched-name";
-      product.textContent = searched;
+      product.append(listingLink(searched, offer));
       card.append(product);
     }
     card.append(pictureNode(offer));
@@ -405,7 +423,7 @@ function renderFullList(page, offersById, highlightedIds) {
     item.className = "full-item";
     const name = document.createElement("div");
     const heading = document.createElement("strong");
-    heading.textContent = offer.listing_title;
+    heading.append(listingLink(offer.listing_title, offer));
     name.append(heading);
     if (highlightedIds.has(offer.id)) {
       const note = document.createElement("div");
@@ -483,7 +501,7 @@ function renderAlternatives(page, altById) {
     const name = document.createElement("p");
     name.innerHTML = "";
     const strong = document.createElement("strong");
-    strong.textContent = offer.listing_title;
+    strong.append(listingLink(offer.listing_title, offer));
     name.append(strong);
     copy.append(name);
     appendMeta(copy, money(offer.landed_cost?.total || offer.converted_list_price?.reference));

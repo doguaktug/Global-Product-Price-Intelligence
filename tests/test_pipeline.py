@@ -8,6 +8,7 @@ from pathlib import Path
 import httpx
 import pytest
 
+from gp_price_intel.adapters.base import SourceFetchError
 from gp_price_intel.adapters.fixture import FixtureAdapter
 from gp_price_intel.adapters.registry import load_sources
 from gp_price_intel.catalog.repository import CatalogRepository
@@ -309,3 +310,65 @@ async def test_no_offers_fails_the_search_with_reason(
         await pipeline_orchestrator.run(session)
     assert session.status == SessionStatus.FAILED
     assert session.failure_reason is not None
+
+
+@pytest.mark.asyncio
+async def test_a_source_that_refused_the_request_is_named_not_hidden(
+    pipeline_orchestrator: SearchOrchestrator,
+) -> None:
+    """A dead source must not be reported as an empty shelf."""
+
+    class RefusingAdapter(FixtureAdapter):
+        async def search(self, scope, destination_country, **kwargs):  # type: ignore[no-untyped-def]
+            raise SourceFetchError("eBay OAuth rejected the credentials (HTTP 401)")
+
+    refusing = RefusingAdapter(
+        catalog=CatalogRepository(catalog_dir=pipeline_orchestrator.catalog.catalog_dir),
+        sources=load_sources(),
+    )
+    refusing.source = refusing.source.model_copy(update={"id": "ebay"})
+    pipeline_orchestrator.adapters = [refusing]
+
+    session = pipeline_orchestrator.start_session(
+        "Samsung Galaxy S26 Ultra 512 GB Black",
+        UserPreferences(destination_country="TR", reference_currency="TRY"),
+    )
+    with pytest.raises(SearchFailed) as caught:
+        await pipeline_orchestrator.run(session)
+
+    assert "Sources failed" in caught.value.reason
+    assert "HTTP 401" in caught.value.reason
+
+
+@pytest.mark.asyncio
+async def test_an_unsearched_source_is_disclosed_on_an_empty_page(
+    pipeline_orchestrator: SearchOrchestrator,
+) -> None:
+    """
+    "No offers" should not imply the product is unlisted everywhere.
+
+    With eBay switched off, the only honest empty page says which source was skipped.
+    """
+
+    class SwitchedOffAdapter(FixtureAdapter):
+        async def search(self, scope, destination_country, **kwargs):  # type: ignore[no-untyped-def]
+            return []
+
+        def unavailable_reason(self) -> str | None:
+            return "eBay was not searched: EBAY_APP_ID / EBAY_CERT_ID are not set"
+
+    pipeline_orchestrator.adapters = [
+        SwitchedOffAdapter(
+            catalog=CatalogRepository(catalog_dir=pipeline_orchestrator.catalog.catalog_dir),
+            sources=load_sources(),
+        )
+    ]
+
+    session = pipeline_orchestrator.start_session(
+        "Samsung Galaxy S26 Ultra 512 GB Black",
+        UserPreferences(destination_country="TR", reference_currency="TRY"),
+    )
+    with pytest.raises(SearchFailed) as caught:
+        await pipeline_orchestrator.run(session)
+
+    assert "EBAY_APP_ID" in caught.value.reason
