@@ -485,7 +485,7 @@ What the UI renders.
 | `confirmedVariant` | `ProductVariant` | Reference product |
 | `offers` | list of `Offer` | Matched + ranked by `finalScore` (full list) |
 | `offerScores` | map `offerId` → `ScoreBreakdown` | Parallel scores / warnings for the full list UI |
-| `highlights` | list of `DecisionHighlight` | Only offers with effective confidence ≥ 0.7. Multiple rows may share an `offerId`; the UI collapses those into one card |
+| `highlights` | list of `DecisionHighlight` | Offers with effective confidence ≥ 0.7 when any clear that floor; otherwise the ranked list, so the page is never blank. Multiple rows may share an `offerId`; the UI collapses those into one card |
 | `alternatives` | list of `Alternative` | Badged near-offers only; ranked by `finalScore`; cap 3. Empty when none clear a value test |
 | `alternativeOffers` | list of `Offer` | Bodies for the alternative listings (they are not in `offers`) |
 | `generatedAt` | datetime | |

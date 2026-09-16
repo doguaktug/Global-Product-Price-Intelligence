@@ -27,11 +27,11 @@ There is deliberately no spec weight: every offer in the ranked list matched the
 | `SOURCE_RELIABILITY_WEIGHT` | `0.30` | `ranking/engine.py` | How much the hosting site's reputation moves the seller criterion. The seller's own record carries the remaining 0.70 |
 | `_COMPLETENESS_MULTIPLIER` | `complete 1.0, partial 0.90, unknown 0.75` | `ranking/engine.py` | Penalty applied for how much of the landed cost had to be estimated |
 | `UNKNOWN_STOCK_CONFIDENCE_FACTOR` | `0.85` | `ranking/confidence.py` | Applied only when stock status is `unknown`. In-stock and out-of-stock are both *known* and are not penalised |
-| `HIGHLIGHT_MIN_CONFIDENCE` | `0.7` | `ranking/confidence.py` | Effective-confidence floor to be eligible for a highlight card. Below it an offer still appears in the ranked list, carrying a warning |
+| `HIGHLIGHT_MIN_CONFIDENCE` | `0.7` | `ranking/confidence.py` | Effective-confidence floor for a highlight card **when any offer clears it**. Below it an offer still appears in the ranked list, carrying a warning. If *no* offer clears it, the lenses fall back to the ranked list rather than leaving the Decision Page blank |
 
 `SOURCE_RELIABILITY_WEIGHT` is a blend rather than a multiplication on purpose: multiplying would let a mid-tier marketplace cap an excellent seller at `0.95 × 0.5 = 0.475`, indistinguishable from a mediocre one.
 
-Raising `HIGHLIGHT_MIN_CONFIDENCE` makes the Decision Page quieter and more conservative — more lenses come back empty. Lowering it recommends offers the system is less sure about.
+Raising `HIGHLIGHT_MIN_CONFIDENCE` makes the Decision Page quieter and more conservative when mixed-quality offers compete. It does not blank the page when every offer is a marketplace import below the line.
 
 ---
 

@@ -204,15 +204,27 @@ def test_highlights_never_include_offers_below_confidence_floor() -> None:
         assert effective_confidence(by_id[highlight.offer_id]) >= HIGHLIGHT_MIN_CONFIDENCE
 
 
-def test_all_ineligible_pool_yields_no_highlights() -> None:
+def test_when_nothing_clears_the_floor_the_page_still_recommends() -> None:
+    """
+    An eBay-only search can land every offer below 0.7. Blank highlights are worse
+    than recommending the best of that set with the warning the breakdown already has.
+    """
     scored = RankingEngine().score(
         [
-            _offer(offer_id="a", price="100", data_confidence=0.0),
-            _offer(offer_id="b", price="200", data_confidence=0.1),
+            _offer(offer_id="cheaper", price="100", data_confidence=0.4),
+            _offer(offer_id="better-seller", price="200", data_confidence=0.5),
         ],
         UserPreferences(),
     )
-    assert pick_highlights(scored, UserPreferences()) == []
+    highlights = pick_highlights(scored, UserPreferences())
+    by_id = {offer.id: breakdown for offer, breakdown in scored}
+
+    assert highlights
+    assert all(not is_highlight_eligible(by_id[item.offer_id]) for item in highlights)
+    assert all(by_id[item.offer_id].reliability_warning for item in highlights)
+    kinds = {item.kind for item in highlights}
+    assert HighlightKind.BEST_OVERALL in kinds
+    assert HighlightKind.LOWEST_LIST_PRICE in kinds
 
 
 def test_highlight_kinds_are_from_eligible_pool_only() -> None:

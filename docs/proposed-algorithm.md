@@ -180,7 +180,9 @@ If `effectiveConfidence < 0.7`, the offer:
 
 - **stays** in the full ranked `offers` list (sorted by `finalScore`)
 - gets a `reliabilityWarning` / explanation caveat
-- is **excluded** from Decision Page recommendation lenses
+- is **excluded** from Decision Page recommendation lenses **when any other offer clears the floor**
+
+The floor exists so a cheap unreliable listing cannot steal a lens from a trustworthy one. It is not a licence to leave the Decision Page blank: if *every* offer is below 0.7 (typical of an eBay-only search into TR, where marketplace reputation 0.72 × import completeness 0.9 already sits near the line), the lenses fall back to the ranked list and the warning already on the breakdown is how the uncertainty is shown.
 
 Eligible offers are then selected by lens (not only by overall score):
 
