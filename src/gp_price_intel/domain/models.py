@@ -310,6 +310,9 @@ class UserPreferences(BaseModel):
     reference_currency: str = "TRY"
     origin: PreferenceOrigin = PreferenceOrigin.DEFAULT
     weights: dict[str, float] = Field(default_factory=lambda: dict(DEFAULT_WEIGHTS))
+    #: When False (default), used / refurbished / open-box listings are excluded.
+    #: When True, they stay in the comparison and are labelled by condition.
+    include_used: bool = False
 
 
 class ConfirmationPrompt(BaseModel):

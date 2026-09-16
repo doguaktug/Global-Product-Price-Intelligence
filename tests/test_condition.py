@@ -59,7 +59,7 @@ def test_condition_labels_are_readable() -> None:
 
 
 @pytest.mark.asyncio
-async def test_fixture_adapter_drops_used_listings() -> None:
+async def test_fixture_adapter_drops_used_listings_by_default() -> None:
     catalog = CatalogRepository()
     offers = await FixtureAdapter(catalog=catalog).search(
         SearchScope(family_id="samsung-galaxy-s26-ultra"),
@@ -67,7 +67,18 @@ async def test_fixture_adapter_drops_used_listings() -> None:
     )
     ids = {offer.id for offer in offers}
     assert "fixture-de-s26-512-black-used" not in ids
-    assert all(not is_non_new_condition(offer.condition) for offer in offers)
+
+
+@pytest.mark.asyncio
+async def test_fixture_adapter_keeps_used_when_include_used() -> None:
+    catalog = CatalogRepository()
+    offers = await FixtureAdapter(catalog=catalog).search(
+        SearchScope(family_id="samsung-galaxy-s26-ultra"),
+        destination_country="TR",
+        include_used=True,
+    )
+    used = next(o for o in offers if o.id == "fixture-de-s26-512-black-used")
+    assert used.condition == ItemCondition.USED
 
 
 def test_empty_reason_mentions_used_filter() -> None:

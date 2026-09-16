@@ -75,7 +75,13 @@ class FixtureAdapter(SourceAdapter):
     def known_sources(self) -> list[Source]:
         return list(self.source_by_id.values())
 
-    async def search(self, scope: SearchScope, destination_country: str) -> list[Offer]:
+    async def search(
+        self,
+        scope: SearchScope,
+        destination_country: str,
+        *,
+        include_used: bool = False,
+    ) -> list[Offer]:
         rows = self._load_rows()
         offers: list[Offer] = []
 
@@ -100,7 +106,9 @@ class FixtureAdapter(SourceAdapter):
                 self.source_by_id[source_id] = source
 
             offer = self._row_to_offer(row, source)
-            if offer.stock_status == StockStatus.OUT_OF_STOCK or is_non_new_condition(offer.condition):
+            if offer.stock_status == StockStatus.OUT_OF_STOCK:
+                continue
+            if not include_used and is_non_new_condition(offer.condition):
                 continue
             offers.append(offer)
         return offers

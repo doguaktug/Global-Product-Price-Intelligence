@@ -128,6 +128,7 @@ function currentPreferences() {
     reference_currency: $("currency").value,
     origin: state.origin,
     weights,
+    include_used: Boolean($("include-used") && $("include-used").checked),
   };
 }
 

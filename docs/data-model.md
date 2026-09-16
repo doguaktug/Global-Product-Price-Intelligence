@@ -323,7 +323,7 @@ One listing, at collection time. This is the unit of comparison.
 | `convertedListPrice` | `ConvertedMoney`? | Filled after FX |
 | `landedCost` | `LandedCost`? | Filled after FX + fees |
 | `stockStatus` | enum? | `in_stock` \| `limited` \| `out_of_stock` \| `unknown`. Out-of-stock offers are **excluded from ranking**; unknown carries lower confidence |
-| `condition` | enum | `new` \| `used` \| `refurbished` \| `open_box` \| `unknown`. Used / refurbished / open-box are **excluded from ranking**; unknown is allowed but indicated |
+| `condition` | enum | `new` \| `used` \| `refurbished` \| `open_box` \| `unknown`. Non-new are excluded only when `UserPreferences.include_used` is false (default); unknown is always indicated |
 | `deliveryTime` | string? | Stored as the source phrased it (`"2-4 Werktage"`, `"1-3 iş günü"`). Ranking parses it to days at scoring time; unparseable text makes delivery a missing criterion rather than a guess |
 | `warranty` | string? | Source phrasing (`"24 months"`, `"2 yıl"`). Parsed to months at scoring time; who issued the cover does not change the parsed length |
 | `returnPolicy` | string? | |
@@ -367,6 +367,7 @@ Missing data: skip or down-weight that criterion; record it in `missingCriteria`
 | `referenceCurrency` | ISO 4217 | Same waterfall; default **TRY** |
 | `origin` | enum | `default` \| `geolocation` \| `manual` — which step last set country/currency |
 | `weights` | map of criterion → number | Set by sliders over `price`, `seller`, `reviews`, `delivery`, `warranty`. **Relative, not absolute** — the engine re-normalizes them, so only their proportions matter and they need not sum to 1. A weight of 0 removes the criterion. Defaults if sliders unchanged |
+| `includeUsed` | bool | Default `false`. When false, used / refurbished / open-box listings are excluded from the comparison; when true they stay and are labelled by condition |
 
 Example: `{ price: 0.40, seller: 0.20, reviews: 0.15, delivery: 0.10, warranty: 0.15 }`.
 

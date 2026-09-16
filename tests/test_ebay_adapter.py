@@ -325,3 +325,47 @@ async def test_ebay_drops_used_and_refurbished_listings() -> None:
     assert "new" in offers[0].id
     assert "used" not in offers[0].id
     assert offers[0].condition.value == "new"
+
+
+@pytest.mark.asyncio
+async def test_ebay_keeps_used_when_include_used() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/oauth2/token"):
+            return httpx.Response(200, json={"access_token": "token-123", "expires_in": 3600})
+        from urllib.parse import unquote
+        # No new-only marketplace filter when include_used is on.
+        assert "conditions:{NEW" not in unquote(str(request.url))
+        return httpx.Response(
+            200,
+            json={
+                "itemSummaries": [
+                    {
+                        "itemId": "v1|used|0",
+                        "title": "Samsung Galaxy S26 Ultra 512GB Black",
+                        "condition": "Used",
+                        "itemWebUrl": "https://www.ebay.com/itm/used",
+                        "price": {"value": "699.99", "currency": "USD"},
+                        "seller": {
+                            "username": "used-shop",
+                            "feedbackPercentage": "98.0",
+                            "feedbackScore": 50,
+                        },
+                        "estimatedAvailabilities": [
+                            {"estimatedAvailabilityStatus": "IN_STOCK"}
+                        ],
+                    }
+                ]
+            },
+        )
+
+    offers = await _adapter(httpx.AsyncClient(transport=httpx.MockTransport(handler))).search(
+        SearchScope(
+            family_id="samsung-galaxy-s26-ultra",
+            constraints={"storage_gb": 512},
+            variant_ids=["samsung-galaxy-s26-ultra-512-12-eu-black"],
+        ),
+        destination_country="TR",
+        include_used=True,
+    )
+    assert len(offers) == 1
+    assert offers[0].condition.value == "used"

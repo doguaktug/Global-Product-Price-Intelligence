@@ -106,7 +106,13 @@ class EbayAdapter(SourceAdapter):
     def is_configured(self) -> bool:
         return bool(self.settings.ebay_app_id and self.settings.ebay_cert_id)
 
-    async def search(self, scope: SearchScope, destination_country: str) -> list[Offer]:
+    async def search(
+        self,
+        scope: SearchScope,
+        destination_country: str,
+        *,
+        include_used: bool = False,
+    ) -> list[Offer]:
         if not self.is_configured():
             logger.info("eBay adapter skipped — EBAY_APP_ID or EBAY_CERT_ID not set.")
             return []
@@ -117,7 +123,7 @@ class EbayAdapter(SourceAdapter):
 
         try:
             token = await self._access_token()
-            summaries = await self._search_items(token, query)
+            summaries = await self._search_items(token, query, include_used=include_used)
         except Exception:
             logger.exception("eBay search failed for query=%r", query)
             return []
@@ -131,7 +137,9 @@ class EbayAdapter(SourceAdapter):
         offers: list[Offer] = []
         for item in summaries:
             offer = self._parse_item(item, valid_options)
-            if offer is None or offer.stock_status == StockStatus.OUT_OF_STOCK or is_non_new_condition(offer.condition):
+            if offer is None or offer.stock_status == StockStatus.OUT_OF_STOCK:
+                continue
+            if not include_used and is_non_new_condition(offer.condition):
                 continue
             offers.append(offer)
         return offers
@@ -173,17 +181,19 @@ class EbayAdapter(SourceAdapter):
         self._token_expires_at = time.time() + int(payload.get("expires_in", 7200))
         return self._token
 
-    async def _search_items(self, token: str, query: str) -> list[dict[str, Any]]:
+    async def _search_items(
+        self, token: str, query: str, *, include_used: bool = False
+    ) -> list[dict[str, Any]]:
         host = self._api_host()
         client = await self._get_client()
+        params: dict[str, str] = {"q": query, "limit": "20"}
+        if not include_used:
+            # First pass: ask the marketplace for new retail. Leftovers are still
+            # classified and dropped below when include_used is False.
+            params["filter"] = "conditions:{NEW|NEW_OTHER}"
         response = await client.get(
             f"https://{host}/buy/browse/v1/item_summary/search",
-            params={
-                "q": query,
-                "limit": "20",
-                # Prefer new retail stock; adapters still classify leftovers as a safety net.
-                "filter": "conditions:{NEW|NEW_OTHER}",
-            },
+            params=params,
             headers={
                 "Authorization": f"Bearer {token}",
                 "X-EBAY-C-MARKETPLACE-ID": self.marketplace_id,

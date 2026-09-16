@@ -71,11 +71,12 @@ These gate **whether an alternative is shown**. A near-offer that clears none is
 | Resource | Location | Effect |
 | --- | --- | --- |
 | `ItemCondition` | `domain/models.py` | `new` / `used` / `refurbished` / `open_box` / `unknown` on each offer |
+| `include_used` | `UserPreferences` (default `false`) | User option: when false, used / refurbished / open-box are excluded; when true they stay and are labelled |
 | `parse_item_condition` | `normalize/condition.py` | Reads marketplace condition strings and title keywords (EN/DE/TR/JP) |
-| Non-new filter | adapters + `orchestrator/search.py` | Used / refurbished / open-box never enter ranking (same idea as out-of-stock) |
-| eBay `filter` | `adapters/ebay.py` | Browse API requests `conditions:{NEW\|NEW_OTHER}` as a first pass |
+| Optional filter | adapters + `orchestrator/search.py` | Honours `include_used`; not a hard product rule |
+| eBay `filter` | `adapters/ebay.py` | When `include_used` is false, Browse API requests `conditions:{NEW\|NEW_OTHER}` as a first pass |
 
-Unknown condition stays in the list with a Decision Page caveat; clear second-hand stock is filtered out.
+Unknown condition stays in the list with a Decision Page caveat either way.
 
 ## Locale aliases (app language: English)
 

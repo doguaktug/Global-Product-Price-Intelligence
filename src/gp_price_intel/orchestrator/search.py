@@ -69,9 +69,9 @@ def _empty_result_reason(
     if fetched == out_of_stock:
         return "All collected offers were out of stock."
     if fetched == out_of_stock + used_filtered and used_filtered > 0:
-        return "All remaining offers were used, refurbished, or open-box — only new listings are compared."
+        return "All remaining offers were used, refurbished, or open-box. Turn on “include used” to compare them."
     if eligible == 0 and used_filtered > 0 and unmatched == 0:
-        return "Only used, refurbished, or open-box listings were found — only new listings are compared."
+        return "Only used, refurbished, or open-box listings were found. Turn on “include used” to compare them."
     if eligible == 0:
         if unmatched:
             return "None of the collected listings matched the confirmed product."
@@ -165,26 +165,29 @@ class SearchOrchestrator:
 
         session.status = SessionStatus.FETCHING
         adapter_errors: list[str] = []
-        raw_offers = await self._fetch_offers(scope, destination, adapter_errors)
+        include_used = bool(session.preferences.include_used)
+        raw_offers = await self._fetch_offers(
+            scope, destination, adapter_errors, include_used=include_used
+        )
         fetched = len(raw_offers)
         in_stock = [
             offer for offer in raw_offers if offer.stock_status != StockStatus.OUT_OF_STOCK
         ]
         out_of_stock = fetched - len(in_stock)
 
-        # Drop used / refurbished / open-box — comparisons are for new retail stock.
-        newish: list = []
+        # Optionally drop used / refurbished / open-box (default: new only).
+        kept: list = []
         used_filtered = 0
         for offer in in_stock:
             condition = offer_condition_from_specs_and_title(offer)
-            if is_non_new_condition(condition):
-                used_filtered += 1
-                continue
             if offer.condition != condition:
                 offer = offer.model_copy(update={"condition": condition})
-            newish.append(offer)
+            if not include_used and is_non_new_condition(condition):
+                used_filtered += 1
+                continue
+            kept.append(offer)
 
-        matched = self.matcher.match(newish, scope)
+        matched = self.matcher.match(kept, scope)
         eligible = [offer for offer in matched if offer.match_kind != MatchKind.UNMATCHED]
         unmatched = len(matched) - len(eligible)
 
@@ -341,13 +344,18 @@ class SearchOrchestrator:
         scope: SearchScope,
         destination_country: str,
         errors: list[str] | None = None,
+        *,
+        include_used: bool = False,
     ) -> list:
         collected_errors = errors if errors is not None else []
         if not self.adapters:
             return []
 
         results = await asyncio.gather(
-            *[adapter.search(scope, destination_country) for adapter in self.adapters],
+            *[
+                adapter.search(scope, destination_country, include_used=include_used)
+                for adapter in self.adapters
+            ],
             return_exceptions=True,
         )
 
