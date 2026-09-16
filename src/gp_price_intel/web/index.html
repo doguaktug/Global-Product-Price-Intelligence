@@ -51,6 +51,10 @@
               <button type="button" class="pill" id="toggle-geo" aria-expanded="false">
                 change country/currency
               </button>
+              <label class="pill check-row">
+                <input type="checkbox" id="include-used" />
+                include used / refurbished
+              </label>
             </div>
             <p class="search-error" id="search-error" hidden></p>
             <div class="extend-row" id="extend-row">
@@ -100,10 +104,6 @@
                 <label class="geo-row">
                   currency
                   <select id="currency"></select>
-                </label>
-              <label class="check-row">
-                  <input type="checkbox" id="include-used" />
-                  include used / refurbished / open-box
                 </label>
               </section>
             </div>

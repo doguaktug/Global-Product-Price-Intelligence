@@ -57,6 +57,7 @@ const FUN_FACTS = [
   "Weights are proportions. Pushing every slider to the top ranks the same as leaving them low.",
   "If two winning lenses name the same offer, they collapse into one card instead of repeating it.",
   "Close alternatives only appear when a different spec or a comparable product actually exists.",
+  "Used, refurbished and open-box listings stay out unless you tick include used / refurbished.",
 ];
 
 const state = {
@@ -128,7 +129,7 @@ function currentPreferences() {
     reference_currency: $("currency").value,
     origin: state.origin,
     weights,
-    include_used: Boolean($("include-used") && $("include-used").checked),
+    include_used: Boolean($("include-used")?.checked),
   };
 }
 
@@ -313,6 +314,16 @@ function conditionLabel(condition) {
   }
 }
 
+function appendCondition(parent, offer) {
+  const label = conditionLabel(offer?.condition);
+  if (!label) return;
+  const tag = document.createElement("p");
+  tag.className = "condition-tag";
+  if (offer.condition && offer.condition !== "new") tag.classList.add("is-used");
+  tag.textContent = label;
+  parent.append(tag);
+}
+
 function fillOfferEconomics(card, offer) {
   const price = document.createElement("p");
   price.className = "price-line";
@@ -337,12 +348,7 @@ function fillOfferEconomics(card, offer) {
   }
   for (const line of costLines(offer)) appendMeta(card, line);
   if (offer.warranty) appendMeta(card, `warranty ${offer.warranty}`);
-  if (offer.condition && offer.condition !== "new") {
-    const label = conditionLabel(offer.condition);
-    if (label) appendMeta(card, label);
-  } else if (offer.condition === "new") {
-    appendMeta(card, "New");
-  }
+  appendCondition(card, offer);
   const seller = offer.seller || {};
   if (seller.reliability != null) {
     appendMeta(card, `trust score ${(Number(seller.reliability) * 100).toFixed(0)}% — ${seller.name || offer.source_id}`);
@@ -425,6 +431,7 @@ function renderFullList(page, offersById, highlightedIds) {
     const heading = document.createElement("strong");
     heading.append(listingLink(offer.listing_title, offer));
     name.append(heading);
+    appendCondition(name, offer);
     if (highlightedIds.has(offer.id)) {
       const note = document.createElement("div");
       note.textContent = "already on a highlight card";
@@ -504,6 +511,7 @@ function renderAlternatives(page, altById) {
     strong.append(listingLink(offer.listing_title, offer));
     name.append(strong);
     copy.append(name);
+    appendCondition(copy, offer);
     appendMeta(copy, money(offer.landed_cost?.total || offer.converted_list_price?.reference));
     const specHead = document.createElement("p");
     specHead.className = "meta";

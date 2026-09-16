@@ -181,9 +181,28 @@ body {
 }
 
 .pill[aria-expanded="true"],
-.pill-solid {
+.pill-solid,
+.check-row:has(input:checked) {
   background: var(--ink);
   color: var(--paper);
+}
+
+.check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  user-select: none;
+}
+
+.check-row input {
+  width: 0.95rem;
+  height: 0.95rem;
+  accent-color: var(--paper);
+  cursor: pointer;
+}
+
+.check-row:not(:has(input:checked)) input {
+  accent-color: var(--ink);
 }
 
 .search-error {
@@ -424,6 +443,20 @@ body {
   margin: 0.15rem 0;
   color: var(--ink);
   font-size: 0.9rem;
+}
+
+.condition-tag {
+  display: inline-block;
+  margin: 0.2rem 0 0.35rem;
+  padding: 0.12rem 0.55rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
+.condition-tag.is-used {
+  background: var(--panel);
 }
 
 .why {
