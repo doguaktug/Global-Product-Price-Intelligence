@@ -27,6 +27,8 @@ def test_ui_assets_are_served() -> None:
     assert "originalSearchName" in js.text
     assert "searched-name" in css.text
     assert "scroll down for the best alternatives" in client.get("/").text
+    assert "Which model should we search for?" in js.text
+    assert "session.status === \"needs_confirmation\"" in js.text
     # `hidden` has to beat the class `display` rules, or the views and the ranked
     # list render on top of each other instead of staying closed.
     assert "[hidden] {\n  display: none !important;\n}" in css.text

@@ -44,7 +44,9 @@ const PROPERTY_LABELS = {
   memory_gb: "memory",
   colour: "colour",
   color: "colour",
-  family_id: "product",
+  series: "series",
+  line: "line",
+  family_id: "model",
   variant_id: "build",
   region_version: "region",
   processor: "processor",
@@ -529,6 +531,9 @@ function reasonCopy(prompt) {
     case "invalid":
       return `That ${label} is not a valid option. Pick one of these:`;
     case "ambiguous":
+      if (prompt.property_key === "line") return "Which line should we search for?";
+      if (prompt.property_key === "series") return "Which series should we search for?";
+      if (prompt.property_key === "family_id") return "Which model should we search for?";
       return `More than one ${label} could match. Choose one:`;
     case "shorthand":
       return "Which product did you mean?";
@@ -582,7 +587,9 @@ async function openConfirm(session) {
     block.append(options);
     box.append(block);
   }
-  $("confirm-dialog").showModal();
+  if (!$("confirm-dialog").open) {
+    $("confirm-dialog").showModal();
+  }
 }
 
 function readChoices(session) {
@@ -719,6 +726,10 @@ function bindUi() {
         body: JSON.stringify({ session: state.session, choices }),
       });
       state.session = session;
+      if (session.status === "needs_confirmation") {
+        await openConfirm(session);
+        return;
+      }
       $("confirm-dialog").close();
       await runSession(session);
     } catch (error) {

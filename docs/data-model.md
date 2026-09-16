@@ -134,10 +134,14 @@ A model line, not a buyable SKU.
 | `categoryId` | string | `smartphone` |
 | `brand` | string | `Samsung` |
 | `familyName` | string | `Galaxy S26 Ultra` |
+| `series` | string? | Broader range, e.g. `Galaxy S25` or `ROG` — used when a search names the range but not the model |
+| `line` | string? | Sub-range inside a series, e.g. `Zephyrus` / `Strix` / `Flow` |
 | `aliases` | list of strings | `S26 Ultra`, `Galaxy S26U` — for normalization / typos |
 | `validOptions` | map | `{ storageGb: [256, 512, 1024], memoryGb: [12, 16] }` |
 
 `validOptions` is what the **confirmation gate** uses when input is invalid or ambiguous: “600 GB isn’t an option — 512 GB or 1 TB?” If the user’s specs already match a single catalog variant, skip confirmation.
+
+A search that names a `series` or `line` but not a specific family is asked in stages: line (when the series has several), then model, then identity specs. Specs are never asked against a family the user has not confirmed. The popup re-opens after each grouping answer until the family is pinned.
 
 ### `ProductVariant`
 

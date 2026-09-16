@@ -243,6 +243,54 @@
     ]
   },
   {
+    "id": "samsung-galaxy-s25-plus-256-12-eu-black",
+    "family_id": "samsung-galaxy-s25-plus",
+    "model_name": "Galaxy S25 Plus",
+    "model_number": "SM-S936BZKDE",
+    "gtin": "8806095250300",
+    "storage_gb": 256,
+    "memory_gb": 12,
+    "region_version": "EU",
+    "colour": "Black",
+    "canonical_specs": [
+      {
+        "key": "battery_mah",
+        "value": 4900,
+        "unit": "mAh",
+        "raw_text": "4900 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.7,
+        "unit": "in",
+        "raw_text": "6.7-inch"
+      }
+    ]
+  },
+  {
+    "id": "samsung-galaxy-s25-plus-512-12-eu-navy",
+    "family_id": "samsung-galaxy-s25-plus",
+    "model_name": "Galaxy S25 Plus",
+    "storage_gb": 512,
+    "memory_gb": 12,
+    "region_version": "EU",
+    "colour": "Navy",
+    "canonical_specs": [
+      {
+        "key": "battery_mah",
+        "value": 4900,
+        "unit": "mAh",
+        "raw_text": "4900 mAh"
+      },
+      {
+        "key": "display_inch",
+        "value": 6.7,
+        "unit": "in",
+        "raw_text": "6.7-inch"
+      }
+    ]
+  },
+  {
     "id": "samsung-galaxy-s25-256-8-eu-navy",
     "family_id": "samsung-galaxy-s25",
     "model_name": "Galaxy S25",
@@ -1022,6 +1070,196 @@
         "value": 14.0,
         "unit": "in",
         "raw_text": "14-inch"
+      }
+    ]
+  },
+  {
+    "id": "asus-rog-zephyrus-g16-1024-16-eu-eclipse",
+    "family_id": "asus-rog-zephyrus-g16",
+    "model_name": "ROG Zephyrus G16",
+    "model_number": "GU605MI",
+    "storage_gb": 1024,
+    "memory_gb": 16,
+    "region_version": "EU",
+    "colour": "Eclipse Gray",
+    "processor": "Intel Core Ultra 9",
+    "canonical_specs": [
+      {
+        "key": "display_inch",
+        "value": 16.0,
+        "unit": "in",
+        "raw_text": "16-inch"
+      }
+    ]
+  },
+  {
+    "id": "asus-rog-zephyrus-g16-2048-32-us-platinum",
+    "family_id": "asus-rog-zephyrus-g16",
+    "model_name": "ROG Zephyrus G16",
+    "model_number": "GU605MY",
+    "storage_gb": 2048,
+    "memory_gb": 32,
+    "region_version": "US",
+    "colour": "Platinum White",
+    "processor": "AMD Ryzen 9",
+    "canonical_specs": [
+      {
+        "key": "display_inch",
+        "value": 16.0,
+        "unit": "in",
+        "raw_text": "16-inch"
+      }
+    ]
+  },
+  {
+    "id": "asus-rog-strix-g16-512-16-eu-eclipse",
+    "family_id": "asus-rog-strix-g16",
+    "model_name": "ROG Strix G16",
+    "model_number": "G614JV",
+    "storage_gb": 512,
+    "memory_gb": 16,
+    "region_version": "EU",
+    "colour": "Eclipse Gray",
+    "processor": "Intel Core Ultra 7",
+    "canonical_specs": [
+      {
+        "key": "display_inch",
+        "value": 16.0,
+        "unit": "in",
+        "raw_text": "16-inch"
+      }
+    ]
+  },
+  {
+    "id": "asus-rog-strix-g16-1024-32-us-off-black",
+    "family_id": "asus-rog-strix-g16",
+    "model_name": "ROG Strix G16",
+    "model_number": "G614JZ",
+    "storage_gb": 1024,
+    "memory_gb": 32,
+    "region_version": "US",
+    "colour": "Off Black",
+    "processor": "Intel Core Ultra 9",
+    "canonical_specs": [
+      {
+        "key": "display_inch",
+        "value": 16.0,
+        "unit": "in",
+        "raw_text": "16-inch"
+      }
+    ]
+  },
+  {
+    "id": "asus-rog-strix-g18-1024-16-eu-eclipse",
+    "family_id": "asus-rog-strix-g18",
+    "model_name": "ROG Strix G18",
+    "model_number": "G814JV",
+    "storage_gb": 1024,
+    "memory_gb": 16,
+    "region_version": "EU",
+    "colour": "Eclipse Gray",
+    "processor": "Intel Core Ultra 9",
+    "canonical_specs": [
+      {
+        "key": "display_inch",
+        "value": 18.0,
+        "unit": "in",
+        "raw_text": "18-inch"
+      }
+    ]
+  },
+  {
+    "id": "asus-rog-strix-g18-2048-32-us-off-black",
+    "family_id": "asus-rog-strix-g18",
+    "model_name": "ROG Strix G18",
+    "model_number": "G814JZ",
+    "storage_gb": 2048,
+    "memory_gb": 32,
+    "region_version": "US",
+    "colour": "Off Black",
+    "processor": "Intel Core Ultra 9",
+    "canonical_specs": [
+      {
+        "key": "display_inch",
+        "value": 18.0,
+        "unit": "in",
+        "raw_text": "18-inch"
+      }
+    ]
+  },
+  {
+    "id": "asus-rog-flow-z13-512-16-eu-black",
+    "family_id": "asus-rog-flow-z13",
+    "model_name": "ROG Flow Z13",
+    "model_number": "GZ302EA",
+    "storage_gb": 512,
+    "memory_gb": 16,
+    "region_version": "EU",
+    "colour": "Black",
+    "processor": "Intel Core Ultra 7",
+    "canonical_specs": [
+      {
+        "key": "display_inch",
+        "value": 13.4,
+        "unit": "in",
+        "raw_text": "13.4-inch"
+      }
+    ]
+  },
+  {
+    "id": "asus-rog-flow-z13-1024-32-us-white",
+    "family_id": "asus-rog-flow-z13",
+    "model_name": "ROG Flow Z13",
+    "model_number": "GZ302EA",
+    "storage_gb": 1024,
+    "memory_gb": 32,
+    "region_version": "US",
+    "colour": "White",
+    "processor": "Intel Core Ultra 9",
+    "canonical_specs": [
+      {
+        "key": "display_inch",
+        "value": 13.4,
+        "unit": "in",
+        "raw_text": "13.4-inch"
+      }
+    ]
+  },
+  {
+    "id": "asus-rog-flow-x13-512-16-eu-black",
+    "family_id": "asus-rog-flow-x13",
+    "model_name": "ROG Flow X13",
+    "model_number": "GV302XU",
+    "storage_gb": 512,
+    "memory_gb": 16,
+    "region_version": "EU",
+    "colour": "Black",
+    "processor": "AMD Ryzen 9",
+    "canonical_specs": [
+      {
+        "key": "display_inch",
+        "value": 13.4,
+        "unit": "in",
+        "raw_text": "13.4-inch"
+      }
+    ]
+  },
+  {
+    "id": "asus-rog-flow-x13-1024-32-us-white",
+    "family_id": "asus-rog-flow-x13",
+    "model_name": "ROG Flow X13",
+    "model_number": "GV302XU",
+    "storage_gb": 1024,
+    "memory_gb": 32,
+    "region_version": "US",
+    "colour": "White",
+    "processor": "AMD Ryzen 9",
+    "canonical_specs": [
+      {
+        "key": "display_inch",
+        "value": 13.4,
+        "unit": "in",
+        "raw_text": "13.4-inch"
       }
     ]
   },
