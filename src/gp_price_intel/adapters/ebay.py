@@ -67,6 +67,44 @@ ASPECT_SPEC_KEYS: dict[str, str] = {
     "色": "colour",
 }
 
+# Aspect names carrying a cross-retailer identifier, which beats any parsed spec.
+_GTIN_ASPECTS = frozenset({"gtin", "ean", "upc"})
+_MPN_ASPECTS = frozenset({"mpn", "manufacturer part number"})
+
+# Detail lookups are one request per unplaced listing, so the search stays bounded
+# when a keyword returns twenty vague titles.
+MAX_DETAIL_LOOKUPS = 10
+
+
+def _first_aspect_value(item: dict[str, Any], names: frozenset[str]) -> str | None:
+    for aspect in item.get("localizedAspects") or []:
+        if str(aspect.get("name", "")).casefold() not in names:
+            continue
+        values = aspect.get("value")
+        if isinstance(values, list) and values:
+            return str(values[0])
+        if isinstance(values, str) and values:
+            return values
+    return None
+
+
+def _detail_identifiers(item: dict[str, Any]) -> tuple[str | None, str | None]:
+    """`(gtin, mpn)` from a `getItem` payload, checking both the item and its product."""
+    product = item.get("product") or {}
+    gtins = product.get("gtins") or []
+    mpns = product.get("mpns") or []
+    gtin = (
+        item.get("gtin")
+        or (str(gtins[0]) if gtins else None)
+        or _first_aspect_value(item, _GTIN_ASPECTS)
+    )
+    mpn = (
+        item.get("mpn")
+        or (str(mpns[0]) if mpns else None)
+        or _first_aspect_value(item, _MPN_ASPECTS)
+    )
+    return (str(gtin) if gtin else None, str(mpn) if mpn else None)
+
 
 def _already_in(term: str, parts: list[str]) -> bool:
     """True when `term` is already a whole word in the query built so far."""
@@ -140,6 +178,115 @@ class EbayAdapter(SourceAdapter):
         except Exception as exc:
             logger.exception("eBay search failed for query=%r", query)
             raise SourceFetchError(f"eBay request failed: {exc}") from exc
+
+    async def enrich(self, offers: list[Offer], scope: SearchScope) -> list[Offer]:
+        """
+        Read item specifics from `getItem` for listings the title could not place.
+
+        `item_summary/search` returns a summary: no `localizedAspects`, no `gtin`, no
+        `mpn`. Those live on the single-item resource, so a listing titled only
+        "Samsung Galaxy S26 Ultra" carries nothing to match on until it is fetched —
+        even though the seller filled in Storage Capacity and RAM as item specifics.
+
+        One extra request per unplaced listing, capped, and each failure leaves its
+        offer exactly as it was.
+        """
+        if not self.is_configured():
+            return offers
+
+        family = self.catalog.get_family(scope.family_id)
+        valid_options = family.valid_options if family else {}
+
+        resolved: list[Offer] = []
+        budget = MAX_DETAIL_LOOKUPS
+        for offer in offers:
+            item_id = offer.retailer_sku
+            if not item_id or budget <= 0:
+                resolved.append(offer)
+                continue
+            budget -= 1
+            try:
+                detail = await self._get_item(item_id)
+            except (SourceFetchError, httpx.HTTPError, ValueError) as exc:
+                # Enrichment is an improvement, not a precondition: a listing that
+                # cannot be detailed is no worse off than before the attempt.
+                logger.warning("eBay item detail failed for %s: %s", item_id, exc)
+                resolved.append(offer)
+                continue
+            resolved.append(self._with_detail(offer, detail, valid_options))
+        return resolved
+
+    async def _get_item(self, item_id: str) -> dict[str, Any]:
+        token = await self._access_token()
+        client = await self._get_client()
+        response = await client.get(
+            f"https://{self.api_host()}/buy/browse/v1/item/{item_id}",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-EBAY-C-MARKETPLACE-ID": self.marketplace_id,
+            },
+            timeout=15.0,
+        )
+        if response.is_error:
+            raise SourceFetchError(
+                f"HTTP {response.status_code}: {self._error_detail(response)}"
+            )
+        return dict(response.json())
+
+    def _with_detail(
+        self,
+        offer: Offer,
+        detail: dict[str, Any],
+        valid_options: dict[str, list[Any]],
+    ) -> Offer:
+        """
+        Fold item specifics into an offer, letting declared values beat parsed ones.
+
+        A spec read from the item-specifics table was typed by the seller into a named
+        field; the same spec read from a title was inferred from prose. Where both
+        exist the declared one wins.
+        """
+        declared = {
+            spec.key: spec
+            for spec in (
+                *self._specs_from_aspects(detail, valid_options),
+                *self._specs_from_aspect_groups(detail, valid_options),
+            )
+        }
+        if not declared and not _detail_identifiers(detail):
+            return offer
+
+        merged = [spec for spec in offer.raw_specs if spec.key not in declared]
+        merged.extend(declared.values())
+
+        gtin, mpn = _detail_identifiers(detail)
+        update: dict[str, Any] = {"raw_specs": merged}
+        if gtin and not offer.gtin:
+            update["gtin"] = gtin
+        if mpn and not offer.model_number:
+            update["model_number"] = mpn
+        return offer.model_copy(update=update)
+
+    @staticmethod
+    def _specs_from_aspect_groups(
+        item: dict[str, Any],
+        valid_options: dict[str, list[Any]],
+    ) -> list[NormalizedSpec]:
+        """
+        Read `product.aspectGroups`, eBay's catalog-side specs.
+
+        Sellers who list against an eBay catalogue product get these instead of, or as
+        well as, their own item specifics, so both shapes have to be understood.
+        """
+        groups = (item.get("product") or {}).get("aspectGroups") or []
+        flattened: list[dict[str, Any]] = []
+        for group in groups:
+            for aspect in group.get("aspects") or []:
+                name = aspect.get("localizedName")
+                values = aspect.get("localizedValues") or []
+                if name and values:
+                    flattened.append({"name": name, "value": values})
+        return EbayAdapter._specs_from_aspects({"localizedAspects": flattened}, valid_options)
 
     async def search(self, scope: SearchScope, destination_country: str) -> list[Offer]:
         summaries = await self.fetch_listings(scope)

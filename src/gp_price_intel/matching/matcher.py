@@ -12,6 +12,27 @@ from gp_price_intel.matching.identifiers import (
 )
 from gp_price_intel.normalize.offer_labels import english_variant_label
 
+UNMATCHED_NOTE = "No SKU/GTIN/model match and attributes did not align."
+AMBIGUOUS_NOTE = "Attribute match ambiguous across variants."
+
+
+def needs_more_evidence(offer: Offer) -> bool:
+    """
+    True when the listing did not identify one build, so more evidence would help.
+
+    Two outcomes qualify. An `unmatched` offer stated nothing the catalog could use.
+    An ambiguous one stated something true of several builds — "Galaxy S26 Ultra
+    512GB" when the catalog holds a 12 GB and a 16 GB 512 GB machine — and was pinned
+    to the first candidate as `similar`, which keeps it out of the ranked list.
+
+    Neither is a fact about the product; both are gaps in what the listing published.
+    Sources that can be asked for structured item specifics should be, before the
+    offer is written off. See `SourceAdapter.enrich`.
+    """
+    if offer.match_kind == MatchKind.UNMATCHED:
+        return True
+    return AMBIGUOUS_NOTE in offer.match_notes
+
 
 class ProductMatcher:
     """
@@ -102,7 +123,7 @@ class ProductMatcher:
         return offer.model_copy(
             update={
                 "match_kind": MatchKind.UNMATCHED,
-                "match_notes": ["No SKU/GTIN/model match and attributes did not align."],
+                "match_notes": [UNMATCHED_NOTE],
             }
         )
 
@@ -189,6 +210,6 @@ class ProductMatcher:
             return variant, kind, notes
 
         if len(candidates) > 1:
-            return candidates[0], MatchKind.SIMILAR, ["Attribute match ambiguous across variants."]
+            return candidates[0], MatchKind.SIMILAR, [AMBIGUOUS_NOTE]
 
         return None

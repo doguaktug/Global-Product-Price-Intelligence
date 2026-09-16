@@ -13,7 +13,13 @@ from gp_price_intel.adapters.fixture import FixtureAdapter
 from gp_price_intel.adapters.registry import load_sources
 from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.config import Settings
-from gp_price_intel.domain.models import HighlightKind, MatchKind, SessionStatus, UserPreferences
+from gp_price_intel.domain.models import (
+    HighlightKind,
+    MatchKind,
+    NormalizedSpec,
+    SessionStatus,
+    UserPreferences,
+)
 from gp_price_intel.fx.service import FxService
 from gp_price_intel.orchestrator.search import SearchFailed, SearchOrchestrator
 from gp_price_intel.ranking.confidence import HIGHLIGHT_MIN_CONFIDENCE, effective_confidence, is_highlight_eligible
@@ -310,6 +316,95 @@ async def test_no_offers_fails_the_search_with_reason(
         await pipeline_orchestrator.run(session)
     assert session.status == SessionStatus.FAILED
     assert session.failure_reason is not None
+
+
+@pytest.mark.asyncio
+async def test_fixture_titles_state_the_build_so_nothing_is_re_fetched(
+    pipeline_orchestrator: SearchOrchestrator,
+) -> None:
+    """Enrichment cost scales with vague listings, not with every result."""
+    asked: list[int] = []
+
+    class Counting(FixtureAdapter):
+        async def enrich(self, offers, scope):  # type: ignore[no-untyped-def]
+            asked.append(len(offers))
+            return offers
+
+    pipeline_orchestrator.adapters = [
+        Counting(
+            catalog=CatalogRepository(catalog_dir=pipeline_orchestrator.catalog.catalog_dir),
+            sources=load_sources(),
+        )
+    ]
+    session = pipeline_orchestrator.start_session(
+        "Samsung Galaxy S26 Ultra 512 GB Black",
+        UserPreferences(destination_country="TR", reference_currency="TRY"),
+    )
+
+    page = await pipeline_orchestrator.run(session)
+
+    assert page.offers
+    assert asked == []
+
+
+@pytest.mark.asyncio
+async def test_a_listing_placed_only_by_its_detail_reaches_the_decision_page(
+    pipeline_orchestrator: SearchOrchestrator,
+) -> None:
+    """
+    A title naming no build must still be rankable when the source can say more.
+
+    Without the second look this offer is `unmatched` and dropped, and a real listing
+    disappears over how its seller writes titles.
+    """
+    vague_id = "vague-listing"
+
+    class VagueThenDetailed(FixtureAdapter):
+        async def search(self, scope, destination_country):  # type: ignore[no-untyped-def]
+            offers = await super().search(scope, destination_country)
+            assert offers, "fixture should supply at least one listing to clone"
+            vague = offers[0].model_copy(
+                update={
+                    "id": vague_id,
+                    "listing_title": "Samsung Galaxy S26 Ultra",
+                    "raw_specs": [],
+                    "gtin": None,
+                    "model_number": None,
+                    "retailer_sku": None,
+                }
+            )
+            return [*offers, vague]
+
+        async def enrich(self, offers, scope):  # type: ignore[no-untyped-def]
+            return [
+                offer.model_copy(update={"raw_specs": template_specs})
+                if offer.id == vague_id
+                else offer
+                for offer in offers
+            ]
+
+    catalog = CatalogRepository(catalog_dir=pipeline_orchestrator.catalog.catalog_dir)
+    confirmed = catalog.get_variant("samsung-galaxy-s26-ultra-512-12-eu-black")
+    assert confirmed is not None
+    template_specs = [
+        NormalizedSpec(key="storage_gb", value=confirmed.storage_gb),
+        NormalizedSpec(key="memory_gb", value=confirmed.memory_gb),
+        NormalizedSpec(key="colour", value=confirmed.colour),
+    ]
+
+    pipeline_orchestrator.adapters = [
+        VagueThenDetailed(catalog=catalog, sources=load_sources())
+    ]
+    session = pipeline_orchestrator.start_session(
+        "Samsung Galaxy S26 Ultra 512 GB Black",
+        UserPreferences(destination_country="TR", reference_currency="TRY"),
+    )
+
+    page = await pipeline_orchestrator.run(session)
+
+    placed = next(offer for offer in page.offers if offer.id == vague_id)
+    assert placed.match_kind == MatchKind.IDENTICAL
+    assert placed.matched_variant_id == "samsung-galaxy-s26-ultra-512-12-eu-black"
 
 
 @pytest.mark.asyncio

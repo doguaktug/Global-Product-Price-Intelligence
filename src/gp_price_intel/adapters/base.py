@@ -42,6 +42,25 @@ class SourceAdapter(ABC):
         """
         return [self.source]
 
+    async def enrich(self, offers: list[Offer], scope: SearchScope) -> list[Offer]:
+        """
+        Fetch more evidence for offers the matcher could not place. Default: no change.
+
+        Search results are usually a summary — a title, a price, a seller. A title is
+        the seller's marketing line, not a spec sheet, so "Galaxy S26 Ultra" may name
+        no build at all while the listing's own item-specifics table states the storage
+        and RAM exactly. Sources that publish that detail behind a second request can
+        implement this to supply it, and the orchestrator re-matches whatever comes
+        back.
+
+        Called only for offers that failed to identify one variant, so the extra
+        requests scale with the ambiguous listings rather than with every result.
+        Best-effort by contract: return the offer unchanged rather than raising when
+        the detail cannot be had, since an un-enriched offer is no worse off than it
+        already was.
+        """
+        return offers
+
     def unavailable_reason(self) -> str | None:
         """
         Why this adapter cannot search at all, or `None` when it can.
