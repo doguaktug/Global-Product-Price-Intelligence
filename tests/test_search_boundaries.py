@@ -82,16 +82,18 @@ async def test_orchestrator_refuses_to_run_an_unmatched_query() -> None:
         await orch.run(session)
 
 
-def test_unknown_generation_is_not_mapped_onto_a_stocked_one(
-    normalizer: QueryNormalizer,
+def test_near_miss_suggestions_stay_inside_the_product_line(
+    normalizer: QueryNormalizer, catalog: CatalogRepository
 ) -> None:
-    """An unreleased generation must not search last year's model."""
+    """An unreleased generation should suggest its own line, not every family."""
     result = normalizer.normalize("Galaxy S27 Ultra 512GB")
 
-    assert result.candidate_family_id is None
     prompt = next(p for p in result.pending_properties if p.property_key == "family_id")
-    assert prompt.reason == ConfirmationReason.NO_MATCH
-    assert prompt.options == []
+    assert prompt.options
+    for family_id in prompt.options:
+        family = catalog.get_family(family_id)
+        assert family is not None
+        assert "Ultra" in family.family_name
 
 
 def test_missing_build_suggests_the_closest_variants(normalizer: QueryNormalizer) -> None:
