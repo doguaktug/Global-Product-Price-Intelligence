@@ -42,6 +42,10 @@ def test_ui_assets_are_served() -> None:
     assert "include_used: Boolean($(\"include-used\")?.checked)" in js.text
     assert "function appendCondition(" in js.text
     assert ".check-row:has(input:checked)" in css.text
+    assert "Which model should we search for?" in js.text
+    assert "Which series should we search for?" in js.text
+    assert "Which line should we search for?" in js.text
+    assert 'session.status === "needs_confirmation"' in js.text
 
 
 def test_the_ranked_list_starts_hidden_behind_its_toggle() -> None:

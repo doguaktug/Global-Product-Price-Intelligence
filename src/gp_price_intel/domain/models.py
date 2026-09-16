@@ -215,6 +215,10 @@ class ProductFamily(BaseModel):
     category_id: str
     brand: str
     family_name: str
+    #: Broader range the family belongs to, e.g. ``"Galaxy S25"`` or ``"ROG"``.
+    series: str | None = None
+    #: Sub-range inside a series, e.g. ``"Zephyrus"`` / ``"Strix"`` / ``"Flow"``.
+    line: str | None = None
     aliases: list[str] = Field(default_factory=list)
     valid_options: dict[str, list[Any]] = Field(default_factory=dict)
 

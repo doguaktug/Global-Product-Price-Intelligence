@@ -28,7 +28,14 @@ from gp_price_intel.explanation.builder import ExplanationBuilder
 from gp_price_intel.fx.service import FxService
 from gp_price_intel.landed_cost.service import LandedCostService
 from gp_price_intel.matching.matcher import ProductMatcher
-from gp_price_intel.normalize.confirmation import ConfirmationError, resolve_search_scope
+from gp_price_intel.normalize.confirmation import (
+    ConfirmationError,
+    GROUPING_KEYS,
+    choice_value,
+    merge_property_choices,
+    resolve_search_scope,
+    validate_choices_against_prompts,
+)
 from gp_price_intel.normalize.query_normalizer import QueryNormalizer
 from gp_price_intel.ranking.engine import RankingEngine
 from gp_price_intel.ranking.highlights import pick_highlights
@@ -147,12 +154,30 @@ class SearchOrchestrator:
         if session.normalized_query is None:
             raise ConfirmationError("Session has no normalized query.")
 
-        session.property_choices = choices
+        validate_choices_against_prompts(session.normalized_query, choices)
+        accumulated = merge_property_choices(session.property_choices, choices)
+        session.property_choices = accumulated
+
+        pending_keys = {prompt.property_key for prompt in session.normalized_query.pending_properties}
+        answered_grouping = {choice.property_key for choice in choices} & GROUPING_KEYS
+        if pending_keys & GROUPING_KEYS and answered_grouping:
+            session.normalized_query = self.normalizer.normalize(
+                session.raw_query,
+                locked_series=choice_value(accumulated, "series"),
+                locked_line=choice_value(accumulated, "line"),
+                locked_family_id=choice_value(accumulated, "family_id"),
+            )
+            if session.normalized_query.needs_confirmation:
+                session.status = SessionStatus.NEEDS_CONFIRMATION
+                session.search_scope = None
+                session.confirmed_variant_id = None
+                return session
+
         try:
             scope, confirmed_variant_id = resolve_search_scope(
                 self.catalog,
                 session.normalized_query,
-                choices,
+                accumulated,
             )
         except ConfirmationError:
             session.status = SessionStatus.NEEDS_CONFIRMATION
