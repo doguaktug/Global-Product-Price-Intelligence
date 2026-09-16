@@ -31,8 +31,12 @@ def pick_highlights(
         return []
 
     eligible = [item for item in scored if is_highlight_eligible(item[1])]
-    if not eligible:
-        return []
+    # The floor exists so a cheap unreliable listing cannot steal a lens from a
+    # trustworthy one. It is not a licence to leave the Decision Page blank: if
+    # every offer is a marketplace import below 0.7, the user still needs a
+    # recommendation, and the reliability warning already on the breakdown is
+    # how that uncertainty is shown.
+    pool = eligible or scored
 
     builder = explanations or ExplanationBuilder()
     highlights: list[DecisionHighlight] = []
@@ -51,11 +55,11 @@ def pick_highlights(
             )
         )
 
-    best_for_you = max(eligible, key=lambda item: item[1].final_score)
+    best_for_you = max(pool, key=lambda item: item[1].final_score)
     add_highlight(HighlightKind.BEST_OVERALL, "Best for you", best_for_you[0], best_for_you[1])
 
     lowest_list = min(
-        eligible,
+        pool,
         key=lambda item: float(
             item[0].converted_list_price.reference.amount
             if item[0].converted_list_price
@@ -66,7 +70,7 @@ def pick_highlights(
 
     complete_landed = [
         item
-        for item in eligible
+        for item in pool
         if item[0].landed_cost and item[0].landed_cost.completeness != LandedCostCompleteness.UNKNOWN
     ]
     if complete_landed:
@@ -81,11 +85,11 @@ def pick_highlights(
             lowest_total[1],
         )
 
-    best_seller = max(eligible, key=lambda item: item[1].criterion_scores.get("seller", 0.0))
+    best_seller = max(pool, key=lambda item: item[1].criterion_scores.get("seller", 0.0))
     add_highlight(HighlightKind.BEST_SELLER, "Most trusted seller", best_seller[0], best_seller[1])
 
     with_warranty = [
-        item for item in eligible if warranty_months(item[0].warranty) is not None
+        item for item in pool if warranty_months(item[0].warranty) is not None
     ]
     if with_warranty:
         best_warranty = max(

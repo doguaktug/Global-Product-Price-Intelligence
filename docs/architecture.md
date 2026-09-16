@@ -259,7 +259,7 @@ There are exactly five highlight lenses, and they are the five members of `Highl
 
 “Lowest list price” and “lowest total landed cost” are separate lenses on purpose: the gap between them is the whole cross-border argument, and collapsing them would hide it. Reasoning is shown with (or immediately under) each card — not buried.
 
-A lens is skipped rather than filled with a weak answer when nothing qualifies: no offer with a complete landed cost means no “lowest total landed cost” card. Lenses may name the same offer; the Decision Page **collapses** those into one card (1–5 cards, spread equally) instead of repeating the listing.
+A lens is skipped rather than filled with a weak answer when nothing qualifies **for that lens**: no offer with a complete landed cost means no “lowest total landed cost” card. The confidence floor works the same way *between* offers — a cheap unreliable listing cannot steal a lens from a trustworthy one — but if every offer is below 0.7 the Decision Page still recommends the best of that set, with the reliability warning already on the breakdown. Lenses may name the same offer; the Decision Page **collapses** those into one card (1–5 cards, spread equally) instead of repeating the listing.
 
 There is no “best rated” lens. Review volume is a criterion inside the score, not a lens of its own, because a review count is only meaningful next to the seller it belongs to. There is no “best specification” lens either: every offer in the ranked list matched the confirmed build, so they all share the same specs.
 

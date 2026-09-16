@@ -253,19 +253,28 @@ class EbayAdapter(SourceAdapter):
                 *self._specs_from_aspect_groups(detail, valid_options),
             )
         }
-        if not declared and not _detail_identifiers(detail):
+        gtin, mpn = _detail_identifiers(detail)
+        new_stock = self._stock_status(detail)
+
+        if not declared and not gtin and not mpn and new_stock == offer.stock_status:
             return offer
 
         merged = [spec for spec in offer.raw_specs if spec.key not in declared]
         merged.extend(declared.values())
 
-        gtin, mpn = _detail_identifiers(detail)
-        update: dict[str, Any] = {"raw_specs": merged}
+        update: dict[str, Any] = {}
+        if declared:
+            update["raw_specs"] = merged
         if gtin and not offer.gtin:
             update["gtin"] = gtin
         if mpn and not offer.model_number:
             update["model_number"] = mpn
-        return offer.model_copy(update=update)
+        if new_stock != offer.stock_status:
+            update["stock_status"] = new_stock
+            update["data_confidence"] = compute_data_confidence_from(
+                self.source, offer.seller, new_stock
+            )
+        return offer.model_copy(update=update) if update else offer
 
     @staticmethod
     def _specs_from_aspect_groups(
@@ -529,15 +538,37 @@ class EbayAdapter(SourceAdapter):
         return MARKETPLACE_COUNTRY.get(self.marketplace_id, self.source.country)
 
     def _stock_status(self, item: dict[str, Any]) -> StockStatus:
+        """
+        Read stock from the listing. Browse search summaries usually omit it.
+
+        `item_summary/search` returns currently listed items and does not include
+        `estimatedAvailabilities` on the summary schema. Treating that absence as
+        `unknown` then discounts every eBay offer by 15%, which — stacked on the
+        cross-border completeness penalty — pushes even a 99%-rated seller below
+        the highlight floor. A live search hit is in-stock until the payload says
+        otherwise; `unknown` is reserved for an explicit unreadable status.
+        """
         for availability in item.get("estimatedAvailabilities") or []:
-            status = str(availability.get("estimatedAvailabilityStatus", "")).casefold()
-            if status in {"in_stock", "available"}:
-                return StockStatus.IN_STOCK
-            if status in {"limited", "low_stock"}:
-                return StockStatus.LIMITED
-            if status in {"out_of_stock", "sold_out", "unavailable"}:
-                return StockStatus.OUT_OF_STOCK
-        return StockStatus.UNKNOWN
+            parsed = self._parse_availability_status(
+                availability.get("estimatedAvailabilityStatus")
+            )
+            if parsed is not None:
+                return parsed
+        top_level = self._parse_availability_status(item.get("estimatedAvailabilityStatus"))
+        if top_level is not None:
+            return top_level
+        return StockStatus.IN_STOCK
+
+    @staticmethod
+    def _parse_availability_status(raw: object) -> StockStatus | None:
+        status = str(raw or "").casefold()
+        if status in {"in_stock", "available"}:
+            return StockStatus.IN_STOCK
+        if status in {"limited", "low_stock"}:
+            return StockStatus.LIMITED
+        if status in {"out_of_stock", "sold_out", "unavailable"}:
+            return StockStatus.OUT_OF_STOCK
+        return None
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:

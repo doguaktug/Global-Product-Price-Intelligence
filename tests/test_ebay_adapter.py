@@ -13,6 +13,7 @@ from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.config import Settings
 from gp_price_intel.domain.models import MatchKind, SearchScope, StockStatus
 from gp_price_intel.matching.matcher import ProductMatcher
+from gp_price_intel.ranking.confidence import compute_data_confidence
 
 
 def _adapter(client: httpx.AsyncClient) -> EbayAdapter:
@@ -67,6 +68,87 @@ async def test_ebay_search_maps_required_offer_fields() -> None:
     assert offer.seller.review_count == 4200
     assert offer.seller.reliability is not None
     assert 0.0 <= offer.data_confidence <= 1.0
+
+
+@pytest.mark.asyncio
+async def test_a_search_hit_without_availability_is_treated_as_in_stock() -> None:
+    """
+    Browse `ItemSummary` has no estimatedAvailabilities field.
+
+    Treating that gap as `unknown` discounted every eBay offer, and stacked on the
+    import completeness penalty it put even well-reviewed sellers below the
+    highlight floor. A live search result is in stock until the payload says not.
+    """
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/oauth2/token"):
+            return httpx.Response(200, json={"access_token": "token-123", "expires_in": 3600})
+        return httpx.Response(
+            200,
+            json={
+                "itemSummaries": [
+                    {
+                        "itemId": "v1|456|0",
+                        "title": "Samsung Galaxy S26 Ultra 512GB",
+                        "itemWebUrl": "https://www.ebay.com/itm/456",
+                        "price": {"value": "1099.99", "currency": "USD"},
+                        "seller": {
+                            "username": "phone-deals",
+                            "feedbackPercentage": "99.5",
+                            "feedbackScore": 8000,
+                        },
+                    }
+                ]
+            },
+        )
+
+    offers = await _adapter(httpx.AsyncClient(transport=httpx.MockTransport(handler))).search(
+        SearchScope(
+            family_id="samsung-galaxy-s26-ultra",
+            constraints={"storage_gb": 512},
+        ),
+        destination_country="TR",
+    )
+
+    assert offers[0].stock_status == StockStatus.IN_STOCK
+    # Typical well-reviewed eBay seller, US→TR import (partial completeness 0.9).
+    # Must still clear 0.7 once stock is not wrongly marked unknown.
+    data = compute_data_confidence(
+        source_reliability=0.72,
+        seller_reliability=offers[0].seller.reliability,
+        review_count=offers[0].seller.review_count,
+        stock_status=offers[0].stock_status,
+    )
+    assert data * 0.9 >= 0.7
+
+
+@pytest.mark.asyncio
+async def test_an_explicitly_sold_out_listing_is_still_dropped() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/oauth2/token"):
+            return httpx.Response(200, json={"access_token": "t", "expires_in": 3600})
+        return httpx.Response(
+            200,
+            json={
+                "itemSummaries": [
+                    {
+                        "itemId": "v1|out|0",
+                        "title": "Samsung Galaxy S26 Ultra 512GB",
+                        "itemWebUrl": "https://www.ebay.com/itm/out",
+                        "price": {"value": "900.00", "currency": "USD"},
+                        "estimatedAvailabilities": [
+                            {"estimatedAvailabilityStatus": "OUT_OF_STOCK"}
+                        ],
+                    }
+                ]
+            },
+        )
+
+    offers = await _adapter(httpx.AsyncClient(transport=httpx.MockTransport(handler))).search(
+        SearchScope(family_id="samsung-galaxy-s26-ultra", constraints={"storage_gb": 512}),
+        destination_country="TR",
+    )
+    assert offers == []
 
 
 def _listing_response(request: httpx.Request, *, title: str, aspects: list | None = None):
