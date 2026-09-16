@@ -66,6 +66,18 @@ These gate **whether an alternative is shown**. A near-offer that clears none is
 
 ---
 
+## Item condition
+
+| Resource | Location | Effect |
+| --- | --- | --- |
+| `ItemCondition` | `domain/models.py` | `new` / `used` / `refurbished` / `open_box` / `unknown` on each offer |
+| `include_used` | `UserPreferences` (default `false`) | User option: when false, used / refurbished / open-box are excluded; when true they stay and are labelled |
+| `parse_item_condition` | `normalize/condition.py` | Reads marketplace condition strings and title keywords (EN/DE/TR/JP) |
+| Optional filter | adapters + `orchestrator/search.py` | Honours `include_used`; not a hard product rule |
+| eBay `filter` | `adapters/ebay.py` | When `include_used` is false, Browse API requests `conditions:{NEW\|NEW_OTHER}` as a first pass |
+
+Unknown condition stays in the list with a Decision Page caveat either way.
+
 ## Locale aliases (app language: English)
 
 | Resource | Location | Effect |

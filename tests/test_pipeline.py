@@ -319,7 +319,7 @@ async def test_a_source_that_refused_the_request_is_named_not_hidden(
     """A dead source must not be reported as an empty shelf."""
 
     class RefusingAdapter(FixtureAdapter):
-        async def search(self, scope, destination_country):  # type: ignore[no-untyped-def]
+        async def search(self, scope, destination_country, **kwargs):  # type: ignore[no-untyped-def]
             raise SourceFetchError("eBay OAuth rejected the credentials (HTTP 401)")
 
     refusing = RefusingAdapter(
@@ -351,7 +351,7 @@ async def test_an_unsearched_source_is_disclosed_on_an_empty_page(
     """
 
     class SwitchedOffAdapter(FixtureAdapter):
-        async def search(self, scope, destination_country):  # type: ignore[no-untyped-def]
+        async def search(self, scope, destination_country, **kwargs):  # type: ignore[no-untyped-def]
             return []
 
         def unavailable_reason(self) -> str | None:

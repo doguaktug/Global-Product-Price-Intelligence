@@ -30,8 +30,18 @@ class SourceAdapter(ABC):
     source: Source
 
     @abstractmethod
-    async def search(self, scope: SearchScope, destination_country: str) -> list[Offer]:
-        """Fetch listings for the search scope."""
+    async def search(
+        self,
+        scope: SearchScope,
+        destination_country: str,
+        *,
+        include_used: bool = False,
+    ) -> list[Offer]:
+        """Fetch listings for the search scope.
+
+        ``include_used`` is a user preference: when False, adapters may drop
+        used / refurbished / open-box stock; when True they must keep them.
+        """
 
     def known_sources(self) -> list[Source]:
         """

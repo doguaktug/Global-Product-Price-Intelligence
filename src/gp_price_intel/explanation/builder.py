@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from gp_price_intel.domain.models import (
+    ItemCondition,
     Explanation,
     ExplanationReason,
     LandedCostCompleteness,
@@ -12,6 +13,7 @@ from gp_price_intel.domain.models import (
 )
 from gp_price_intel.ranking.confidence import HIGHLIGHT_MIN_CONFIDENCE, effective_confidence
 from gp_price_intel.normalize.offer_labels import original_listing_name, primary_offer_name
+from gp_price_intel.normalize.condition import condition_label, is_non_new_condition
 
 Scored = tuple[Offer, ScoreBreakdown]
 
@@ -122,6 +124,13 @@ class ExplanationBuilder:
             )
         elif offer.data_confidence < 0.8:
             caveats.append("Listing data confidence is limited.")
+
+        if is_non_new_condition(offer.condition):
+            caveats.append(
+                f"{condition_label(offer.condition)} listing — not new retail stock."
+            )
+        elif offer.condition == ItemCondition.UNKNOWN:
+            caveats.append("Condition not stated by the source — treated as new for comparison.")
 
         if offer.match_notes:
             caveats.extend(offer.match_notes)

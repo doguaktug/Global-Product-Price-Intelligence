@@ -35,6 +35,16 @@ class StockStatus(str, Enum):
     UNKNOWN = "unknown"
 
 
+class ItemCondition(str, Enum):
+    """Whether the listing is new retail stock or previously owned / renewed."""
+
+    NEW = "new"
+    USED = "used"
+    REFURBISHED = "refurbished"
+    OPEN_BOX = "open_box"
+    UNKNOWN = "unknown"
+
+
 class MatchKind(str, Enum):
     IDENTICAL = "identical"
     SIMILAR = "similar"
@@ -276,6 +286,8 @@ class Offer(BaseModel):
     converted_list_price: ConvertedMoney | None = None
     landed_cost: LandedCost | None = None
     stock_status: StockStatus | None = StockStatus.UNKNOWN
+    #: New vs used/refurbished. Non-new offers are dropped before ranking.
+    condition: ItemCondition = ItemCondition.UNKNOWN
     delivery_time: str | None = None
     warranty: str | None = None
     return_policy: str | None = None
@@ -298,6 +310,9 @@ class UserPreferences(BaseModel):
     reference_currency: str = "TRY"
     origin: PreferenceOrigin = PreferenceOrigin.DEFAULT
     weights: dict[str, float] = Field(default_factory=lambda: dict(DEFAULT_WEIGHTS))
+    #: When False (default), used / refurbished / open-box listings are excluded.
+    #: When True, they stay in the comparison and are labelled by condition.
+    include_used: bool = False
 
 
 class ConfirmationPrompt(BaseModel):

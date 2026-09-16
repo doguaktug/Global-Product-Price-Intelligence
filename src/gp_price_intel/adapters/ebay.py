@@ -17,6 +17,7 @@ from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.config import Settings, get_settings
 from gp_price_intel.domain.models import (
     AcquisitionMethod,
+    ItemCondition,
     Money,
     NormalizedSpec,
     Offer,
@@ -27,6 +28,7 @@ from gp_price_intel.domain.models import (
     StockStatus,
 )
 from gp_price_intel.normalize.attribute_parser import parse_listing_attributes
+from gp_price_intel.normalize.condition import is_non_new_condition, parse_item_condition
 from gp_price_intel.normalize.spec_parser import parse_spec_value
 from gp_price_intel.ranking.confidence import compute_data_confidence_from
 
@@ -116,7 +118,9 @@ class EbayAdapter(SourceAdapter):
             return None
         return "eBay was not searched: EBAY_APP_ID / EBAY_CERT_ID are not set"
 
-    async def fetch_listings(self, scope: SearchScope) -> list[dict[str, Any]]:
+    async def fetch_listings(
+        self, scope: SearchScope, *, include_used: bool = False
+    ) -> list[dict[str, Any]]:
         """
         Raw Browse `itemSummaries` for this scope, before parsing or filtering.
 
@@ -134,15 +138,21 @@ class EbayAdapter(SourceAdapter):
 
         try:
             token = await self._access_token()
-            return await self._search_items(token, query)
+            return await self._search_items(token, query, include_used=include_used)
         except SourceFetchError:
             raise
         except Exception as exc:
             logger.exception("eBay search failed for query=%r", query)
             raise SourceFetchError(f"eBay request failed: {exc}") from exc
 
-    async def search(self, scope: SearchScope, destination_country: str) -> list[Offer]:
-        summaries = await self.fetch_listings(scope)
+    async def search(
+        self,
+        scope: SearchScope,
+        destination_country: str,
+        *,
+        include_used: bool = False,
+    ) -> list[Offer]:
+        summaries = await self.fetch_listings(scope, include_used=include_used)
         if not summaries:
             return []
 
@@ -156,6 +166,8 @@ class EbayAdapter(SourceAdapter):
         for item in summaries:
             offer = self._parse_item(item, valid_options)
             if offer is None or offer.stock_status == StockStatus.OUT_OF_STOCK:
+                continue
+            if not include_used and is_non_new_condition(offer.condition):
                 continue
             offers.append(offer)
         return offers
@@ -210,12 +222,19 @@ class EbayAdapter(SourceAdapter):
         self._token_expires_at = time.time() + int(payload.get("expires_in", 7200))
         return self._token
 
-    async def _search_items(self, token: str, query: str) -> list[dict[str, Any]]:
+    async def _search_items(
+        self, token: str, query: str, *, include_used: bool = False
+    ) -> list[dict[str, Any]]:
         host = self.api_host()
         client = await self._get_client()
+        params: dict[str, str] = {"q": query, "limit": "20"}
+        if not include_used:
+            # First pass: ask the marketplace for new retail. Leftovers are still
+            # classified and dropped below when include_used is False.
+            params["filter"] = "conditions:{NEW|NEW_OTHER}"
         response = await client.get(
             f"https://{host}/buy/browse/v1/item_summary/search",
-            params={"q": query, "limit": "20"},
+            params=params,
             headers={
                 "Authorization": f"Bearer {token}",
                 "X-EBAY-C-MARKETPLACE-ID": self.marketplace_id,
@@ -281,6 +300,10 @@ class EbayAdapter(SourceAdapter):
 
         image = (item.get("image") or {}).get("imageUrl")
         condition = item.get("condition")
+        item_condition = parse_item_condition(
+            str(condition) if condition else None,
+            str(title),
+        )
         gtin = None
         for aspect in item.get("localizedAspects") or []:
             name = str(aspect.get("name", "")).casefold()
@@ -305,6 +328,7 @@ class EbayAdapter(SourceAdapter):
             retailer_sku=str(item_id),
             gtin=gtin,
             stock_status=stock_status,
+            condition=item_condition,
             warranty=None,
             return_policy=None,
             raw_specs=[

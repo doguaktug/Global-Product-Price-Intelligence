@@ -32,6 +32,7 @@ from gp_price_intel.normalize.confirmation import ConfirmationError, resolve_sea
 from gp_price_intel.normalize.query_normalizer import QueryNormalizer
 from gp_price_intel.ranking.engine import RankingEngine
 from gp_price_intel.ranking.highlights import pick_highlights
+from gp_price_intel.normalize.condition import is_non_new_condition, offer_condition_from_specs_and_title
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,7 @@ def _empty_result_reason(
     adapter_errors: list[str],
     fetched: int,
     out_of_stock: int,
+    used_filtered: int,
     eligible: int,
     unmatched: int,
     conversion_failures: list[str],
@@ -72,6 +74,10 @@ def _empty_result_reason(
         return "No offers were found for this product."
     if fetched == out_of_stock:
         return "All collected offers were out of stock."
+    if fetched == out_of_stock + used_filtered and used_filtered > 0:
+        return "All remaining offers were used, refurbished, or open-box. Turn on “include used” to compare them."
+    if eligible == 0 and used_filtered > 0 and unmatched == 0:
+        return "Only used, refurbished, or open-box listings were found. Turn on “include used” to compare them."
     if eligible == 0:
         if unmatched:
             return "None of the collected listings matched the confirmed product."
@@ -165,14 +171,29 @@ class SearchOrchestrator:
 
         session.status = SessionStatus.FETCHING
         adapter_errors: list[str] = []
-        raw_offers = await self._fetch_offers(scope, destination, adapter_errors)
+        include_used = bool(session.preferences.include_used)
+        raw_offers = await self._fetch_offers(
+            scope, destination, adapter_errors, include_used=include_used
+        )
         fetched = len(raw_offers)
         in_stock = [
             offer for offer in raw_offers if offer.stock_status != StockStatus.OUT_OF_STOCK
         ]
         out_of_stock = fetched - len(in_stock)
 
-        matched = self.matcher.match(in_stock, scope)
+        # Optionally drop used / refurbished / open-box (default: new only).
+        kept: list = []
+        used_filtered = 0
+        for offer in in_stock:
+            condition = offer_condition_from_specs_and_title(offer)
+            if offer.condition != condition:
+                offer = offer.model_copy(update={"condition": condition})
+            if not include_used and is_non_new_condition(condition):
+                used_filtered += 1
+                continue
+            kept.append(offer)
+
+        matched = self.matcher.match(kept, scope)
         eligible = [offer for offer in matched if offer.match_kind != MatchKind.UNMATCHED]
         unmatched = len(matched) - len(eligible)
 
@@ -225,6 +246,7 @@ class SearchOrchestrator:
                     adapter_errors=adapter_errors,
                     fetched=fetched,
                     out_of_stock=out_of_stock,
+                    used_filtered=used_filtered,
                     eligible=len(eligible),
                     unmatched=unmatched,
                     conversion_failures=conversion_failures,
@@ -334,13 +356,18 @@ class SearchOrchestrator:
         scope: SearchScope,
         destination_country: str,
         errors: list[str] | None = None,
+        *,
+        include_used: bool = False,
     ) -> list:
         collected_errors = errors if errors is not None else []
         if not self.adapters:
             return []
 
         results = await asyncio.gather(
-            *[adapter.search(scope, destination_country) for adapter in self.adapters],
+            *[
+                adapter.search(scope, destination_country, include_used=include_used)
+                for adapter in self.adapters
+            ],
             return_exceptions=True,
         )
 
