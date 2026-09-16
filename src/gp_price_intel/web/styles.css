@@ -367,6 +367,18 @@ body {
   text-align: center;
 }
 
+.product-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.product-link:hover,
+.product-link:focus-visible {
+  color: var(--accent);
+}
+
 .picture {
   display: grid;
   place-items: center;

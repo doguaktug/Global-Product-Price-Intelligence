@@ -30,6 +30,13 @@ def test_ui_assets_are_served() -> None:
     # `hidden` has to beat the class `display` rules, or the views and the ranked
     # list render on top of each other instead of staying closed.
     assert "[hidden] {\n  display: none !important;\n}" in css.text
+    # Product names are the retailer link, not a separate control.
+    assert "function listingLink(" in js.text
+    assert 'link.className = "product-link"' in js.text
+    assert "product.append(listingLink(searched, offer))" in js.text
+    assert "heading.append(listingLink(offer.listing_title, offer))" in js.text
+    assert "strong.append(listingLink(offer.listing_title, offer))" in js.text
+    assert ".product-link {" in css.text
 
 
 def test_the_ranked_list_starts_hidden_behind_its_toggle() -> None:
