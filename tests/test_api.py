@@ -13,6 +13,8 @@ def test_health() -> None:
     assert body["status"] == "ok"
     assert body["default_country"] == "TR"
     assert body["default_currency"] == "TRY"
+    assert body["used_filter"] is True
+    assert str(body["web_dir"]).replace("\\", "/").endswith("gp_price_intel/web")
 
 
 def test_catalog_categories_endpoint() -> None:

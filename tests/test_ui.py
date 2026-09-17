@@ -17,6 +17,9 @@ def test_index_serves_the_search_page() -> None:
     assert "change country/currency" in response.text
     assert 'id="include-used"' in response.text
     assert "include used / refurbished" in response.text
+    assert response.headers.get("cache-control", "").startswith("no-store")
+    assert "/ui/app.js?v=" in response.text
+    assert "/ui/styles.css?v=" in response.text
 
 
 def test_ui_assets_are_served() -> None:

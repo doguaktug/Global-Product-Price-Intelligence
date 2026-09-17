@@ -26,10 +26,20 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 cp .env.example .env               # empty eBay keys are fine
 pytest
-uvicorn gp_price_intel.api.main:app --reload
+uvicorn gp_price_intel.api.main:app --reload --app-dir src --reload-dir src
 ```
 
-Then open:
+Windows (PowerShell), from the repo folder that `git status` shows as `main`:
+
+```powershell
+cd path\to\Global-Product-Price-Intelligence
+git checkout main
+git pull
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m uvicorn gp_price_intel.api.main:app --reload --app-dir src --reload-dir src
+```
+
+Stop any older uvicorn first (Ctrl+C in that terminal). If port 8000 is already taken, the new process will not replace it and the browser keeps the previous UI. Hard-refresh the page (Ctrl+F5). `/health` should show `"used_filter": true` and `web_dir` ending in `src\gp_price_intel\web`, not `site-packages`.
 
 | URL | What it is |
 | --- | --- |
