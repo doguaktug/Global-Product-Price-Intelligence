@@ -27,7 +27,7 @@ def test_catalog_categories_endpoint() -> None:
 
 def test_normalize_endpoint_flags_missing_storage() -> None:
     client = TestClient(create_app())
-    response = client.post("/api/search/normalize", json={"query": "Samsung S26"})
+    response = client.post("/api/search/normalize", json={"query": "Samsung S26 Ultra"})
     assert response.status_code == 200
     body = response.json()
     assert body["needs_confirmation"] is True
@@ -102,3 +102,52 @@ def test_start_search_keeps_include_used_preference() -> None:
     )
     assert response.status_code == 200
     assert response.json()["preferences"]["include_used"] is True
+
+
+def test_normalize_endpoint_asks_s25_model_before_specs() -> None:
+    client = TestClient(create_app())
+    response = client.post("/api/search/normalize", json={"query": "samsung s25"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["needs_confirmation"] is True
+    assert [p["property_key"] for p in body["pending_properties"]] == ["family_id"]
+    prompt = body["pending_properties"][0]
+    assert prompt["options"] == [
+        "samsung-galaxy-s25",
+        "samsung-galaxy-s25-plus",
+        "samsung-galaxy-s25-ultra",
+    ]
+
+
+def test_normalize_endpoint_asks_asus_series_before_specs() -> None:
+    client = TestClient(create_app())
+    response = client.post("/api/search/normalize", json={"query": "asus"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["needs_confirmation"] is True
+    assert [p["property_key"] for p in body["pending_properties"]] == ["series"]
+    assert body["pending_properties"][0]["options"] == ["ROG", "TUF", "Vivobook", "Zenbook"]
+
+
+def test_confirm_endpoint_restages_after_a_line_choice() -> None:
+    client = TestClient(create_app())
+    started = client.post("/api/search/start", json={"query": "asus rog"})
+    assert started.status_code == 200
+    session = started.json()
+    assert session["status"] == "needs_confirmation"
+    assert session["normalized_query"]["pending_properties"][0]["property_key"] == "line"
+
+    confirmed = client.post(
+        "/api/search/confirm",
+        json={
+            "session": session,
+            "choices": [{"property_key": "line", "kind": "value", "value": "Zephyrus"}],
+        },
+    )
+    assert confirmed.status_code == 200
+    body = confirmed.json()
+    assert body["status"] == "needs_confirmation"
+    prompt = next(
+        p for p in body["normalized_query"]["pending_properties"] if p["property_key"] == "family_id"
+    )
+    assert prompt["options"] == ["asus-rog-zephyrus-g14", "asus-rog-zephyrus-g16"]

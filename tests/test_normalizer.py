@@ -44,13 +44,24 @@ def test_base_s26_query_does_not_select_ultra(normalizer: QueryNormalizer) -> No
     result = normalizer.normalize("Samsung Galaxy S26 256 GB Black")
     assert result.candidate_family_id == "samsung-galaxy-s26"
     assert result.candidate_family_id != "samsung-galaxy-s26-ultra"
+    family_prompt = next(p for p in result.pending_properties if p.property_key == "family_id")
+    assert family_prompt.options == [
+        "samsung-galaxy-s26",
+        "samsung-galaxy-s26-plus",
+        "samsung-galaxy-s26-ultra",
+    ]
 
 
 def test_base_iphone_query_does_not_select_pro(normalizer: QueryNormalizer) -> None:
     result = normalizer.normalize("Apple iPhone 16 128 GB Black")
     assert result.candidate_family_id == "apple-iphone-16"
+    family_prompt = next(p for p in result.pending_properties if p.property_key == "family_id")
+    assert "apple-iphone-16" in family_prompt.options
+    assert "apple-iphone-16-pro" in family_prompt.options
     pro = normalizer.normalize("Apple iPhone 16 Pro 256 GB")
     assert pro.candidate_family_id == "apple-iphone-16-pro"
+    pro_prompt = next(p for p in pro.pending_properties if p.property_key == "family_id")
+    assert pro_prompt.options == ["apple-iphone-16-pro", "apple-iphone-16-pro-max"]
 
 
 def test_fuzzy_query_matches_family(normalizer: QueryNormalizer) -> None:
@@ -60,7 +71,7 @@ def test_fuzzy_query_matches_family(normalizer: QueryNormalizer) -> None:
 
 
 def test_missing_storage_prompts_identity_choice(normalizer: QueryNormalizer) -> None:
-    result = normalizer.normalize("Samsung S26")
+    result = normalizer.normalize("Samsung S26 Ultra")
     assert result.needs_confirmation is True
     storage_prompt = next(p for p in result.pending_properties if p.property_key == "storage_gb")
     assert storage_prompt.role == PropertyRole.IDENTITY
@@ -86,13 +97,13 @@ def test_missing_colour_allows_not_important(normalizer: QueryNormalizer) -> Non
 
 
 def test_confirm_missing_storage_builds_scope(normalizer: QueryNormalizer) -> None:
-    normalized = normalizer.normalize("Samsung S26")
+    normalized = normalizer.normalize("Samsung S26 Ultra")
     scope, confirmed_id = resolve_search_scope(
         CatalogRepository(),
         normalized,
         [PropertyChoice(property_key="storage_gb", kind=PropertyChoiceKind.VALUE, value=512)],
     )
-    assert scope.family_id == "samsung-galaxy-s26"
+    assert scope.family_id == "samsung-galaxy-s26-ultra"
     assert scope.constraints["storage_gb"] == 512
     assert confirmed_id is None  # colour still open in catalog variants
     assert len(scope.variant_ids) >= 2
@@ -174,7 +185,7 @@ def test_orchestrator_apply_choices_clears_confirmation() -> None:
 
 
 def test_identity_not_important_rejected(normalizer: QueryNormalizer) -> None:
-    normalized = normalizer.normalize("Samsung S26")
+    normalized = normalizer.normalize("Samsung S26 Ultra")
     with pytest.raises(ConfirmationError):
         resolve_search_scope(
             CatalogRepository(),
@@ -186,3 +197,108 @@ def test_identity_not_important_rejected(normalizer: QueryNormalizer) -> None:
                 )
             ],
         )
+
+
+def _prompt(result, key: str):
+    return next(p for p in result.pending_properties if p.property_key == key)
+
+
+def test_samsung_s25_asks_which_model_first(normalizer: QueryNormalizer) -> None:
+    result = normalizer.normalize("samsung s25")
+
+    assert result.needs_confirmation is True
+    assert [p.property_key for p in result.pending_properties] == ["family_id"]
+    prompt = _prompt(result, "family_id")
+    assert prompt.reason == ConfirmationReason.AMBIGUOUS
+    assert prompt.options == [
+        "samsung-galaxy-s25",
+        "samsung-galaxy-s25-plus",
+        "samsung-galaxy-s25-ultra",
+    ]
+    assert not any(p.property_key == "storage_gb" for p in result.pending_properties)
+
+
+def test_samsung_s25_plus_choice_then_asks_plus_specs() -> None:
+    orch = SearchOrchestrator()
+    session = orch.start_session("samsung s25")
+    after_family = orch.apply_choices(
+        session,
+        [
+            PropertyChoice(
+                property_key="family_id",
+                kind=PropertyChoiceKind.VALUE,
+                value="samsung-galaxy-s25-plus",
+            )
+        ],
+    )
+
+    assert after_family.status == SessionStatus.NEEDS_CONFIRMATION
+    assert after_family.normalized_query is not None
+    assert after_family.normalized_query.candidate_family_id == "samsung-galaxy-s25-plus"
+    keys = {p.property_key for p in after_family.normalized_query.pending_properties}
+    assert "family_id" not in keys
+    assert "storage_gb" in keys
+    storage = _prompt(after_family.normalized_query, "storage_gb")
+    assert set(storage.options) == {256, 512}
+
+
+def test_asus_asks_which_series_first(normalizer: QueryNormalizer) -> None:
+    result = normalizer.normalize("asus")
+
+    assert result.needs_confirmation is True
+    assert [p.property_key for p in result.pending_properties] == ["series"]
+    prompt = _prompt(result, "series")
+    assert prompt.options == ["ROG", "TUF", "Vivobook", "Zenbook"]
+    assert not any(p.property_key == "storage_gb" for p in result.pending_properties)
+
+
+def test_asus_rog_asks_which_line_first(normalizer: QueryNormalizer) -> None:
+    result = normalizer.normalize("asus rog")
+
+    assert result.needs_confirmation is True
+    assert [p.property_key for p in result.pending_properties] == ["line"]
+    prompt = _prompt(result, "line")
+    assert prompt.options == ["Flow", "Strix", "Zephyrus"]
+    assert not any(p.property_key == "family_id" for p in result.pending_properties)
+    assert not any(p.property_key == "storage_gb" for p in result.pending_properties)
+
+
+def test_asus_rog_zephyrus_then_asks_g14_or_g16() -> None:
+    orch = SearchOrchestrator()
+    session = orch.start_session("asus rog")
+    after_line = orch.apply_choices(
+        session,
+        [PropertyChoice(property_key="line", kind=PropertyChoiceKind.VALUE, value="Zephyrus")],
+    )
+
+    assert after_line.status == SessionStatus.NEEDS_CONFIRMATION
+    assert after_line.normalized_query is not None
+    prompt = _prompt(after_line.normalized_query, "family_id")
+    assert prompt.options == ["asus-rog-zephyrus-g14", "asus-rog-zephyrus-g16"]
+
+    after_family = orch.apply_choices(
+        after_line,
+        [
+            PropertyChoice(
+                property_key="family_id",
+                kind=PropertyChoiceKind.VALUE,
+                value="asus-rog-zephyrus-g16",
+            )
+        ],
+    )
+
+    assert after_family.status == SessionStatus.NEEDS_CONFIRMATION
+    assert after_family.normalized_query is not None
+    assert after_family.normalized_query.candidate_family_id == "asus-rog-zephyrus-g16"
+    keys = {p.property_key for p in after_family.normalized_query.pending_properties}
+    assert "line" not in keys
+    assert "family_id" not in keys
+    assert "storage_gb" in keys
+    storage = _prompt(after_family.normalized_query, "storage_gb")
+    assert 2048 in storage.options
+
+
+def test_named_zephyrus_g14_skips_line_and_model_prompts(normalizer: QueryNormalizer) -> None:
+    result = normalizer.normalize("asus rog zephyrus g14")
+    assert result.candidate_family_id == "asus-rog-zephyrus-g14"
+    assert not any(p.property_key in {"line", "family_id", "series"} for p in result.pending_properties)

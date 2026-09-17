@@ -37,6 +37,10 @@ VARIANT_ATTRIBUTE_KEYS = frozenset(
 )
 
 VARIANT_CHOICE_KEY = "variant_id"
+SERIES_CHOICE_KEY = "series"
+LINE_CHOICE_KEY = "line"
+FAMILY_CHOICE_KEY = "family_id"
+GROUPING_KEYS = frozenset({SERIES_CHOICE_KEY, LINE_CHOICE_KEY, FAMILY_CHOICE_KEY})
 
 
 def variant_constraints(constraints: dict) -> dict:
@@ -144,10 +148,14 @@ def resolve_search_scope(
     choice_by_key = {choice.property_key: choice for choice in choices}
     pending_by_key = {prompt.property_key: prompt for prompt in normalized.pending_properties}
 
+    for grouping_key in (SERIES_CHOICE_KEY, LINE_CHOICE_KEY):
+        if grouping_key in pending_by_key and grouping_key not in choice_by_key:
+            raise ConfirmationError(f"Missing required choice for {grouping_key}.")
+
     family_id = _chosen_family_id(
         normalized,
-        choice_by_key.get("family_id"),
-        pending_by_key.get("family_id"),
+        choice_by_key.get(FAMILY_CHOICE_KEY),
+        pending_by_key.get(FAMILY_CHOICE_KEY),
     )
     if not family_id:
         raise ConfirmationError(
@@ -180,8 +188,11 @@ def resolve_search_scope(
     unconstrained_keys: list[str] = []
 
     for prompt in normalized.pending_properties:
-        if prompt.property_key == "family_id":
+        if prompt.property_key in GROUPING_KEYS:
             continue  # handled above
+
+        if prompt.property_key == VARIANT_CHOICE_KEY:
+            continue
 
         choice = choice_by_key.get(prompt.property_key)
         if choice is None:
@@ -228,3 +239,45 @@ def remaining_prompts_after_partial_choices(
     """Prompts still unanswered after a partial confirm submit."""
     answered = {c.property_key for c in choices}
     return [p for p in normalized.pending_properties if p.property_key not in answered]
+
+
+def merge_property_choices(
+    existing: list[PropertyChoice],
+    incoming: list[PropertyChoice],
+) -> list[PropertyChoice]:
+    """Later answers for the same key replace earlier ones."""
+    by_key = {choice.property_key: choice for choice in existing}
+    for choice in incoming:
+        by_key[choice.property_key] = choice
+    return list(by_key.values())
+
+
+def choice_value(choices: list[PropertyChoice], key: str) -> str | None:
+    choice = next((item for item in choices if item.property_key == key), None)
+    if choice is None or choice.kind != PropertyChoiceKind.VALUE or choice.value is None:
+        return None
+    return str(choice.value)
+
+
+def validate_choices_against_prompts(
+    normalized: NormalizedQuery,
+    choices: list[PropertyChoice],
+) -> None:
+    """Reject answers that were never offered on this round of the popup."""
+    pending_by_key = {prompt.property_key: prompt for prompt in normalized.pending_properties}
+    for choice in choices:
+        prompt = pending_by_key.get(choice.property_key)
+        if prompt is None:
+            raise ConfirmationError(f"{choice.property_key} was not open for confirmation.")
+        if choice.kind == PropertyChoiceKind.NOT_IMPORTANT:
+            if prompt.role != PropertyRole.OPTIONAL or not prompt.allow_not_important:
+                raise ConfirmationError(
+                    f"'Not important' is not allowed for {choice.property_key}."
+                )
+            continue
+        if choice.value is None:
+            raise ConfirmationError(f"Choice for {choice.property_key} has no value.")
+        if choice.value not in prompt.options:
+            raise ConfirmationError(
+                f"Invalid value {choice.value!r} for {choice.property_key}."
+            )

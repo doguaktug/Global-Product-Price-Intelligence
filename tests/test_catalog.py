@@ -15,6 +15,7 @@ def test_catalog_loads_seed_data() -> None:
     assert "samsung-galaxy-s26" in family_ids
     assert "samsung-galaxy-s26-plus" in family_ids
     assert "samsung-galaxy-s25-ultra" in family_ids
+    assert "samsung-galaxy-s25-plus" in family_ids
     assert "samsung-galaxy-s25" in family_ids
     assert "apple-iphone-16-pro" in family_ids
     assert "apple-iphone-16" in family_ids
@@ -24,6 +25,9 @@ def test_catalog_loads_seed_data() -> None:
     assert "apple-macbook-pro-14-m4" in family_ids
     assert "asus-zenbook-14-oled" in family_ids
     assert "asus-rog-zephyrus-g14" in family_ids
+    assert "asus-rog-zephyrus-g16" in family_ids
+    assert "asus-rog-strix-g16" in family_ids
+    assert "asus-rog-flow-z13" in family_ids
     assert len(variants) >= 20
 
 
@@ -95,6 +99,16 @@ def test_non_pro_iphone_and_asus_families_load() -> None:
     assert zenbook.brand == "ASUS"
     variants = repo.list_variants("asus-rog-zephyrus-g14")
     assert variants
+
+    g14 = repo.get_family("asus-rog-zephyrus-g14")
+    assert g14 is not None
+    assert g14.series == "ROG"
+    assert g14.line == "Zephyrus"
+    assert {family.line for family in repo.list_families() if family.series == "ROG"} == {
+        "Flow",
+        "Strix",
+        "Zephyrus",
+    }
 
 
 def test_tablet_families_load_with_connectivity_options() -> None:
