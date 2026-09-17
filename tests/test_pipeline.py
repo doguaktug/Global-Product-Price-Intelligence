@@ -2,18 +2,33 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 
 import httpx
 import pytest
 
-from gp_price_intel.adapters.base import SourceFetchError
+from gp_price_intel.adapters.base import SourceAdapter, SourceFetchError
 from gp_price_intel.adapters.fixture import FixtureAdapter
 from gp_price_intel.adapters.registry import load_sources
 from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.config import Settings
-from gp_price_intel.domain.models import HighlightKind, MatchKind, SessionStatus, UserPreferences
+from gp_price_intel.domain.models import (
+    AcquisitionMethod,
+    HighlightKind,
+    ItemCondition,
+    MatchKind,
+    Money,
+    NormalizedSpec,
+    Offer,
+    Seller,
+    SessionStatus,
+    Source,
+    SourceKind,
+    StockStatus,
+    UserPreferences,
+)
 from gp_price_intel.fx.service import FxService
 from gp_price_intel.orchestrator.search import SearchFailed, SearchOrchestrator
 from gp_price_intel.ranking.confidence import HIGHLIGHT_MIN_CONFIDENCE, effective_confidence, is_highlight_eligible
@@ -372,3 +387,96 @@ async def test_an_unsearched_source_is_disclosed_on_an_empty_page(
         await pipeline_orchestrator.run(session)
 
     assert "EBAY_APP_ID" in caught.value.reason
+
+
+class _StaticAdapter(SourceAdapter):
+    """Return a fixed offer list so a search can be live-shaped without eBay."""
+
+    def __init__(self, offers: list[Offer], source: Source) -> None:
+        self._offers = offers
+        self.source = source
+
+    async def search(self, scope, destination_country, **kwargs):  # type: ignore[no-untyped-def]
+        return list(self._offers)
+
+    def known_sources(self) -> list[Source]:
+        return [self.source]
+
+
+def _g14_listing(
+    offer_id: str,
+    *,
+    storage_gb: int,
+    memory_gb: int,
+    price: str,
+) -> Offer:
+    return Offer(
+        id=offer_id,
+        source_id="live-test",
+        seller=Seller(name="swingcomputers", reliability=0.996, review_count=68507),
+        country="TR",
+        listing_title=(
+            f"ASUS ROG Zephyrus G14 AMD Ryzen 9 {storage_gb}GB SSD {memory_gb}GB RAM"
+        ),
+        listing_url=f"https://example.com/{offer_id}",
+        list_price=Money(amount=Decimal(price), currency="TRY"),
+        stock_status=StockStatus.IN_STOCK,
+        condition=ItemCondition.NEW,
+        data_confidence=0.85,
+        collected_at=datetime.now(timezone.utc),
+        raw_specs=[
+            NormalizedSpec(key="storage_gb", value=storage_gb, raw_text=str(storage_gb)),
+            NormalizedSpec(key="memory_gb", value=memory_gb, raw_text=str(memory_gb)),
+            NormalizedSpec(key="processor", value="AMD Ryzen 9", raw_text="AMD Ryzen 9"),
+            NormalizedSpec(key="region_version", value="US", raw_text="US"),
+        ],
+    )
+
+
+@pytest.mark.asyncio
+async def test_similar_only_live_listings_still_get_highlight_cards(
+    pipeline_orchestrator: SearchOrchestrator,
+) -> None:
+    """
+    The G14 2 TB search: eBay has 1 TB listings, none of the confirmed SKU.
+
+    Those similar offers used to land only in "list all other options" because
+    nothing was identical (so alternatives were emptied) and they failed the
+    highlight floor. The Decision Page must still recommend the closest build.
+    """
+    source = Source(
+        id="live-test",
+        display_name="Live test",
+        country="TR",
+        kind=SourceKind.MARKETPLACE,
+        reliability=0.72,
+        acquisition_method=AcquisitionMethod.API,
+    )
+    pipeline_orchestrator.adapters = [
+        _StaticAdapter(
+            [
+                _g14_listing("g14-1tb-a", storage_gb=1024, memory_gb=32, price="10000"),
+                _g14_listing("g14-1tb-b", storage_gb=1024, memory_gb=32, price="12000"),
+            ],
+            source,
+        )
+    ]
+
+    session = pipeline_orchestrator.start_session(
+        "ROG Zephyrus G14 2048GB",
+        UserPreferences(destination_country="TR", reference_currency="TRY"),
+    )
+    assert session.normalized_query is not None
+    assert session.normalized_query.needs_confirmation is False
+
+    page = await pipeline_orchestrator.run(session)
+
+    assert page.confirmed_variant is not None
+    assert page.confirmed_variant.storage_gb == 2048
+    assert page.offers
+    assert {offer.match_kind for offer in page.offers} == {MatchKind.SIMILAR}
+    assert page.highlights
+    assert {h.offer_id for h in page.highlights} <= {offer.id for offer in page.offers}
+    for highlight in page.highlights:
+        assert is_highlight_eligible(page.offer_scores[highlight.offer_id])
+        assert "closest available match" in " ".join(highlight.explanation.caveats).casefold()

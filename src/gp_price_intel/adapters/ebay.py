@@ -6,6 +6,7 @@ import base64
 import logging
 import re
 import time
+from collections.abc import Callable
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
@@ -17,7 +18,6 @@ from gp_price_intel.catalog.repository import CatalogRepository
 from gp_price_intel.config import Settings, get_settings
 from gp_price_intel.domain.models import (
     AcquisitionMethod,
-    ItemCondition,
     Money,
     NormalizedSpec,
     Offer,
@@ -42,12 +42,28 @@ MARKETPLACE_COUNTRY = {
     "EBAY_AU": "AU",
 }
 
+def _storage_query_term(value: object) -> str:
+    """
+    Marketplace spelling for a catalog storage size.
+
+    Sellers write ``1TB`` / ``2TB``, not ``1024GB`` / ``2048GB``. Using the catalog
+    integer as a keyword quietly misses the listings we are trying to find.
+    """
+    try:
+        gigabytes = int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return f"{value}GB"
+    if gigabytes >= 1024 and gigabytes % 1024 == 0:
+        return f"{gigabytes // 1024}TB"
+    return f"{gigabytes}GB"
+
+
 # Constraint keys worth putting in the keyword query, in the order buyers write them.
-_QUERY_TERMS: tuple[tuple[str, str], ...] = (
-    ("processor", "{}"),
-    ("storage_gb", "{}GB"),
-    ("memory_gb", "{}GB RAM"),
-    ("connectivity", "{}"),
+_QUERY_TERMS: tuple[tuple[str, Callable[[object], str]], ...] = (
+    ("processor", str),
+    ("storage_gb", _storage_query_term),
+    ("memory_gb", lambda value: f"{value}GB RAM"),
+    ("connectivity", str),
 )
 
 # Seller-filled aspect names worth reading, mapped to catalog spec keys. eBay lets
@@ -181,11 +197,11 @@ class EbayAdapter(SourceAdapter):
         parts = [str(family.brand), str(family.family_name)]
         # Whatever the category made an identity key lands in constraints, so a laptop
         # search carries its RAM and chip and a tablet search carries its radio.
-        for key, template in _QUERY_TERMS:
+        for key, format_term in _QUERY_TERMS:
             value = scope.constraints.get(key)
             if value is None:
                 continue
-            term = template.format(value)
+            term = format_term(value)
             # Family names often already carry the chip ("MacBook Air M4"), and
             # repeating it as a keyword ("... M4 M4 512GB") narrows a Browse search
             # against a phrase no seller writes.
@@ -406,6 +422,19 @@ class EbayAdapter(SourceAdapter):
         return MARKETPLACE_COUNTRY.get(self.marketplace_id, self.source.country)
 
     def _stock_status(self, item: dict[str, Any]) -> StockStatus:
+        """
+        Purchasability from a Browse *search summary*.
+
+        ``estimatedAvailabilities`` is a getItem field. Search summaries almost never
+        include it, so defaulting that omission to ``unknown`` applied the unknown-stock
+        confidence penalty to every live eBay offer. Combined with eBay's 0.72 source
+        reliability and a partial cross-border landed-cost estimate, that put even a
+        99% / 60k-review seller below the 0.7 highlight floor — the Decision Page
+        then showed no cards, only the expandable ranked list.
+
+        A priced listing in the search index is for sale unless the payload says
+        otherwise. Explicit out-of-stock / limited states still win when present.
+        """
         for availability in item.get("estimatedAvailabilities") or []:
             status = str(availability.get("estimatedAvailabilityStatus", "")).casefold()
             if status in {"in_stock", "available"}:
@@ -414,7 +443,7 @@ class EbayAdapter(SourceAdapter):
                 return StockStatus.LIMITED
             if status in {"out_of_stock", "sold_out", "unavailable"}:
                 return StockStatus.OUT_OF_STOCK
-        return StockStatus.UNKNOWN
+        return StockStatus.IN_STOCK
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:

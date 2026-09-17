@@ -387,13 +387,37 @@ function originalSearchName(page) {
   return query;
 }
 
+function highlightProductName(page, offer) {
+  // Identical offers *are* the searched build, so the card can keep the query
+  // name. Closest-available (similar) listings must not be labelled as the
+  // 2 TB machine when the listing is a 1 TB one.
+  if (offer?.match_kind === "identical") {
+    return originalSearchName(page);
+  }
+  return (offer?.display_name || offer?.listing_title || originalSearchName(page)).trim();
+}
+
 function renderHighlights(page, offersById) {
   const row = $("highlight-row");
   row.innerHTML = "";
   const groups = collapseHighlights(page.highlights);
   row.style.setProperty("--count", String(Math.max(groups.length, 1)));
   row.dataset.count = String(groups.length);
-  const searched = originalSearchName(page);
+  if (!groups.length) {
+    const empty = document.createElement("p");
+    empty.className = "highlight-empty";
+    if ((page.alternatives || []).length) {
+      empty.textContent =
+        "No exact listing for this build was found. Close alternatives are below.";
+    } else if ((page.offers || []).length) {
+      empty.textContent =
+        "None of these listings were reliable enough for a top recommendation. Open list all other options to compare them.";
+    } else {
+      empty.textContent = "No recommendations to show.";
+    }
+    row.append(empty);
+    return;
+  }
   for (const group of groups) {
     const offer = offersById.get(group[0].offer_id);
     if (!offer) continue;
@@ -403,10 +427,11 @@ function renderHighlights(page, offersById) {
     title.className = "card-title";
     title.textContent = group.map((item) => HIGHLIGHT_LABELS[item.kind] || item.kind).join(" · ");
     card.append(title);
-    if (searched) {
+    const productName = highlightProductName(page, offer);
+    if (productName) {
       const product = document.createElement("p");
       product.className = "searched-name";
-      product.append(listingLink(searched, offer));
+      product.append(listingLink(productName, offer));
       card.append(product);
     }
     card.append(pictureNode(offer));

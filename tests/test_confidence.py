@@ -21,10 +21,12 @@ from gp_price_intel.domain.models import (
     StockStatus,
     UserPreferences,
 )
+from gp_price_intel.adapters.ebay import default_ebay_source
 from gp_price_intel.ranking.confidence import (
     HIGHLIGHT_MIN_CONFIDENCE,
     UNKNOWN_STOCK_CONFIDENCE_FACTOR,
     compute_data_confidence,
+    compute_data_confidence_from,
     effective_confidence,
     is_highlight_eligible,
     reliability_warning,
@@ -184,6 +186,48 @@ def test_equal_confidence_extreme_price_gap_favors_cheaper() -> None:
     expensive = _offer(offer_id="expensive", price="1000000", data_confidence=1.0)
     scored = RankingEngine().score([expensive, cheap], UserPreferences())
     assert scored[0][0].id == "cheap"
+
+
+def test_typical_ebay_import_clears_the_highlight_floor() -> None:
+    """
+    A well-reviewed eBay seller shipping into TR must still be recommendable.
+
+    Cross-border landed cost is always `partial` (shipping is estimated). Combined
+    with eBay's 0.72 source reliability that used to miss the 0.7 floor whenever
+    Browse omitted stock — which is every search summary.
+    """
+    source = default_ebay_source()
+    seller = Seller(name="swingcomputers", reliability=0.996, review_count=68507)
+    confidence = compute_data_confidence_from(source, seller, StockStatus.IN_STOCK)
+    offer = _offer(
+        offer_id="ebay-g14",
+        price="139430",
+        data_confidence=confidence,
+        completeness=LandedCostCompleteness.PARTIAL,
+        seller_reliability=0.996,
+        review_count=68507,
+    )
+    _, breakdown = RankingEngine().score([offer], UserPreferences())[0]
+    assert is_highlight_eligible(breakdown)
+    assert effective_confidence(breakdown) >= HIGHLIGHT_MIN_CONFIDENCE
+
+
+def test_unknown_stock_on_a_typical_ebay_import_misses_the_highlight_floor() -> None:
+    """Documents the empty-Decision-Page failure mode the Browse default caused."""
+    source = default_ebay_source()
+    seller = Seller(name="swingcomputers", reliability=0.996, review_count=68507)
+    confidence = compute_data_confidence_from(source, seller, StockStatus.UNKNOWN)
+    offer = _offer(
+        offer_id="ebay-unknown-stock",
+        price="139430",
+        data_confidence=confidence,
+        completeness=LandedCostCompleteness.PARTIAL,
+        seller_reliability=0.996,
+        review_count=68507,
+    )
+    _, breakdown = RankingEngine().score([offer], UserPreferences())[0]
+    assert not is_highlight_eligible(breakdown)
+    assert effective_confidence(breakdown) < HIGHLIGHT_MIN_CONFIDENCE
 
 
 def test_highlights_never_include_offers_below_confidence_floor() -> None:

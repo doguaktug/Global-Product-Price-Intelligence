@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 from gp_price_intel.domain.models import (
-    ItemCondition,
     Explanation,
     ExplanationReason,
+    ItemCondition,
     LandedCostCompleteness,
+    MatchKind,
     Money,
     Offer,
     ScoreBreakdown,
 )
-from gp_price_intel.ranking.confidence import HIGHLIGHT_MIN_CONFIDENCE, effective_confidence
-from gp_price_intel.normalize.offer_labels import original_listing_name, primary_offer_name
 from gp_price_intel.normalize.condition import condition_label, is_non_new_condition
+from gp_price_intel.normalize.offer_labels import original_listing_name, primary_offer_name
+from gp_price_intel.ranking.confidence import HIGHLIGHT_MIN_CONFIDENCE, effective_confidence
 
 Scored = tuple[Offer, ScoreBreakdown]
 
@@ -131,6 +132,12 @@ class ExplanationBuilder:
             )
         elif offer.condition == ItemCondition.UNKNOWN:
             caveats.append("Condition not stated by the source — treated as new for comparison.")
+
+        if offer.match_kind == MatchKind.SIMILAR:
+            caveats.append(
+                "No exact listing for the confirmed build was found. "
+                "This is the closest available match."
+            )
 
         if offer.match_notes:
             caveats.extend(offer.match_notes)
