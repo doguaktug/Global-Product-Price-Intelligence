@@ -54,6 +54,35 @@ def test_ui_assets_are_served() -> None:
     assert 'session.status === "needs_confirmation"' in js.text
 
 
+def test_sidebar_has_no_placeholder_menu() -> None:
+    html = TestClient(create_app()).get("/").text
+    assert "rail-nav" not in html
+    assert "rail-item" not in html
+    assert "weight system" not in html
+    assert "trust system" not in html
+
+
+def test_decision_cards_put_reasons_under_the_price() -> None:
+    client = TestClient(create_app())
+    js = client.get("/ui/app.js").text
+    css = client.get("/ui/styles.css").text
+    assert "ARGUMENT_FACTORS" in js
+    assert "function priceBlock(" in js
+    assert "function explanationBlock(" in js
+    assert "why-list" in js
+    assert "card-notes" in js
+    assert "card.append(priceBlock(offer))" in js
+    assert "card.append(explanationBlock(best.explanation, whyLabel))" in js
+    assert js.index("card.append(priceBlock(offer))") < js.index(
+        "card.append(explanationBlock(best.explanation, whyLabel))"
+    )
+    assert "width: fit-content" in css
+    assert "subgrid" in css
+    assert ".price-block:hover .cost-details" in css
+    assert ".offer-card,\n.alt-card {\n  display: flex" in css
+    assert "border: 2px solid var(--ink)" not in css
+
+
 def test_the_ranked_list_starts_hidden_behind_its_toggle() -> None:
     client = TestClient(create_app())
     html = client.get("/").text

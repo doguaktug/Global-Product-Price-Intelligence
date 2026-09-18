@@ -270,29 +270,57 @@ function costLines(offer) {
   return rows;
 }
 
+const ARGUMENT_FACTORS = new Set([
+  "price",
+  "seller",
+  "reviews",
+  "warranty",
+  "delivery",
+  "comparison",
+  "overall",
+  "value",
+  "cost",
+]);
+
+function argumentReasons(explanation) {
+  return (explanation?.reasons || []).filter((reason) => ARGUMENT_FACTORS.has(reason.factor));
+}
+
+function noteLines(explanation) {
+  const lines = [];
+  for (const reason of explanation?.reasons || []) {
+    if (reason.factor === "listing") lines.push(reason.detail);
+  }
+  for (const caveat of explanation?.caveats || []) lines.push(caveat);
+  return lines;
+}
+
 function explanationBlock(explanation, heading) {
   const wrap = document.createElement("div");
   wrap.className = "why";
   if (heading) {
     const title = document.createElement("p");
-    const strong = document.createElement("strong");
-    strong.textContent = heading;
-    title.append(strong);
+    title.className = "why-heading";
+    title.textContent = heading;
     wrap.append(title);
   }
-  if (explanation?.headline) {
-    const headline = document.createElement("p");
-    headline.textContent = explanation.headline;
-    wrap.append(headline);
+  const list = document.createElement("ul");
+  list.className = "why-list";
+  for (const reason of argumentReasons(explanation)) {
+    const item = document.createElement("li");
+    item.textContent = reason.detail;
+    list.append(item);
   }
-  for (const reason of explanation?.reasons || []) {
+  wrap.append(list);
+  return wrap;
+}
+
+function notesBlock(explanation) {
+  const wrap = document.createElement("div");
+  wrap.className = "card-notes";
+  for (const text of noteLines(explanation)) {
     const line = document.createElement("p");
-    line.textContent = reason.detail;
-    wrap.append(line);
-  }
-  for (const caveat of explanation?.caveats || []) {
-    const line = document.createElement("p");
-    line.textContent = caveat;
+    line.textContent = text;
     wrap.append(line);
   }
   return wrap;
@@ -319,14 +347,26 @@ function conditionLabel(condition) {
 function appendCondition(parent, offer) {
   const label = conditionLabel(offer?.condition);
   if (!label) return;
-  const tag = document.createElement("p");
+  const tag = document.createElement("span");
   tag.className = "condition-tag";
   if (offer.condition && offer.condition !== "new") tag.classList.add("is-used");
   tag.textContent = label;
   parent.append(tag);
 }
 
-function fillOfferEconomics(card, offer) {
+function fxLine(offer) {
+  const fx = offer.converted_list_price?.fx;
+  if (!fx?.base_currency || !fx?.quote_currency) return "";
+  if (String(fx.base_currency).toUpperCase() === String(fx.quote_currency).toUpperCase()) {
+    return "";
+  }
+  const when = fx.as_of ? String(fx.as_of).slice(0, 10) : "an undated rate";
+  return `rate ${fx.rate}, published ${when} by ${fx.provider}`;
+}
+
+function priceBlock(offer) {
+  const wrap = document.createElement("div");
+  wrap.className = "price-block";
   const price = document.createElement("p");
   price.className = "price-line";
   const strong = document.createElement("strong");
@@ -343,37 +383,88 @@ function fillOfferEconomics(card, offer) {
     og.textContent = ` — ${money(offer.list_price)}`;
     price.append(og);
   }
-  card.append(price);
+  wrap.append(price);
 
+  const details = costLines(offer);
+  const rate = fxLine(offer);
+  if (rate) details.push(rate);
   if (offer.landed_cost) {
-    appendMeta(card, `landing cost ${money(offer.landed_cost.total)}`);
+    const summary = document.createElement("p");
+    summary.className = "landing-summary";
+    summary.append(`landing cost ${money(offer.landed_cost.total)}`);
+    if (details.length) {
+      const chevron = document.createElement("span");
+      chevron.className = "cost-chevron";
+      chevron.setAttribute("aria-hidden", "true");
+      summary.append(chevron);
+    }
+    wrap.append(summary);
   }
-  for (const line of costLines(offer)) appendMeta(card, line);
-  if (offer.warranty) appendMeta(card, `warranty ${offer.warranty}`);
-  appendCondition(card, offer);
+  if (details.length) {
+    wrap.tabIndex = 0;
+    wrap.setAttribute("aria-label", "Show landing cost details");
+    const extras = document.createElement("div");
+    extras.className = "cost-details";
+    const inner = document.createElement("div");
+    inner.className = "cost-details-inner";
+    for (const line of details) appendMeta(inner, line);
+    extras.append(inner);
+    wrap.append(extras);
+    wrap.addEventListener("click", () => wrap.classList.toggle("is-open"));
+    wrap.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        wrap.classList.toggle("is-open");
+      }
+    });
+  }
+  return wrap;
+}
+
+function appendFact(parent, key, value) {
+  if (!value) return;
+  const row = document.createElement("p");
+  row.className = "fact";
+  const label = document.createElement("span");
+  label.className = "fact-key";
+  label.textContent = key;
+  const amount = document.createElement("span");
+  amount.className = "fact-val";
+  amount.append(value);
+  row.append(label, amount);
+  parent.append(row);
+}
+
+function factsBlock(offer, extra = []) {
+  const wrap = document.createElement("div");
+  wrap.className = "card-facts";
+  if (offer.warranty) appendFact(wrap, "Warranty", offer.warranty);
   const seller = offer.seller || {};
   if (seller.reliability != null) {
-    appendMeta(card, `trust score ${(Number(seller.reliability) * 100).toFixed(0)}% — ${seller.name || offer.source_id}`);
+    appendFact(
+      wrap,
+      "Trust",
+      `${(Number(seller.reliability) * 100).toFixed(0)}% — ${seller.name || offer.source_id}`,
+    );
   } else if (seller.name) {
-    appendMeta(card, `seller ${seller.name}`);
+    appendFact(wrap, "Seller", seller.name);
   }
-  if (offer.country) appendMeta(card, `country ${offer.country}`);
+  if (offer.country) appendFact(wrap, "Country", offer.country);
   if (seller.review_count != null) {
-    const ratings = document.createElement("p");
-    ratings.className = "meta";
     const link = document.createElement("a");
     link.className = "retailer";
     link.href = offer.listing_url;
     link.target = "_blank";
     link.rel = "noreferrer";
     link.textContent = `${seller.review_count} ratings`;
-    ratings.append(link);
-    card.append(ratings);
+    appendFact(wrap, "Ratings", link);
   }
+  for (const [key, value] of extra) appendFact(wrap, key, value);
   const fresh = document.createElement("p");
   fresh.className = "fresh";
   fresh.textContent = timeAgo(offer.collected_at);
-  card.append(fresh);
+  wrap.append(fresh);
+  return wrap;
 }
 
 function originalSearchName(page) {
@@ -425,24 +516,30 @@ function renderHighlights(page, offersById) {
     if (!offer) continue;
     const card = document.createElement("article");
     card.className = "offer-card";
+    card.append(pictureNode(offer));
     const title = document.createElement("h2");
     title.className = "card-title";
     title.textContent = group.map((item) => HIGHLIGHT_LABELS[item.kind] || item.kind).join(" · ");
     card.append(title);
+    const product = document.createElement("p");
+    product.className = "searched-name";
     const productName = highlightProductName(page, offer);
     if (productName) {
-      const product = document.createElement("p");
-      product.className = "searched-name";
       product.append(listingLink(productName, offer));
-      card.append(product);
     }
-    card.append(pictureNode(offer));
-    fillOfferEconomics(card, offer);
+    card.append(product);
+    card.append(priceBlock(offer));
     const best = group.find((item) => item.kind === "best_overall") || group[0];
     const whyLabel = group.some((item) => item.kind === "best_overall")
       ? "why this is best for you"
       : "why this highlight";
     card.append(explanationBlock(best.explanation, whyLabel));
+    const tags = document.createElement("div");
+    tags.className = "card-tags";
+    appendCondition(tags, offer);
+    card.append(tags);
+    card.append(factsBlock(offer));
+    card.append(notesBlock(best.explanation));
     row.append(card);
   }
 }
@@ -519,9 +616,9 @@ function renderAlternatives(page, altById) {
     if (!offer) return;
     const card = document.createElement("article");
     card.className = "alt-card";
-    const kicker = document.createElement("p");
-    kicker.className = "alt-kicker";
-    kicker.style.gridColumn = "1 / -1";
+    card.append(pictureNode(offer));
+    const kicker = document.createElement("h2");
+    kicker.className = "card-title";
     kicker.textContent = `alternative option ${index + 1}`;
     if (alt.badge) {
       const badge = document.createElement("span");
@@ -530,29 +627,24 @@ function renderAlternatives(page, altById) {
       kicker.append(badge);
     }
     card.append(kicker);
-    card.append(pictureNode(offer));
-    const copy = document.createElement("div");
-    const name = document.createElement("p");
-    name.innerHTML = "";
+    const product = document.createElement("p");
+    product.className = "searched-name";
     const strong = document.createElement("strong");
     strong.append(listingLink(offer.listing_title, offer));
-    name.append(strong);
-    copy.append(name);
-    appendCondition(copy, offer);
-    appendMeta(copy, money(offer.landed_cost?.total || offer.converted_list_price?.reference));
-    const specHead = document.createElement("p");
-    specHead.className = "meta";
-    specHead.textContent = "specs:";
-    copy.append(specHead);
-    for (const line of specLines(offer)) appendMeta(copy, `— ${line}`);
-    for (const reason of alt.explanation?.reasons || []) {
-      if (reason.factor === "cost" || reason.factor === "value") continue;
-      appendMeta(copy, `— ${reason.detail}`);
-    }
-    card.append(copy);
-    const why = explanationBlock(alt.explanation, "why this is recommended as an alternative");
-    why.classList.add("alt-why");
-    card.append(why);
+    product.append(strong);
+    card.append(product);
+    card.append(priceBlock(offer));
+    card.append(explanationBlock(alt.explanation, "why this alternative"));
+    const tags = document.createElement("div");
+    tags.className = "card-tags";
+    appendCondition(tags, offer);
+    card.append(tags);
+    const extraFacts = specLines(offer).map((line) => {
+      const split = line.split(": ");
+      return [split[0], split.slice(1).join(": ") || line];
+    });
+    card.append(factsBlock(offer, extraFacts));
+    card.append(notesBlock(alt.explanation));
     row.append(card);
   });
 }
