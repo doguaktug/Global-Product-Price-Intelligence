@@ -19,16 +19,8 @@ from gp_price_intel.matching.identifiers import (
     normalize_gtin,
     variant_retailer_sku,
 )
+from gp_price_intel.normalize.family import catalog_vocabulary, sibling_family_outscores
 from gp_price_intel.normalize.offer_labels import english_variant_label
-from gp_price_intel.normalize.query_normalizer import (
-    FAMILY_AMBIGUITY_GAP,
-    FAMILY_MATCH_THRESHOLD,
-    family_labels,
-)
-from gp_price_intel.normalize.similarity import (
-    build_distinctive_vocabulary,
-    score_query_against_labels,
-)
 
 _NON_ALNUM = re.compile(r"[^a-z0-9]+")
 
@@ -46,9 +38,7 @@ class ProductMatcher:
 
     def __init__(self, catalog: CatalogRepository | None = None) -> None:
         self.catalog = catalog or CatalogRepository()
-        self.vocabulary = build_distinctive_vocabulary(
-            (family.brand, family_labels(family)) for family in self.catalog.list_families()
-        )
+        self.vocabulary = catalog_vocabulary(self.catalog)
 
     def match(self, offers: list[Offer], scope: SearchScope) -> list[Offer]:
         family = self.catalog.get_family(scope.family_id)
@@ -175,23 +165,11 @@ class ProductMatcher:
         """
         if _title_mentions_variant_identity(offer.listing_title, family_variants):
             return True
-
-        confirmed = score_query_against_labels(
-            offer.listing_title, family_labels(family), self.vocabulary
-        )
-        rival = 0.0
-        for other in self.catalog.list_families():
-            if other.id == family.id:
-                continue
-            if other.brand.casefold() != family.brand.casefold():
-                continue
-            score = score_query_against_labels(
-                offer.listing_title, family_labels(other), self.vocabulary
-            ).score
-            rival = max(rival, score)
-        return not (
-            rival >= FAMILY_MATCH_THRESHOLD
-            and (rival - confirmed.score) >= FAMILY_AMBIGUITY_GAP
+        return not sibling_family_outscores(
+            offer.listing_title,
+            family,
+            self.catalog.list_families(),
+            self.vocabulary,
         )
 
     def _match_by_identifiers(
