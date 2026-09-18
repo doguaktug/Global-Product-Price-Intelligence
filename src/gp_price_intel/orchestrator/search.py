@@ -106,6 +106,34 @@ def _empty_result_reason(
     return "No offers remained to build a Decision Page."
 
 
+def split_ranked_offers(
+    ranked: list[tuple],
+) -> tuple[list[tuple], list[tuple]]:
+    """
+    Split one scored set into Decision Page offers vs alternative candidates.
+
+    Identical matches of the confirmed build are ranked; similar/different listings
+    become alternatives. When *nothing* matched the confirmed build, the best
+    remaining catalog variant is used as the Decision Page set so highlight lenses
+    still have something to recommend, and other variants stay available as
+    alternatives instead of all being buried in "list all other options".
+    """
+    if not ranked:
+        return [], []
+
+    identical = [item for item in ranked if item[0].match_kind == MatchKind.IDENTICAL]
+    if identical:
+        near = [item for item in ranked if item[0].match_kind != MatchKind.IDENTICAL]
+        return identical, near
+
+    best_variant = ranked[0][0].matched_variant_id
+    if best_variant:
+        closest = [item for item in ranked if item[0].matched_variant_id == best_variant]
+        others = [item for item in ranked if item[0].matched_variant_id != best_variant]
+        return closest, others
+    return ranked, []
+
+
 class SearchOrchestrator:
     """Owns one search session: normalize → confirm → fetch → decide."""
 
@@ -285,19 +313,8 @@ class SearchOrchestrator:
         # split. Min–max scaling is relative to the set it is given, so scoring
         # alternatives separately would produce numbers that cannot be compared to
         # the ranked list — and the rival test is exactly such a comparison.
-        identical = [offer for offer in enriched if offer.match_kind == MatchKind.IDENTICAL]
         ranked = self.ranking.score(enriched, session.preferences, self._source_registry())
-
-        if identical:
-            confirmed_scored = [
-                item for item in ranked if item[0].match_kind == MatchKind.IDENTICAL
-            ]
-            near_scored = [item for item in ranked if item[0].match_kind != MatchKind.IDENTICAL]
-        else:
-            # Nothing matched the confirmed build exactly, so there is no "confirmed
-            # build vs its variants" split to make. Rank what we have.
-            confirmed_scored = ranked
-            near_scored = []
+        confirmed_scored, near_scored = split_ranked_offers(ranked)
 
         # Peers are the pre-explanation breakdowns, which carry the same scores and
         # weights. The set includes the offer being explained: the builder locates it

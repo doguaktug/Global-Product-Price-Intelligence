@@ -257,6 +257,83 @@ async def test_ebay_query_carries_the_category_identity_specs() -> None:
 
 
 @pytest.mark.asyncio
+async def test_ebay_storage_query_uses_tb_when_sellers_write_tb() -> None:
+    """Catalog stores 2048 GB; eBay titles say 2TB. Searching 2048GB misses them."""
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/oauth2/token"):
+            return httpx.Response(200, json={"access_token": "t", "expires_in": 60})
+        seen.append(request.url.params.get("q", ""))
+        return httpx.Response(200, json={"itemSummaries": []})
+
+    adapter = _adapter(httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    await adapter.search(
+        SearchScope(
+            family_id="asus-rog-zephyrus-g14",
+            constraints={
+                "processor": "AMD Ryzen 9",
+                "storage_gb": 2048,
+                "memory_gb": 32,
+            },
+        ),
+        "TR",
+    )
+    await adapter.search(
+        SearchScope(
+            family_id="asus-rog-zephyrus-g14",
+            constraints={"storage_gb": 1024, "memory_gb": 16},
+        ),
+        "TR",
+    )
+
+    two_tb, one_tb = seen
+    assert two_tb == "ASUS ROG Zephyrus G14 AMD Ryzen 9 2TB 32GB RAM"
+    assert "2048GB" not in two_tb
+    assert one_tb == "ASUS ROG Zephyrus G14 1TB 16GB RAM"
+    assert "1024GB" not in one_tb
+
+
+@pytest.mark.asyncio
+async def test_ebay_search_summary_without_availability_is_in_stock() -> None:
+    """
+    Browse search summaries omit estimatedAvailabilities.
+
+    Treating that as unknown stock made every live eBay offer miss the highlight
+    confidence floor once landed-cost completeness was applied.
+    """
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/oauth2/token"):
+            return httpx.Response(200, json={"access_token": "token-123", "expires_in": 3600})
+        return httpx.Response(
+            200,
+            json={
+                "itemSummaries": [
+                    {
+                        "itemId": "v1|bare|0",
+                        "title": "Samsung Galaxy S26 Ultra 512GB",
+                        "itemWebUrl": "https://www.ebay.com/itm/bare",
+                        "price": {"value": "1099.99", "currency": "USD"},
+                        "seller": {
+                            "username": "phone-deals",
+                            "feedbackPercentage": "99.6",
+                            "feedbackScore": 68507,
+                        },
+                    }
+                ]
+            },
+        )
+
+    offers = await _adapter(httpx.AsyncClient(transport=httpx.MockTransport(handler))).search(
+        SearchScope(family_id="samsung-galaxy-s26-ultra", constraints={"storage_gb": 512}),
+        "TR",
+    )
+    assert len(offers) == 1
+    assert offers[0].stock_status == StockStatus.IN_STOCK
+
+
+@pytest.mark.asyncio
 async def test_ebay_oauth_uses_basic_auth() -> None:
     seen_auth: list[str] = []
 
@@ -500,7 +577,7 @@ async def test_listings_that_arrive_are_countable_before_they_are_filtered() -> 
 
 
 def test_missing_credentials_are_reported_rather_than_hidden() -> None:
-    without = EbayAdapter(settings=Settings())
+    without = EbayAdapter(settings=Settings(ebay_app_id=None, ebay_cert_id=None))
     assert without.is_configured() is False
     assert "EBAY_APP_ID" in (without.unavailable_reason() or "")
 

@@ -38,10 +38,13 @@ def test_ui_assets_are_served() -> None:
     # Product names are the retailer link, not a separate control.
     assert "function listingLink(" in js.text
     assert 'link.className = "product-link"' in js.text
-    assert "product.append(listingLink(searched, offer))" in js.text
+    assert "function highlightProductName(" in js.text
+    assert "product.append(listingLink(productName, offer))" in js.text
+    assert "highlight-empty" in js.text
     assert "heading.append(listingLink(offer.listing_title, offer))" in js.text
     assert "strong.append(listingLink(offer.listing_title, offer))" in js.text
     assert ".product-link {" in css.text
+    assert ".highlight-empty {" in css.text
     assert "include_used: Boolean($(\"include-used\")?.checked)" in js.text
     assert "function appendCondition(" in js.text
     assert ".check-row:has(input:checked)" in css.text
