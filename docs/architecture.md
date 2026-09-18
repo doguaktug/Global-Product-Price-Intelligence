@@ -64,7 +64,7 @@ This is a first-class user step, not a hidden ranking default. On the **welcome 
 - **Destination country** and **reference currency** — optional controls next to the sliders
 - Optional **catalogue browse** if they want to explore instead of typing
 
-If they do not move the sliders, **published defaults** apply (price 40%, seller 20%, reviews 15%, delivery 10%, warranty 15%) and the session still records `UserPreferences` — ranking never invents weights after the fact. The user can change weights later and re-rank without re-fetching offers.
+If they do not move the sliders, **published defaults** apply (price 40%, seller 20%, reviews 15%, delivery 10%, warranty 15%) and the session still records `UserPreferences` — ranking never invents weights after the fact. Weights are read at search submit; changing them later is a new search.
 
 **Country / currency waterfall** (each later step overwrites the one before):
 

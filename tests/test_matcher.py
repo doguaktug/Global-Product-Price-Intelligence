@@ -360,3 +360,34 @@ def test_unstated_colour_is_not_identical_to_the_confirmed_colour() -> None:
     assert matched.match_kind == MatchKind.SIMILAR
     assert matched.matched_variant_id == "samsung-galaxy-s26-ultra-1024-12-eu-black"
     assert any("colour" in note for note in matched.match_notes)
+
+
+def test_matcher_does_not_import_the_query_normalizer() -> None:
+    """Family-name scoring is shared; matching must not depend on query confirmation."""
+    import inspect
+
+    import gp_price_intel.matching.matcher as matcher_mod
+
+    assert "query_normalizer" not in inspect.getsource(matcher_mod)
+
+
+def test_sibling_family_outscores_plus_against_ultra() -> None:
+    from gp_price_intel.normalize.family import catalog_vocabulary, sibling_family_outscores
+
+    catalog = CatalogRepository()
+    ultra = catalog.get_family("samsung-galaxy-s26-ultra")
+    assert ultra is not None
+    vocab = catalog_vocabulary(catalog)
+    families = catalog.list_families()
+    assert sibling_family_outscores(
+        "Samsung Galaxy S26+ 512GB 12GB RAM Black Unlocked",
+        ultra,
+        families,
+        vocab,
+    )
+    assert not sibling_family_outscores(
+        "Samsung Galaxy S26 Ultra 512GB Black",
+        ultra,
+        families,
+        vocab,
+    )

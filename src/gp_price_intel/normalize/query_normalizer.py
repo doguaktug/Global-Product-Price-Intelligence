@@ -24,27 +24,25 @@ from gp_price_intel.normalize.confirmation import (
     filter_variants,
     rank_closest_variants,
 )
+from gp_price_intel.normalize.family import (
+    FAMILY_MATCH_THRESHOLD,
+    catalog_vocabulary,
+    family_labels,
+)
 from gp_price_intel.normalize.similarity import (
     GENERATION_TOKEN_PATTERN,
     FamilyMatchScore,
-    build_distinctive_vocabulary,
     score_query_against_labels,
     shares_distinctive_token,
     strip_spec_tokens,
     tokenize,
 )
 
-FAMILY_MATCH_THRESHOLD = 0.45
-FAMILY_AMBIGUITY_GAP = 0.06
 # Below the match threshold a search never runs; families this close are only ever
 # offered as "did you mean" options in the popup.
 FAMILY_SUGGESTION_THRESHOLD = 0.30
 FAMILY_OPTION_LIMIT = 5
 CLOSEST_VARIANT_LIMIT = 3
-
-
-def family_labels(family: ProductFamily) -> list[str]:
-    return [f"{family.brand} {family.family_name}", family.family_name, *family.aliases]
 
 
 def _family_tokens(family: ProductFamily) -> set[str]:
@@ -83,9 +81,7 @@ class QueryNormalizer:
 
     def __init__(self, catalog: CatalogRepository | None = None) -> None:
         self.catalog = catalog or CatalogRepository()
-        self.vocabulary = build_distinctive_vocabulary(
-            (family.brand, family_labels(family)) for family in self.catalog.list_families()
-        )
+        self.vocabulary = catalog_vocabulary(self.catalog)
 
     def normalize(
         self,
