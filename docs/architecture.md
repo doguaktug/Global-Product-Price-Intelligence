@@ -117,18 +117,19 @@ See [data-source-strategy.md](data-source-strategy.md) for MVP countries, source
 
 Same physical product can appear under different titles across stores.
 
-Matching is **two tiers, tried in order**:
+Matching is **two tiers, tried in order**, with a family-name gate between them:
 
 | Tier | Logic | Strong when |
 | --- | --- | --- |
 | 1. Identity | EAN/UPC/GTIN, manufacturer model code, per-source retailer SKU | Strong IDs exist across listings |
+| Family name | If the title uniquely names a sibling family (`plus` vs `ultra`), unmatched. A manufacturer code printed in the title (`SM-S928…`) counts as this family. | Sibling models share storage/RAM (S26+ vs S26 Ultra) |
 | 2. Attributes | Category identity keys — storage, RAM, region, chip, connectivity — compared against catalog variants | Phones / laptops / tablets, where the build is what distinguishes one SKU from another |
 
-An **absent** identifier is missing evidence, not contradicting evidence: when tier 1 finds nothing, matching falls through to tier 2 rather than rejecting the offer. Only a *stated conflict* rules a variant out. This is what makes marketplace listings usable at all — eBay publishes no identifier the catalog shares, so every eBay offer is decided by tier 2.
+An **absent** identifier is missing evidence, not contradicting evidence: when tier 1 finds nothing, matching falls through to the family-name gate and then tier 2 rather than rejecting the offer. Only a *stated conflict* (a Plus title on an Ultra search, a 256 GB listing vs a 512 GB SKU) rules a variant out. This is what makes marketplace listings usable at all — eBay publishes no identifier the catalog shares, so every eBay offer is decided by the title.
 
-Tier 2 needs structured attributes, and most sources do not publish any. The attributes therefore come from **normalizing the listing title** with the same parser that reads user queries (see step 5): `"Galaxy S26 Ultra 512GB 12GB RAM EU Black"` yields `storage_gb=512, memory_gb=12, region_version=EU, colour=Black`. Localized colour words (`Gök Mavisi`, `Schwarz`, `ブラック`) are mapped to the English catalog colour via `data/catalog/colour_aliases.json` before matching. Where a source does publish structured specs, those are preferred and passed through the unit parser (and the same colour alias map) first. After a match, the offer keeps the original `listingTitle` and gains an English `displayName` for the Decision Page.
+Tier 2 needs structured attributes, and most sources do not publish any. The attributes therefore come from **normalizing the listing title** with the same parser that reads user queries (see step 5): `"Galaxy S26 Ultra 512GB 12GB RAM EU Black"` yields `storage_gb=512, memory_gb=12, region_version=EU, colour=Black`. Localized colour words (`Gök Mavisi`, `Schwarz`, `ブラック`) are mapped to the English catalog colour via `data/catalog/colour_aliases.json` before matching. Listing colour fallback is stricter than query colour fallback (`LISTING_COLOUR_FUZZY_THRESHOLD` 0.85 vs 0.55) so an off-catalog colour is left unset rather than guessed as Black. Where a source does publish structured specs, those are preferred and passed through the unit parser (and the same colour alias map) first. After a match, the offer keeps the original `listingTitle` and gains an English `displayName` for the Decision Page.
 
-There is deliberately **no free-text similarity tier**. Fuzzy title scoring is used to pick the product *family* from the user's query (step 5), where a wrong guess only opens a confirmation popup. Using it to decide which *build* an offer is would silently merge a 256 GB listing with a 512 GB one, and a wrong answer there corrupts the price comparison itself. When the two tiers cannot decide, the offer is `unmatched` and excluded, which is the honest outcome.
+There is deliberately **no free-text similarity tier for the build**. Fuzzy title scoring is used to pick the product *family* from the user's query (step 5) and to reject a listing that names a sibling family (`plus` vs `ultra`). Using it to decide which *build* an offer is would silently merge a 256 GB listing with a 512 GB one, and a wrong answer there corrupts the price comparison itself. When the two tiers cannot decide, the offer is `unmatched` and excluded, which is the honest outcome.
 
 Matching must distinguish:
 
