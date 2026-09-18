@@ -2,15 +2,35 @@
 
 from __future__ import annotations
 
+import re
+
 from gp_price_intel.catalog.repository import CatalogRepository
-from gp_price_intel.domain.models import MatchKind, Offer, ProductVariant, SearchScope
+from gp_price_intel.domain.models import (
+    MatchKind,
+    Offer,
+    ProductFamily,
+    ProductVariant,
+    SearchScope,
+)
 from gp_price_intel.matching.identifiers import (
     code_matches,
     extract_offer_identifiers,
     gtin_matches,
+    normalize_gtin,
     variant_retailer_sku,
 )
 from gp_price_intel.normalize.offer_labels import english_variant_label
+from gp_price_intel.normalize.query_normalizer import (
+    FAMILY_AMBIGUITY_GAP,
+    FAMILY_MATCH_THRESHOLD,
+    family_labels,
+)
+from gp_price_intel.normalize.similarity import (
+    build_distinctive_vocabulary,
+    score_query_against_labels,
+)
+
+_NON_ALNUM = re.compile(r"[^a-z0-9]+")
 
 
 class ProductMatcher:
@@ -19,12 +39,16 @@ class ProductMatcher:
 
     Priority (per architecture):
     1. Identity — GTIN, manufacturer model number, per-source retailer SKU
-    2. Attributes — same family + identity keys (storage, RAM, region, …)
-    3. Unmatched — dropped from ranking later
+    2. Family name — listing title must uniquely name this family (Ultra ≠ Plus)
+    3. Attributes — same family + identity keys (storage, RAM, region, …)
+    4. Unmatched — dropped from ranking later
     """
 
     def __init__(self, catalog: CatalogRepository | None = None) -> None:
         self.catalog = catalog or CatalogRepository()
+        self.vocabulary = build_distinctive_vocabulary(
+            (family.brand, family_labels(family)) for family in self.catalog.list_families()
+        )
 
     def match(self, offers: list[Offer], scope: SearchScope) -> list[Offer]:
         family = self.catalog.get_family(scope.family_id)
@@ -35,17 +59,25 @@ class ProductMatcher:
         scope_variants = self._variants_in_scope(family_variants, scope)
         category = self.catalog.get_category(family.category_id)
         identity_keys = category.identity_keys if category else []
+        optional_keys = list(category.optional_keys) if category else []
         # Category spec keys (processor, display size, …) are corroborating evidence:
         # they never create a match on their own, but a stated conflict blocks one.
         comparison_keys = list(identity_keys) + [
             key
-            for key in ((category.optional_keys + category.core_spec_keys) if category else [])
+            for key in optional_keys + (category.core_spec_keys if category else [])
             if key not in identity_keys
         ]
 
         return [
             self._match_offer(
-                offer, family_variants, scope_variants, identity_keys, comparison_keys
+                offer,
+                family,
+                family_variants,
+                scope_variants,
+                identity_keys,
+                comparison_keys,
+                optional_keys,
+                scope,
             )
             for offer in offers
         ]
@@ -63,10 +95,13 @@ class ProductMatcher:
     def _match_offer(
         self,
         offer: Offer,
+        family: ProductFamily,
         family_variants: list[ProductVariant],
         scope_variants: list[ProductVariant],
         identity_keys: list[str],
         comparison_keys: list[str],
+        optional_keys: list[str],
+        scope: SearchScope,
     ) -> Offer:
         by_identity = self._match_by_identifiers(offer, family_variants)
         if by_identity is not None:
@@ -85,8 +120,24 @@ class ProductMatcher:
                 }
             )
 
+        if not self._listing_names_family(offer, family, family_variants):
+            return offer.model_copy(
+                update={
+                    "match_kind": MatchKind.UNMATCHED,
+                    "match_notes": [
+                        "Listing names a different catalog model than the confirmed family."
+                    ],
+                }
+            )
+
         by_attributes = self._match_by_attributes(
-            offer, family_variants, identity_keys, comparison_keys, scope_variants
+            offer,
+            family_variants,
+            identity_keys,
+            comparison_keys,
+            optional_keys,
+            scope_variants,
+            scope,
         )
         if by_attributes is not None:
             variant, kind, notes = by_attributes
@@ -104,6 +155,43 @@ class ProductMatcher:
                 "match_kind": MatchKind.UNMATCHED,
                 "match_notes": ["No SKU/GTIN/model match and attributes did not align."],
             }
+        )
+
+    def _listing_names_family(
+        self,
+        offer: Offer,
+        family: ProductFamily,
+        family_variants: list[ProductVariant],
+    ) -> bool:
+        """
+        False when the title uniquely names a sibling family (S26+ vs S26 Ultra).
+
+        Query confirmation already locked the search family. Marketplace titles still
+        mix siblings, and attribute matching would otherwise treat shared storage/RAM
+        as an identical Ultra. The same distinctive-token scorer used on the user's
+        query is applied to the title. A manufacturer code printed in the title is
+        accepted even when the marketing name is omitted. Titles that name no sibling
+        still fall through to attribute matching.
+        """
+        if _title_mentions_variant_identity(offer.listing_title, family_variants):
+            return True
+
+        confirmed = score_query_against_labels(
+            offer.listing_title, family_labels(family), self.vocabulary
+        )
+        rival = 0.0
+        for other in self.catalog.list_families():
+            if other.id == family.id:
+                continue
+            if other.brand.casefold() != family.brand.casefold():
+                continue
+            score = score_query_against_labels(
+                offer.listing_title, family_labels(other), self.vocabulary
+            ).score
+            rival = max(rival, score)
+        return not (
+            rival >= FAMILY_MATCH_THRESHOLD
+            and (rival - confirmed.score) >= FAMILY_AMBIGUITY_GAP
         )
 
     def _match_by_identifiers(
@@ -138,7 +226,9 @@ class ProductMatcher:
         variants: list[ProductVariant],
         identity_keys: list[str],
         comparison_keys: list[str],
+        optional_keys: list[str],
         scope_variants: list[ProductVariant],
+        scope: SearchScope,
     ) -> tuple[ProductVariant, MatchKind, list[str]] | None:
         """Fallback when no strong ID — compare parsed specs in raw_specs to variant specs."""
         spec_attrs = {
@@ -184,7 +274,18 @@ class ProductMatcher:
             scope_ids = {v.id for v in scope_variants}
             kind = MatchKind.IDENTICAL if variant.id in scope_ids else MatchKind.SIMILAR
             notes = ["Attribute match on catalog fields."]
-            if kind == MatchKind.SIMILAR:
+            missing_constrained = [
+                key
+                for key in optional_keys
+                if key in scope.constraints and key not in spec_attrs
+            ]
+            if kind == MatchKind.IDENTICAL and missing_constrained:
+                kind = MatchKind.SIMILAR
+                notes.append(
+                    "Optional spec "
+                    f"({', '.join(missing_constrained)}) was not stated on the listing."
+                )
+            elif kind == MatchKind.SIMILAR:
                 notes.append("Attributes matched a variant outside the confirmed scope.")
             return variant, kind, notes
 
@@ -192,3 +293,23 @@ class ProductMatcher:
             return candidates[0], MatchKind.SIMILAR, ["Attribute match ambiguous across variants."]
 
         return None
+
+
+def _title_mentions_variant_identity(title: str, variants: list[ProductVariant]) -> bool:
+    """True when a family variant's model number or GTIN is written in the title."""
+    folded = title.casefold()
+    compact = _NON_ALNUM.sub("", folded)
+    title_digits = normalize_gtin(title)
+    for variant in variants:
+        if variant.model_number:
+            code = variant.model_number.strip().casefold()
+            if code and code in folded:
+                return True
+            compact_code = _NON_ALNUM.sub("", code)
+            if len(compact_code) >= 8 and compact_code in compact:
+                return True
+        if variant.gtin:
+            gtin = normalize_gtin(variant.gtin)
+            if gtin and gtin in title_digits:
+                return True
+    return False

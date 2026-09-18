@@ -22,6 +22,7 @@ from gp_price_intel.matching.matcher import ProductMatcher
 def _offer(
     *,
     source_id: str = "ebay",
+    listing_title: str = "Samsung Galaxy S26 Ultra 512 GB",
     retailer_sku: str | None = None,
     gtin: str | None = None,
     model_number: str | None = None,
@@ -32,7 +33,7 @@ def _offer(
         source_id=source_id,
         seller=Seller(name="Test"),
         country="US",
-        listing_title="Samsung Galaxy S26 Ultra 512 GB",
+        listing_title=listing_title,
         listing_url="https://example.com/p/1",
         list_price=Money(amount=Decimal("1199.99"), currency="USD"),
         retailer_sku=retailer_sku,
@@ -245,3 +246,117 @@ def test_unmatched_when_nothing_aligns() -> None:
     matched = matcher.match([offer], scope)[0]
 
     assert matched.match_kind == MatchKind.UNMATCHED
+
+
+_ULTRA_512_BLACK = SearchScope(
+    family_id="samsung-galaxy-s26-ultra",
+    constraints={"storage_gb": 512, "colour": "Black"},
+    variant_ids=["samsung-galaxy-s26-ultra-512-12-eu-black"],
+)
+
+_ULTRA_SPECS = [
+    NormalizedSpec(key="storage_gb", value=512),
+    NormalizedSpec(key="memory_gb", value=12),
+    NormalizedSpec(key="colour", value="Black"),
+]
+
+
+def test_plus_listing_does_not_attribute_match_the_confirmed_ultra() -> None:
+    """S26+ and S26 Ultra share 512/12/Black; the title has to name Ultra."""
+    matcher = ProductMatcher(CatalogRepository())
+    plus = matcher.match(
+        [
+            _offer(
+                listing_title="Samsung Galaxy S26+ 512GB 12GB RAM Black Unlocked",
+                raw_specs=_ULTRA_SPECS,
+            )
+        ],
+        _ULTRA_512_BLACK,
+    )[0]
+    spelled_plus = matcher.match(
+        [
+            _offer(
+                listing_title="Samsung Galaxy S26 Plus 512GB Black",
+                raw_specs=_ULTRA_SPECS,
+            )
+        ],
+        _ULTRA_512_BLACK,
+    )[0]
+
+    assert plus.match_kind == MatchKind.UNMATCHED
+    assert spelled_plus.match_kind == MatchKind.UNMATCHED
+    assert any("different catalog model" in note for note in plus.match_notes)
+
+
+def test_base_s26_listing_does_not_attribute_match_the_confirmed_ultra() -> None:
+    matcher = ProductMatcher(CatalogRepository())
+    matched = matcher.match(
+        [
+            _offer(
+                listing_title="Samsung Galaxy S26 512GB Unlocked Global",
+                raw_specs=_ULTRA_SPECS,
+            )
+        ],
+        _ULTRA_512_BLACK,
+    )[0]
+
+    assert matched.match_kind == MatchKind.UNMATCHED
+
+
+def test_ultra_alias_in_the_title_still_attribute_matches() -> None:
+    matcher = ProductMatcher(CatalogRepository())
+    matched = matcher.match(
+        [
+            _offer(
+                listing_title="Galaxy S26U 512GB Black",
+                raw_specs=_ULTRA_SPECS,
+            )
+        ],
+        _ULTRA_512_BLACK,
+    )[0]
+
+    assert matched.match_kind == MatchKind.IDENTICAL
+    assert matched.matched_variant_id == "samsung-galaxy-s26-ultra-512-12-eu-black"
+
+
+def test_model_number_in_the_title_identifies_the_family() -> None:
+    """eBay often prints SM-S928… and omits the word Ultra."""
+    matcher = ProductMatcher(CatalogRepository())
+    matched = matcher.match(
+        [
+            _offer(
+                listing_title="Samsung SM-S928BZKG 512GB Black",
+                raw_specs=_ULTRA_SPECS,
+            )
+        ],
+        _ULTRA_512_BLACK,
+    )[0]
+
+    assert matched.match_kind == MatchKind.IDENTICAL
+    assert matched.matched_variant_id == "samsung-galaxy-s26-ultra-512-12-eu-black"
+
+
+def test_unstated_colour_is_not_identical_to_the_confirmed_colour() -> None:
+    """A 1 TB Ultra exists only in Black — missing colour must not fill that in."""
+    matcher = ProductMatcher(CatalogRepository())
+    scope = SearchScope(
+        family_id="samsung-galaxy-s26-ultra",
+        constraints={"storage_gb": 1024, "colour": "Black"},
+        variant_ids=["samsung-galaxy-s26-ultra-1024-12-eu-black"],
+    )
+    matched = matcher.match(
+        [
+            _offer(
+                listing_title="Samsung Galaxy S26 Ultra 1TB Unlocked",
+                raw_specs=[
+                    NormalizedSpec(key="storage_gb", value=1024),
+                    NormalizedSpec(key="memory_gb", value=12),
+                ],
+            )
+        ],
+        scope,
+    )[0]
+
+    assert matched.match_kind == MatchKind.SIMILAR
+    assert matched.matched_variant_id == "samsung-galaxy-s26-ultra-1024-12-eu-black"
+    assert any("colour" in note for note in matched.match_notes)

@@ -27,7 +27,10 @@ from gp_price_intel.domain.models import (
     SourceKind,
     StockStatus,
 )
-from gp_price_intel.normalize.attribute_parser import parse_listing_attributes
+from gp_price_intel.normalize.attribute_parser import (
+    LISTING_COLOUR_FUZZY_THRESHOLD,
+    parse_listing_attributes,
+)
 from gp_price_intel.normalize.condition import is_non_new_condition, parse_item_condition
 from gp_price_intel.normalize.spec_parser import parse_spec_value
 from gp_price_intel.ranking.confidence import compute_data_confidence_from
@@ -375,7 +378,11 @@ class EbayAdapter(SourceAdapter):
         is the one place a seller reliably states the build ("... 512GB 12GB RAM
         Unlocked EU"), so it is parsed with the same code that reads user queries.
         """
-        attributes = parse_listing_attributes(title, valid_options)
+        attributes = parse_listing_attributes(
+            title,
+            valid_options,
+            colour_min_score=LISTING_COLOUR_FUZZY_THRESHOLD,
+        )
         return [
             NormalizedSpec(key=key, value=value, raw_text=title)
             for key, value in attributes.items()

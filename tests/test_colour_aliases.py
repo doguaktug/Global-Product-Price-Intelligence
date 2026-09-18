@@ -14,7 +14,11 @@ from gp_price_intel.domain.models import (
     Seller,
 )
 from gp_price_intel.matching.matcher import ProductMatcher
-from gp_price_intel.normalize.attribute_parser import parse_colour, parse_listing_attributes
+from gp_price_intel.normalize.attribute_parser import (
+    LISTING_COLOUR_FUZZY_THRESHOLD,
+    parse_colour,
+    parse_listing_attributes,
+)
 from gp_price_intel.normalize.colour_aliases import canonicalize_colour, resolve_colour_alias
 from gp_price_intel.normalize.offer_labels import (
     english_variant_label,
@@ -32,6 +36,25 @@ def test_turkish_german_japanese_colours_map_to_english() -> None:
     assert resolve_colour_alias("Uzay Grisi", colours) == "Space Gray"
     assert resolve_colour_alias("スペースグレイ", colours) == "Space Gray"
     assert resolve_colour_alias("Polarstern", colours) == "Starlight"
+
+
+def test_listing_colour_threshold_does_not_guess_black() -> None:
+    """
+    Off-catalog colours used to fuzzy-match Black at 0.60 via partial_ratio.
+
+    Listing titles are seller copy, not user typos, so the residue fallback is
+    0.85. Token/alias hits still read a real Black / Schwarz / Phantom Black.
+    """
+    colours = ["Black", "Silver", "White"]
+    sky_blue = "Samsung Galaxy S26 Ultra 512GB Sky Blue Unlocked"
+    colourless = "Samsung Galaxy S26 Ultra 512GB Unlocked Global"
+    assert parse_colour(sky_blue, colours, min_score=LISTING_COLOUR_FUZZY_THRESHOLD) is None
+    assert parse_colour(colourless, colours, min_score=LISTING_COLOUR_FUZZY_THRESHOLD) is None
+    assert parse_colour(
+        "Samsung Galaxy S26 Ultra 512GB Phantom Black",
+        colours,
+        min_score=LISTING_COLOUR_FUZZY_THRESHOLD,
+    ) == "Black"
 
 
 def test_parse_colour_reads_localized_words_in_titles() -> None:

@@ -43,13 +43,13 @@ FAMILY_OPTION_LIMIT = 5
 CLOSEST_VARIANT_LIMIT = 3
 
 
-def _family_labels(family: ProductFamily) -> list[str]:
+def family_labels(family: ProductFamily) -> list[str]:
     return [f"{family.brand} {family.family_name}", family.family_name, *family.aliases]
 
 
 def _family_tokens(family: ProductFamily) -> set[str]:
     tokens: set[str] = set()
-    for label in _family_labels(family):
+    for label in family_labels(family):
         tokens.update(tokenize(label))
     return tokens
 
@@ -84,7 +84,7 @@ class QueryNormalizer:
     def __init__(self, catalog: CatalogRepository | None = None) -> None:
         self.catalog = catalog or CatalogRepository()
         self.vocabulary = build_distinctive_vocabulary(
-            (family.brand, _family_labels(family)) for family in self.catalog.list_families()
+            (family.brand, family_labels(family)) for family in self.catalog.list_families()
         )
 
     def normalize(
@@ -268,7 +268,7 @@ class QueryNormalizer:
             family = self.catalog.get_family(locked_family_id)
             if family is None:
                 return _FamilyResolution(None, 0.0, False, None)
-            scored = score_query_against_labels(text, _family_labels(family), self.vocabulary)
+            scored = score_query_against_labels(text, family_labels(family), self.vocabulary)
             return _FamilyResolution(family, scored.score, False, None)
 
         catalog_families = self.catalog.list_families()
@@ -320,7 +320,7 @@ class QueryNormalizer:
         if len(matching) == 1:
             family = matching[0]
             family_score = score_query_against_labels(
-                text, _family_labels(family), self.vocabulary
+                text, family_labels(family), self.vocabulary
             )
             return _FamilyResolution(family, family_score.score, family_score.shorthand, None)
 
@@ -417,7 +417,7 @@ class QueryNormalizer:
     ) -> list[tuple[ProductFamily, FamilyMatchScore]]:
         pool = families if families is not None else self.catalog.list_families()
         scored = [
-            (family, score_query_against_labels(text, _family_labels(family), self.vocabulary))
+            (family, score_query_against_labels(text, family_labels(family), self.vocabulary))
             for family in pool
         ]
         scored.sort(key=lambda item: item[1].score, reverse=True)
@@ -438,7 +438,7 @@ class QueryNormalizer:
             if result.score >= FAMILY_SUGGESTION_THRESHOLD
             and (
                 family.id == always_include
-                or shares_distinctive_token(text, _family_labels(family), self.vocabulary)
+                or shares_distinctive_token(text, family_labels(family), self.vocabulary)
             )
         ][:FAMILY_OPTION_LIMIT]
 
