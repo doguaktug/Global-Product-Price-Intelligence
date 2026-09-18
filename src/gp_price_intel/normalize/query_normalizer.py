@@ -36,7 +36,7 @@ FAMILY_OPTION_LIMIT = 5
 CLOSEST_VARIANT_LIMIT = 3
 
 
-def _family_labels(family: ProductFamily) -> list[str]:
+def family_labels(family: ProductFamily) -> list[str]:
     return [f"{family.brand} {family.family_name}", family.family_name, *family.aliases]
 
 
@@ -46,7 +46,7 @@ class QueryNormalizer:
     def __init__(self, catalog: CatalogRepository | None = None) -> None:
         self.catalog = catalog or CatalogRepository()
         self.vocabulary = build_distinctive_vocabulary(
-            (family.brand, _family_labels(family)) for family in self.catalog.list_families()
+            (family.brand, family_labels(family)) for family in self.catalog.list_families()
         )
 
     def normalize(self, raw_text: str) -> NormalizedQuery:
@@ -199,7 +199,7 @@ class QueryNormalizer:
 
     def _score_families(self, text: str) -> list[tuple[ProductFamily, FamilyMatchScore]]:
         scored = [
-            (family, score_query_against_labels(text, _family_labels(family), self.vocabulary))
+            (family, score_query_against_labels(text, family_labels(family), self.vocabulary))
             for family in self.catalog.list_families()
         ]
         scored.sort(key=lambda item: item[1].score, reverse=True)
@@ -220,7 +220,7 @@ class QueryNormalizer:
             if result.score >= FAMILY_SUGGESTION_THRESHOLD
             and (
                 family.id == always_include
-                or shares_distinctive_token(text, _family_labels(family), self.vocabulary)
+                or shares_distinctive_token(text, family_labels(family), self.vocabulary)
             )
         ][:FAMILY_OPTION_LIMIT]
 
