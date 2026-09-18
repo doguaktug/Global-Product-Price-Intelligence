@@ -516,9 +516,9 @@ The trade-off is real and accepted: the payload travelling both ways is larger t
 
 `SearchSession` still *has* fields that look like stored state — `propertyChoices`, `searchScope`, `confirmedVariantId` — because the state has to live somewhere across the confirm/run boundary. The distinction is that it lives in the payload, not on the server.
 
-### Where a cache would go, if one is added
+### What is cached
 
-Nothing is cached today. Two places could justify it later, and both are narrow: recent `FxQuote` values, since the ECB publishes daily and re-fetching per request is wasteful; and fetched offers for a short window, so that re-ranking under different weights does not re-hit every source. Neither changes the stateless contract above — both would be a keyed cache in front of a service, not a session store.
+FX quotes are cached in process for an hour (`FxService`, ECB publishes daily). Offer listings are not cached: each Decision Page is built from a fetch that just happened. Neither is a session store.
 
 ---
 

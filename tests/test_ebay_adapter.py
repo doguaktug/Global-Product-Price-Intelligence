@@ -127,6 +127,30 @@ async def test_ebay_listing_title_becomes_matchable_specs() -> None:
 
 
 @pytest.mark.asyncio
+async def test_ebay_title_does_not_guess_an_off_catalog_colour() -> None:
+    """Sky Blue is not an Ultra catalogue colour; the title must not become Black."""
+    scope = SearchScope(
+        family_id="samsung-galaxy-s26-ultra",
+        constraints={"storage_gb": 512},
+        variant_ids=["samsung-galaxy-s26-ultra-512-12-eu-black"],
+    )
+    transport = httpx.MockTransport(
+        lambda request: _listing_response(
+            request,
+            title="Samsung Galaxy S26 Ultra 512GB 12GB RAM Sky Blue Unlocked",
+        )
+    )
+
+    offers = await _adapter(httpx.AsyncClient(transport=transport)).search(
+        scope, destination_country="TR"
+    )
+
+    specs = {spec.key: spec.value for spec in offers[0].raw_specs}
+    assert specs["storage_gb"] == 512
+    assert "colour" not in specs
+
+
+@pytest.mark.asyncio
 async def test_ebay_offer_parsed_from_its_title_survives_matching() -> None:
     """The point of parsing the title: the offer is no longer dropped as unmatched."""
     scope = SearchScope(

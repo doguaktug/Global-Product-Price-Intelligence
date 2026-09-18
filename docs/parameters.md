@@ -83,6 +83,8 @@ Unknown condition stays in the list with a Decision Page caveat either way.
 | Resource | Location | Effect |
 | --- | --- | --- |
 | `colour_aliases.json` | `data/catalog/colour_aliases.json` | Maps TR/DE/JP (and other) colour words onto English catalog colours so online listings still match scope |
+| `COLOUR_FUZZY_THRESHOLD` | `0.55` | `normalize/attribute_parser.py` | Residue-vs-catalogue fallback on **user queries**. Token and alias hits still win first; this only covers typos that never formed a colour word. |
+| `LISTING_COLOUR_FUZZY_THRESHOLD` | `0.85` | `normalize/attribute_parser.py` | Same fallback on **marketplace titles**. Seller copy is almost always spelled; 0.55 was matching `Black` onto `Sky Blue Unlocked` via `partial_ratio`. |
 | `display_name` | set in `matching/matcher.py` | English label shown beside the original `listing_title` |
 
 The app language is English. Original marketplace wording stays on `listing_title`; Decision Page copy should lead with `display_name` and still show the original when it differs.
@@ -91,8 +93,8 @@ The app language is English. Original marketplace wording stays on `listing_titl
 
 | Parameter | Default | Defined in | Effect |
 | --- | --- | --- | --- |
-| `FAMILY_MATCH_THRESHOLD` | `0.45` | `normalize/query_normalizer.py` | Similarity a family must reach to be accepted without asking the user |
-| `FAMILY_AMBIGUITY_GAP` | `0.06` | `normalize/query_normalizer.py` | If the runner-up family is within this of the leader, the match is ambiguous and the popup asks |
+| `FAMILY_MATCH_THRESHOLD` | `0.45` | `normalize/family.py` | Similarity a family must reach to be accepted without asking the user. The offer matcher uses the same floor when treating a listing title as a sibling model. |
+| `FAMILY_AMBIGUITY_GAP` | `0.06` | `normalize/family.py` | If the runner-up family is within this of the leader, the match is ambiguous and the popup asks. On listings, the same gap rejects a Plus/Ultra clash instead of treating shared storage as an identical SKU. |
 | `FAMILY_SUGGESTION_THRESHOLD` | `0.30` | `normalize/query_normalizer.py` | Floor to be offered as a "did you mean" option at all |
 | `FAMILY_OPTION_LIMIT` | `5` | `normalize/query_normalizer.py` | Most families the popup will offer |
 | `CLOSEST_VARIANT_LIMIT` | `3` | `normalize/query_normalizer.py` | Most "closest build" suggestions when the family is right but the exact build is not stocked |

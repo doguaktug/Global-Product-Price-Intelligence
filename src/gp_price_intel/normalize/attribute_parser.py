@@ -13,6 +13,12 @@ from gp_price_intel.normalize.similarity import (
     tokenize,
 )
 
+# User queries can be messy; a listing title is a seller's product name.
+# The residue-vs-colour fallback must not pick "Black" off "Sky Blue Unlocked"
+# just because rapidfuzz partial_ratio("…unlocked", "black") is 0.60.
+COLOUR_FUZZY_THRESHOLD = 0.55
+LISTING_COLOUR_FUZZY_THRESHOLD = 0.85
+
 STORAGE_PATTERN = re.compile(
     r"(?P<amount>\d+(?:\.\d+)?)\s*(?P<unit>gb|tb|g\b|t\b)",
     re.IGNORECASE,
@@ -155,7 +161,12 @@ def parse_processor(text: str, valid_options: list[Any] | None = None) -> str | 
     return None
 
 
-def parse_colour(text: str, valid_colours: list[str]) -> str | None:
+def parse_colour(
+    text: str,
+    valid_colours: list[str],
+    *,
+    min_score: float = COLOUR_FUZZY_THRESHOLD,
+) -> str | None:
     if not valid_colours:
         return None
 
@@ -181,7 +192,7 @@ def parse_colour(text: str, valid_colours: list[str]) -> str | None:
             return colour
 
     best_colour, score = best_fuzzy_match(residue, valid_colours)
-    if best_colour is not None and score >= 0.55:
+    if best_colour is not None and score >= min_score:
         return best_colour
 
     return None
@@ -190,6 +201,8 @@ def parse_colour(text: str, valid_colours: list[str]) -> str | None:
 def parse_listing_attributes(
     text: str,
     valid_options: dict[str, list[Any]],
+    *,
+    colour_min_score: float = COLOUR_FUZZY_THRESHOLD,
 ) -> dict[str, Any]:
     """
     Read every catalog attribute this text states, against a family's option lists.
@@ -208,7 +221,11 @@ def parse_listing_attributes(
         "storage_gb": storage,
         "memory_gb": memory,
         "region_version": parse_region_version(text),
-        "colour": parse_colour(text, valid_options.get("colour", [])),
+        "colour": parse_colour(
+            text,
+            valid_options.get("colour", []),
+            min_score=colour_min_score,
+        ),
         "processor": parse_processor(text, valid_options.get("processor", [])),
         "connectivity": parse_connectivity(text, valid_options.get("connectivity", [])),
     }

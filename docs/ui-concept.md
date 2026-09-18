@@ -30,7 +30,7 @@ Country and currency are never required fields. They follow a **waterfall**; eac
 | 2. Geolocation | User permits location | Inferred country + that country’s usual currency **replaces** the default |
 | 3. Manual | User picks country/currency next to the sliders | **Replaces** whatever default or geo had set |
 
-Search uses whatever is in effect at submit. Manual choice is not snapped back to location. Changing sliders later can re-rank without a new crawl; changing destination/currency may require recomputing FX and landed cost.
+Search uses whatever is in effect at submit. Manual choice is not snapped back to location. Weights, destination and currency are fixed for that search.
 
 ---
 
