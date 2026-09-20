@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from gp_price_intel.domain.models import Offer, ProductVariant
+from gp_price_intel.normalize.spec_parser import format_capacity_gb
 
 
 def english_variant_label(variant: ProductVariant) -> str:
@@ -18,10 +19,14 @@ def english_variant_label(variant: ProductVariant) -> str:
     extras: list[str] = []
 
     if variant.storage_gb is not None:
-        compact = f"{variant.storage_gb}gb"
-        spaced = f"{variant.storage_gb} gb"
-        if compact not in lowered.replace(" ", "") and spaced not in lowered:
-            extras.append(f"{variant.storage_gb} GB")
+        label = format_capacity_gb(variant.storage_gb)
+        compact_name = lowered.replace(" ", "")
+        already = (
+            f"{variant.storage_gb}gb" in compact_name
+            or label.casefold().replace(" ", "") in compact_name
+        )
+        if not already:
+            extras.append(label)
 
     if variant.colour and variant.colour.casefold() not in lowered:
         extras.append(variant.colour)

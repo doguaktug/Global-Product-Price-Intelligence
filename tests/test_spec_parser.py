@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from gp_price_intel.normalize.spec_parser import (
+    format_capacity_gb,
     parse_capacity_gb,
     parse_charge_mah,
     parse_length_inch,
@@ -54,6 +55,14 @@ def test_capacity_units_decide_the_scale() -> None:
     assert parse_capacity_gb("512 GB") == 512
     assert parse_capacity_gb("512GB") == 512
     assert parse_capacity_gb("12 GB RAM") == 12
+
+
+def test_whole_terabyte_catalog_sizes_display_as_tb() -> None:
+    assert format_capacity_gb(512) == "512 GB"
+    assert format_capacity_gb(1024) == "1 TB"
+    assert format_capacity_gb(2048) == "2 TB"
+    assert format_capacity_gb(32, ram=True) == "32 GB RAM"
+    assert format_capacity_gb(1024, ram=True) == "1 TB RAM"
 
 
 def test_unreadable_spec_text_yields_nothing_rather_than_a_wrong_value() -> None:
