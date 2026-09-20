@@ -557,6 +557,25 @@ body {
   text-transform: uppercase;
 }
 
+.spec-change {
+  margin: 0 0 0.55rem;
+  padding: 0;
+  list-style: none;
+}
+
+.spec-change li {
+  margin: 0 0 0.2rem;
+  color: var(--accent-dark);
+  font-size: 1.12rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+}
+
+.spec-change li:last-child {
+  margin-bottom: 0;
+}
+
 .why-list {
   margin: 0;
   padding: 0;

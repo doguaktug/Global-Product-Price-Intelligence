@@ -209,7 +209,7 @@ def test_spec_change_reasons_include_the_unit() -> None:
     alternatives = {item.offer_id: item for item in _select([bigger, colour], best)}
 
     storage = next(r for r in alternatives["bigger"].explanation.reasons if r.factor == "storage_gb")
-    assert storage.detail == "512 GB → 1024 GB"
+    assert storage.detail == "512 GB → 1 TB"
     colour_reason = next(
         r for r in alternatives["colour"].explanation.reasons if r.factor == "colour"
     )

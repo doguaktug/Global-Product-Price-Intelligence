@@ -286,6 +286,30 @@ function argumentReasons(explanation) {
   return (explanation?.reasons || []).filter((reason) => ARGUMENT_FACTORS.has(reason.factor));
 }
 
+function specChangeReasons(explanation) {
+  return (explanation?.reasons || []).filter((reason) => String(reason.detail || "").includes("→"));
+}
+
+function formatCapacityGb(value, options = {}) {
+  const ram = Boolean(options.ram);
+  const n = Number(value);
+  if (!Number.isFinite(n)) {
+    return formatCapacityInText(String(value ?? ""), options);
+  }
+  const whole = Math.round(n);
+  if (whole >= 1024 && whole % 1024 === 0) {
+    return `${whole / 1024} TB${ram ? " RAM" : ""}`;
+  }
+  return `${whole} GB${ram ? " RAM" : ""}`;
+}
+
+function formatCapacityInText(text, options = {}) {
+  const ram = Boolean(options.ram);
+  return String(text).replace(/(\d+(?:\.\d+)?)\s*GB(?:\s*RAM)?\b/gi, (_, amount) =>
+    formatCapacityGb(Number(amount), { ram: ram || /ram/i.test(String(text)) }),
+  );
+}
+
 function noteLines(explanation) {
   const lines = [];
   for (const reason of explanation?.reasons || []) {
@@ -295,7 +319,7 @@ function noteLines(explanation) {
   return lines;
 }
 
-function explanationBlock(explanation, heading) {
+function explanationBlock(explanation, heading, options = {}) {
   const wrap = document.createElement("div");
   wrap.className = "why";
   if (heading) {
@@ -304,11 +328,28 @@ function explanationBlock(explanation, heading) {
     title.textContent = heading;
     wrap.append(title);
   }
+  const specChanges = specChangeReasons(explanation);
+  if (options.forAlternative && specChanges.length) {
+    const deltas = document.createElement("ul");
+    deltas.className = "spec-change";
+    for (const reason of specChanges) {
+      const item = document.createElement("li");
+      item.textContent = formatCapacityInText(reason.detail);
+      deltas.append(item);
+    }
+    wrap.append(deltas);
+  }
   const list = document.createElement("ul");
   list.className = "why-list";
-  for (const reason of argumentReasons(explanation)) {
+  const skip = new Set(specChanges.map((reason) => reason.detail));
+  const reasons = options.forAlternative
+    ? (explanation?.reasons || []).filter(
+        (reason) => reason.factor !== "listing" && !skip.has(reason.detail),
+      )
+    : argumentReasons(explanation);
+  for (const reason of reasons) {
     const item = document.createElement("li");
-    item.textContent = reason.detail;
+    item.textContent = formatCapacityInText(reason.detail);
     list.append(item);
   }
   wrap.append(list);
@@ -472,8 +513,8 @@ function originalSearchName(page) {
   const query = (state.session?.raw_query || "").trim();
   if (variant?.model_name) {
     const bits = [variant.model_name];
-    if (variant.storage_gb != null) bits.push(`${variant.storage_gb} GB`);
-    if (variant.memory_gb != null) bits.push(`${variant.memory_gb} GB RAM`);
+    if (variant.storage_gb != null) bits.push(formatCapacityGb(variant.storage_gb));
+    if (variant.memory_gb != null) bits.push(formatCapacityGb(variant.memory_gb, { ram: true }));
     if (variant.colour) bits.push(variant.colour);
     return bits.join(" · ");
   }
@@ -587,6 +628,14 @@ function specUnit(key, given) {
 function specLines(offer) {
   const lines = [];
   for (const spec of offer.raw_specs || []) {
+    if (spec.key === "storage_gb") {
+      lines.push(`storage: ${formatCapacityGb(spec.value)}`);
+      continue;
+    }
+    if (spec.key === "memory_gb") {
+      lines.push(`memory: ${formatCapacityGb(spec.value, { ram: true })}`);
+      continue;
+    }
     const unit = specUnit(spec.key, spec.unit);
     lines.push(`${specLabel(spec.key)}: ${spec.value}${unit ? ` ${unit}` : ""}`);
   }
@@ -634,7 +683,7 @@ function renderAlternatives(page, altById) {
     product.append(strong);
     card.append(product);
     card.append(priceBlock(offer));
-    card.append(explanationBlock(alt.explanation, "why this alternative"));
+    card.append(explanationBlock(alt.explanation, "why this alternative", { forAlternative: true }));
     const tags = document.createElement("div");
     tags.className = "card-tags";
     appendCondition(tags, offer);
@@ -683,11 +732,16 @@ function optionLabel(property, value) {
   if (property === "variant_id") {
     const variant = state.catalog.variants.find((item) => item.id === value);
     if (variant) {
-      const bits = [variant.model_name, variant.storage_gb && `${variant.storage_gb} GB`, variant.colour];
+      const bits = [
+        variant.model_name,
+        variant.storage_gb != null && formatCapacityGb(variant.storage_gb),
+        variant.colour,
+      ];
       return bits.filter(Boolean).join(" · ");
     }
   }
-  if (property === "storage_gb" || property === "memory_gb") return `${value} GB`;
+  if (property === "storage_gb") return formatCapacityGb(value);
+  if (property === "memory_gb") return formatCapacityGb(value, { ram: true });
   return String(value);
 }
 
@@ -789,7 +843,7 @@ function renderDecision(page) {
   const altById = new Map((page.alternative_offers || []).map((offer) => [offer.id, offer]));
   const variant = page.confirmed_variant;
   $("decision-kicker").textContent = variant
-    ? `${variant.model_name}${variant.storage_gb ? ` · ${variant.storage_gb} GB` : ""}`
+    ? `${variant.model_name}${variant.storage_gb ? ` · ${formatCapacityGb(variant.storage_gb)}` : ""}`
     : "Decision";
   const groups = collapseHighlights(page.highlights);
   const highlightedIds = new Set(groups.map((group) => group[0].offer_id));

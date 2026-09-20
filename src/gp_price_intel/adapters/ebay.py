@@ -32,7 +32,7 @@ from gp_price_intel.normalize.attribute_parser import (
     parse_listing_attributes,
 )
 from gp_price_intel.normalize.condition import is_non_new_condition, parse_item_condition
-from gp_price_intel.normalize.spec_parser import parse_spec_value
+from gp_price_intel.normalize.spec_parser import format_capacity_gb, parse_spec_value
 from gp_price_intel.ranking.confidence import compute_data_confidence_from
 
 logger = logging.getLogger(__name__)
@@ -56,9 +56,7 @@ def _storage_query_term(value: object) -> str:
         gigabytes = int(value)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return f"{value}GB"
-    if gigabytes >= 1024 and gigabytes % 1024 == 0:
-        return f"{gigabytes // 1024}TB"
-    return f"{gigabytes}GB"
+    return format_capacity_gb(gigabytes).replace(" ", "")
 
 
 # Constraint keys worth putting in the keyword query, in the order buyers write them.
