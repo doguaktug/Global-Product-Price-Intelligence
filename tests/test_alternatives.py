@@ -183,6 +183,15 @@ def test_selection_prefers_one_of_each_badge_over_three_of_a_kind() -> None:
     }
 
 
+def test_cost_phrase_groups_thousands() -> None:
+    assert AlternativeScout._cost_phrase(Decimal("28415.09"), "TRY") == (
+        "28,415.09 TRY more than your top pick, landed."
+    )
+    assert AlternativeScout._cost_phrase(Decimal(-2400), "TRY") == (
+        "2,400.00 TRY less than your top pick, landed."
+    )
+
+
 def test_every_shown_alternative_carries_a_badge_reason_and_cost_delta() -> None:
     best = _scored("pick", "1000", CONFIRMED, final_score=0.9)
     near = [

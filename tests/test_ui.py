@@ -85,6 +85,9 @@ def test_decision_cards_put_reasons_under_the_price() -> None:
     assert "forAlternative: true" in js
     assert ".spec-change {" in css
     assert "whole / 1024" in js
+    assert "Intl.NumberFormat(\"en-US\"" in js
+    assert "function groupedNumber(" in js
+    assert "groupedNumber(seller.review_count, { decimals: 0 })" in js
 
 
 def test_the_ranked_list_starts_hidden_behind_its_toggle() -> None:

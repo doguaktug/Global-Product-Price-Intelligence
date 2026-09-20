@@ -9,7 +9,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-
 # --- Enums ---
 
 
@@ -136,11 +135,23 @@ class AlternativeBadge(str, Enum):
 # --- Value objects ---
 
 
+def grouped_amount(value: Decimal | float, *, places: int = 2) -> str:
+    """Format a figure with comma thousands separators (``28415.09`` → ``28,415.09``)."""
+    number = value if isinstance(value, Decimal) else Decimal(str(value))
+    quantum = Decimal(1).scaleb(-places)
+    quantized = number.quantize(quantum)
+    return f"{quantized:,.{places}f}"
+
+
 class Money(BaseModel):
     model_config = {"frozen": True}
 
     amount: Decimal
     currency: str
+
+    def grouped(self) -> str:
+        """``28,415.09 TRY`` — comma thousands, always, independent of locale."""
+        return f"{grouped_amount(self.amount)} {self.currency}"
 
 
 class FxQuote(BaseModel):

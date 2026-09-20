@@ -152,6 +152,22 @@ def test_reasons_are_stated_in_real_units_not_normalized_scores() -> None:
     assert "0.7" not in details
 
 
+def test_grouped_amount_inserts_comma_between_thousands_and_hundreds() -> None:
+    from gp_price_intel.domain.models import grouped_amount
+
+    assert grouped_amount(Decimal("28415.09")) == "28,415.09"
+    assert grouped_amount(Decimal(2400), places=0) == "2,400"
+    assert Money(amount=Decimal(52999), currency="TRY").grouped() == "52,999.00 TRY"
+
+
+def test_money_amounts_in_reasons_use_comma_thousands() -> None:
+    explanation = _explain([_offer(offer_id="pricey", price="52999")])["pricey"]
+    details = " ".join(r.detail for r in explanation.reasons)  # type: ignore[attr-defined]
+
+    assert "52,999.00" in details
+    assert "52999" not in details
+
+
 def test_missing_criteria_are_disclosed_as_caveats() -> None:
     offers = [
         _offer(offer_id="complete", price="1000"),

@@ -180,14 +180,24 @@ function money(value) {
   const amount = Number(value.amount);
   const currency = value.currency || "";
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency || "USD",
       maximumFractionDigits: 2,
     }).format(amount);
   } catch {
-    return `${amount.toFixed(2)} ${currency}`.trim();
+    return `${groupedNumber(amount, { decimals: 2 })} ${currency}`.trim();
   }
+}
+
+function groupedNumber(value, options = {}) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value ?? "");
+  const decimals = options.decimals;
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: decimals ?? 0,
+    maximumFractionDigits: decimals ?? 0,
+  });
 }
 
 function timeAgo(iso) {
@@ -497,7 +507,7 @@ function factsBlock(offer, extra = []) {
     link.href = offer.listing_url;
     link.target = "_blank";
     link.rel = "noreferrer";
-    link.textContent = `${seller.review_count} ratings`;
+    link.textContent = `${groupedNumber(seller.review_count, { decimals: 0 })} ratings`;
     appendFact(wrap, "Ratings", link);
   }
   for (const [key, value] of extra) appendFact(wrap, key, value);
