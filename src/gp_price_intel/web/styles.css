@@ -541,6 +541,11 @@ body {
   color: #475569;
 }
 
+.card-title .badge {
+  margin-left: 0.5rem;
+  vertical-align: 0.12em;
+}
+
 .why {
   margin: 0.7rem 1rem 0;
   padding: 0.9rem 1rem 0.95rem !important;
