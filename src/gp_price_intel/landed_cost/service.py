@@ -37,12 +37,27 @@ _CATEGORY_SHIPPING_FACTOR: dict[str, Decimal] = {
     "laptop": Decimal("2.2"),
 }
 
+# Standard VAT / GST for every destination the Decision Page offers. A missing
+# row marks the estimate UNKNOWN and, after the 0.75 completeness haircut,
+# knocks even a MediaMarkt fixture below the highlight floor.
 _VAT_RATE: dict[str, Decimal] = {
     "TR": Decimal("0.20"),
     "DE": Decimal("0.19"),
     "GB": Decimal("0.20"),
     "US": Decimal("0.00"),
     "JP": Decimal("0.10"),
+    "FR": Decimal("0.20"),
+    "IT": Decimal("0.22"),
+    "ES": Decimal("0.21"),
+    "NL": Decimal("0.21"),
+    "AU": Decimal("0.10"),
+    "CA": Decimal("0.05"),
+    "KR": Decimal("0.10"),
+    "AE": Decimal("0.05"),
+    "IN": Decimal("0.18"),
+    "CH": Decimal("0.081"),
+    "SE": Decimal("0.25"),
+    "PL": Decimal("0.23"),
 }
 _DEFAULT_VAT_RATE = Decimal("0.10")
 
@@ -54,12 +69,25 @@ _DUTY_RATE: dict[str, Decimal] = {
     "GB": Decimal("0.00"),
     "US": Decimal("0.03"),
     "JP": Decimal("0.00"),
+    "FR": Decimal("0.00"),
+    "IT": Decimal("0.00"),
+    "ES": Decimal("0.00"),
+    "NL": Decimal("0.00"),
+    "AU": Decimal("0.05"),
+    "CA": Decimal("0.00"),
+    "KR": Decimal("0.00"),
+    "AE": Decimal("0.05"),
+    "IN": Decimal("0.10"),
+    "CH": Decimal("0.00"),
+    "SE": Decimal("0.00"),
+    "PL": Decimal("0.00"),
 }
 _DUTY_RATE_BY_CATEGORY: dict[tuple[str, str], Decimal] = {
     ("TR", "smartphone"): Decimal("0.20"),
     ("TR", "tablet"): Decimal("0.10"),
     ("TR", "laptop"): Decimal("0.00"),
     ("US", "smartphone"): Decimal("0.00"),
+    ("IN", "smartphone"): Decimal("0.20"),
 }
 _DEFAULT_DUTY_RATE = Decimal("0.05")
 

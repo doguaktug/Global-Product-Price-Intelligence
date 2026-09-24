@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -14,7 +16,12 @@ from gp_price_intel.domain.models import (
     LandedCostCompleteness,
     Money,
 )
-from gp_price_intel.landed_cost.service import LandedCostService
+from gp_price_intel.landed_cost.service import (
+    _DUTY_RATE,
+    _VAT_RATE,
+    LandedCostService,
+    ShippingLanes,
+)
 
 _RATES_TO_TRY = {"USD": Decimal("32"), "EUR": Decimal("35")}
 
@@ -206,11 +213,80 @@ async def test_shipping_depends_on_both_ends_of_the_lane(service: LandedCostServ
 
 
 @pytest.mark.asyncio
+async def test_germany_to_italy_is_cheaper_than_the_us_to_italy_lane(
+    service: LandedCostService,
+) -> None:
+    """DE→IT is intra-EU; US→IT is transatlantic. They must not share the $32 fallback."""
+    from_germany = await service.estimate(_converted("1349", "EUR"), "DE", "IT", "smartphone")
+    from_united_states = await service.estimate(
+        _converted("1349", "EUR"), "US", "IT", "smartphone"
+    )
+
+    assert from_germany.shipping is not None
+    assert from_united_states.shipping is not None
+    assert "DE→IT" in from_germany.shipping.label
+    assert "US→IT" in from_united_states.shipping.label
+    assert from_germany.shipping.amount.amount < from_united_states.shipping.amount.amount
+    assert from_germany.completeness == LandedCostCompleteness.PARTIAL
+    assert from_united_states.completeness == LandedCostCompleteness.PARTIAL
+
+
+def test_every_ui_country_pair_has_a_published_lane() -> None:
+    """Italy (and the rest of the picker) must not fall through to default_cross_border."""
+    app_js = Path("src/gp_price_intel/web/app.js").read_text(encoding="utf-8")
+    codes = re.findall(r'\["([A-Z]{2})",\s*"[^"]+",\s*"[A-Z]{3}"\]', app_js)
+    lanes = ShippingLanes()
+    missing: list[str] = []
+    for origin in codes:
+        for destination in codes:
+            estimate = lanes.estimate(origin, destination, "smartphone")
+            if estimate is None or not estimate.from_published_lane:
+                missing.append(f"{origin}-{destination}")
+    assert not missing, f"unpublished UI lanes: {missing}"
+
+    germany_to_italy = lanes.estimate("DE", "IT", "smartphone")
+    us_to_italy = lanes.estimate("US", "IT", "smartphone")
+    assert germany_to_italy is not None
+    assert us_to_italy is not None
+    assert germany_to_italy.amount != us_to_italy.amount
+    assert germany_to_italy.amount < us_to_italy.amount
+
+    unpublished = lanes.estimate("BR", "IT", "smartphone")
+    assert unpublished is not None
+    assert unpublished.from_published_lane is False
+
+
+@pytest.mark.asyncio
 async def test_unknown_lane_yields_unknown_completeness(service: LandedCostService) -> None:
     """A fee we guessed is not a fee we looked up, and the total has to admit it."""
     landed = await service.estimate(_converted("40000"), "BR", "TR", "smartphone")
 
     assert landed.completeness == LandedCostCompleteness.UNKNOWN
+
+
+def test_every_ui_destination_has_published_vat_and_duty() -> None:
+    """Italy (and the rest of the picker) must not fall through to guessed rates."""
+    app_js = Path("src/gp_price_intel/web/app.js").read_text(encoding="utf-8")
+    codes = re.findall(r'\["([A-Z]{2})",\s*"[^"]+",\s*"[A-Z]{3}"\]', app_js)
+    assert "IT" in codes
+    assert "FR" in codes
+    missing_vat = [code for code in codes if code not in _VAT_RATE]
+    missing_duty = [code for code in codes if code not in _DUTY_RATE]
+    assert not missing_vat, f"no VAT rate for {missing_vat}"
+    assert not missing_duty, f"no duty rate for {missing_duty}"
+
+
+@pytest.mark.asyncio
+async def test_italy_import_is_partial_not_unknown(service: LandedCostService) -> None:
+    landed = await service.estimate(_converted("1349", "EUR"), "DE", "IT", "smartphone")
+
+    assert landed.completeness == LandedCostCompleteness.PARTIAL
+    assert landed.taxes is not None
+    assert landed.import_duties is not None
+    assert landed.taxes.origin != CostOrigin.UNAVAILABLE
+    assert landed.import_duties.origin != CostOrigin.UNAVAILABLE
+    assert "22%" in landed.taxes.label
+    assert landed.import_duties.amount.amount == Decimal("0.00")
 
 
 @pytest.mark.asyncio
