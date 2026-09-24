@@ -332,7 +332,7 @@ body {
   /* 3-up track: side gutter, card, gap, card, gap, card, side gutter.
      Cap the card so a wide monitor can fit four or five of the same width. */
   --highlight-gutter: 1.15rem;
-  --highlight-card: min(calc((100% - 2 * var(--highlight-gutter)) / 3), 18rem);
+  --highlight-card: min(calc((100% - 2 * var(--highlight-gutter)) / 3), 22rem);
   grid-template-columns: repeat(auto-fill, var(--highlight-card));
   justify-content: start;
   column-gap: var(--highlight-gutter);
