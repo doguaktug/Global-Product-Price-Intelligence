@@ -257,6 +257,30 @@ async def test_laptop_search_ranks_the_confirmed_build_and_offers_spec_variants(
 
 
 @pytest.mark.asyncio
+async def test_catalog_families_without_legacy_fixtures_still_produce_a_page(
+    pipeline_orchestrator: SearchOrchestrator,
+) -> None:
+    """Families that used to depend on live eBay now have fixture Decision Pages."""
+    queries = (
+        "Apple iPhone 16 Plus 256 GB White",
+        "Samsung Galaxy S25 Ultra 256 GB Black",
+        "ASUS Zenbook 14 OLED 512GB 16GB Intel Core Ultra 7 Foggy Silver",
+        "iPad 11 A16 128GB Wi-Fi Blue",
+    )
+    for query in queries:
+        session = pipeline_orchestrator.start_session(
+            query,
+            UserPreferences(destination_country="TR", reference_currency="TRY"),
+        )
+        assert session.normalized_query is not None, query
+        assert session.normalized_query.needs_confirmation is False, query
+        page = await pipeline_orchestrator.run(session)
+        assert page.offers, query
+        assert page.confirmed_variant is not None, query
+        assert page.highlights, query
+
+
+@pytest.mark.asyncio
 async def test_tablet_search_produces_a_decision_page(
     pipeline_orchestrator: SearchOrchestrator,
 ) -> None:

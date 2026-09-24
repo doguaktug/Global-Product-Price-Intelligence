@@ -66,3 +66,30 @@ async def test_fixture_adapter_returns_scoped_offers_with_source_metadata(tmp_pa
     assert offers[0].country == "DE"
     assert offers[0].list_price.currency == "EUR"
     assert 0.0 <= offers[0].data_confidence <= 1.0
+
+
+_USED = {"used", "refurbished", "open_box"}
+
+
+def test_every_catalog_variant_has_at_least_two_new_fixture_offers() -> None:
+    """Catalog searches must still produce offers when live eBay is down."""
+    repo_root = Path(__file__).resolve().parents[1]
+    variants = json.loads((repo_root / "data" / "catalog" / "variants.json").read_text())
+    payload = json.loads((repo_root / "data" / "fixtures" / "offers.json").read_text())
+
+    counts: dict[str, int] = {}
+    for row in payload["offers"]:
+        if str(row.get("condition") or "").lower() in _USED:
+            continue
+        if row.get("stock_status") == "out_of_stock":
+            continue
+        variant_id = row.get("variant_id")
+        if variant_id:
+            counts[variant_id] = counts.get(variant_id, 0) + 1
+
+    short = [
+        f"{variant['id']} ({counts.get(variant['id'], 0)})"
+        for variant in variants
+        if counts.get(variant["id"], 0) < 2
+    ]
+    assert not short, "variants with fewer than 2 new fixture offers: " + ", ".join(short)
