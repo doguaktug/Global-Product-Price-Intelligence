@@ -79,6 +79,8 @@ def test_decision_cards_put_reasons_under_the_price() -> None:
     assert "width: fit-content" in css
     assert "subgrid" in css
     assert ".price-block:hover .cost-details" in css
+    assert ".offer-card:has(.price-block:hover)" in css
+    assert ".alt-card:has(.price-block:hover)" in css
     assert ".offer-card,\n.alt-card {\n  display: flex" in css
     assert "function specChangeReasons(" in js
     assert "function formatCapacityGb(" in js

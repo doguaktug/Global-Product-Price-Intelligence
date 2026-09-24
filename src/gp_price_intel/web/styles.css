@@ -368,6 +368,21 @@ body {
     grid-template-rows: subgrid;
     grid-row: span 8;
   }
+
+  /* Subgrid shares one row track across cards. Leave it while the landing-cost
+     drawer is open so only the hovered / focused card grows. */
+  .offer-card:has(.price-block:hover),
+  .offer-card:has(.price-block:focus-within),
+  .offer-card:has(.price-block.is-open),
+  .alt-card:has(.price-block:hover),
+  .alt-card:has(.price-block:focus-within),
+  .alt-card:has(.price-block.is-open) {
+    display: flex;
+    flex-direction: column;
+    align-self: start;
+    overflow: visible;
+    z-index: 2;
+  }
 }
 
 .offer-card > *,
