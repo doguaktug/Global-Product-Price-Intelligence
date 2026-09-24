@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -14,7 +16,7 @@ from gp_price_intel.domain.models import (
     LandedCostCompleteness,
     Money,
 )
-from gp_price_intel.landed_cost.service import LandedCostService
+from gp_price_intel.landed_cost.service import _DUTY_RATE, _VAT_RATE, LandedCostService
 
 _RATES_TO_TRY = {"USD": Decimal("32"), "EUR": Decimal("35")}
 
@@ -211,6 +213,31 @@ async def test_unknown_lane_yields_unknown_completeness(service: LandedCostServi
     landed = await service.estimate(_converted("40000"), "BR", "TR", "smartphone")
 
     assert landed.completeness == LandedCostCompleteness.UNKNOWN
+
+
+def test_every_ui_destination_has_published_vat_and_duty() -> None:
+    """Italy (and the rest of the picker) must not fall through to guessed rates."""
+    app_js = Path("src/gp_price_intel/web/app.js").read_text(encoding="utf-8")
+    codes = re.findall(r'\["([A-Z]{2})",\s*"[^"]+",\s*"[A-Z]{3}"\]', app_js)
+    assert "IT" in codes
+    assert "FR" in codes
+    missing_vat = [code for code in codes if code not in _VAT_RATE]
+    missing_duty = [code for code in codes if code not in _DUTY_RATE]
+    assert not missing_vat, f"no VAT rate for {missing_vat}"
+    assert not missing_duty, f"no duty rate for {missing_duty}"
+
+
+@pytest.mark.asyncio
+async def test_italy_import_is_partial_not_unknown(service: LandedCostService) -> None:
+    landed = await service.estimate(_converted("1349", "EUR"), "DE", "IT", "smartphone")
+
+    assert landed.completeness == LandedCostCompleteness.PARTIAL
+    assert landed.taxes is not None
+    assert landed.import_duties is not None
+    assert landed.taxes.origin != CostOrigin.UNAVAILABLE
+    assert landed.import_duties.origin != CostOrigin.UNAVAILABLE
+    assert "22%" in landed.taxes.label
+    assert landed.import_duties.amount.amount == Decimal("0.00")
 
 
 @pytest.mark.asyncio

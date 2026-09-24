@@ -18,6 +18,7 @@ from gp_price_intel.domain.models import (
     AcquisitionMethod,
     HighlightKind,
     ItemCondition,
+    LandedCostCompleteness,
     MatchKind,
     Money,
     NormalizedSpec,
@@ -125,6 +126,27 @@ async def test_pipeline_produces_decision_page_structure(
     assert "best_specification" not in {k.value for k in kinds}
     highlight_ids = [h.offer_id for h in page.highlights]
     assert 1 <= len(set(highlight_ids)) <= 5
+
+
+@pytest.mark.asyncio
+async def test_italy_destination_still_recommends_fixture_offers(
+    pipeline_orchestrator: SearchOrchestrator,
+) -> None:
+    """UI destinations outside the original TR/DE/GB/US/JP set must still highlight."""
+    for currency in ("EUR", "TRY"):
+        session = pipeline_orchestrator.start_session(
+            "Samsung Galaxy S26 Ultra 512 GB Black",
+            UserPreferences(destination_country="IT", reference_currency=currency),
+        )
+        page = await pipeline_orchestrator.run(session)
+        assert page.offers, currency
+        assert page.highlights, currency
+        assert page.confirmed_variant is not None
+        for offer in page.offers:
+            assert offer.landed_cost is not None
+            assert offer.landed_cost.completeness != LandedCostCompleteness.UNKNOWN
+            assert offer.converted_list_price is not None
+            assert offer.converted_list_price.reference.currency == currency
 
 
 @pytest.mark.asyncio
