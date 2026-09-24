@@ -90,6 +90,16 @@ def test_decision_cards_put_reasons_under_the_price() -> None:
     assert "groupedNumber(seller.review_count, { decimals: 0 })" in js
 
 
+def test_highlight_cards_keep_a_stable_three_up_width() -> None:
+    css = TestClient(create_app()).get("/ui/styles.css").text
+    assert "#highlight-row {" in css
+    assert "repeat(auto-fill, var(--highlight-card))" in css
+    assert "--highlight-card: min(" in css
+    assert "calc((100% - 2 * var(--highlight-gutter)) / 3)" in css
+    assert "#highlight-row {\n    grid-template-columns: minmax(0, 1fr);" in css
+    assert "grid-template-columns: repeat(var(--count, 1), minmax(0, 1fr))" in css
+
+
 def test_the_ranked_list_starts_hidden_behind_its_toggle() -> None:
     client = TestClient(create_app())
     html = client.get("/").text
