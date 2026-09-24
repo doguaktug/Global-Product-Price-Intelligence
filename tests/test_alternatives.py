@@ -94,12 +94,14 @@ def test_more_storage_for_a_little_more_money_is_an_upgrade() -> None:
     assert alternatives[0].landed_cost_delta == Money(amount=Decimal("50"), currency="TRY")
 
 
-def test_more_storage_at_a_steep_premium_is_hidden() -> None:
-    """Spec gain clears the bar but price does not — omit, do not show for comparison."""
+def test_more_storage_at_a_steep_premium_is_not_badged_as_an_upgrade() -> None:
+    """Spec gain clears the bar but price does not — show the build, do not call it an upgrade."""
     best = _scored("pick", "1000", CONFIRMED, final_score=0.9)
     bigger = _scored("bigger", "1330", BIGGER_STORAGE)
 
-    assert _select([bigger], best) == []
+    alternatives = _select([bigger], best)
+    assert [a.offer_id for a in alternatives] == ["bigger"]
+    assert alternatives[0].badge is None
 
 
 def test_halving_storage_to_save_a_fifth_is_a_downgrade() -> None:
@@ -113,11 +115,13 @@ def test_halving_storage_to_save_a_fifth_is_a_downgrade() -> None:
     assert alternatives[0].landed_cost_delta == Money(amount=Decimal("-200"), currency="TRY")
 
 
-def test_a_saving_too_small_to_matter_is_hidden() -> None:
+def test_a_saving_too_small_to_matter_is_not_badged_as_a_downgrade() -> None:
     best = _scored("pick", "1000", BIGGER_STORAGE, final_score=0.9)
     smaller = _scored("smaller", "950", CONFIRMED)
 
-    assert _select([smaller], best, confirmed_id=BIGGER_STORAGE) == []
+    alternatives = _select([smaller], best, confirmed_id=BIGGER_STORAGE)
+    assert [a.offer_id for a in alternatives] == ["smaller"]
+    assert alternatives[0].badge is None
 
 
 def test_a_different_product_that_scores_close_and_shares_specs_is_a_rival() -> None:
