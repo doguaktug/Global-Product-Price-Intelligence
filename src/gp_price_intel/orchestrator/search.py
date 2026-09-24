@@ -117,14 +117,26 @@ def split_ranked_offers(
     remaining catalog variant is used as the Decision Page set so highlight lenses
     still have something to recommend, and other variants stay available as
     alternatives instead of all being buried in "list all other options".
+
+    A shorthand search that leaves colour (or another optional key) unconstrained
+    marks every in-scope colour IDENTICAL. Those siblings still have to be
+    alternatives of the top pick — not a second copy of the ranked list — or
+    "S26 Ultra" with colour not important never shows the silver card.
     """
     if not ranked:
         return [], []
 
     identical = [item for item in ranked if item[0].match_kind == MatchKind.IDENTICAL]
     if identical:
-        near = [item for item in ranked if item[0].match_kind != MatchKind.IDENTICAL]
-        return identical, near
+        identical_variants = {item[0].matched_variant_id for item in identical}
+        if len(identical_variants) == 1:
+            near = [item for item in ranked if item[0].match_kind != MatchKind.IDENTICAL]
+            return identical, near
+        best_variant = identical[0][0].matched_variant_id
+        closest = [item for item in identical if item[0].matched_variant_id == best_variant]
+        closest_ids = {item[0].id for item in closest}
+        others = [item for item in ranked if item[0].id not in closest_ids]
+        return closest, others
 
     best_variant = ranked[0][0].matched_variant_id
     if best_variant:
@@ -339,6 +351,8 @@ class SearchOrchestrator:
         confirmed_variant = self.catalog.get_variant(variant_id) if variant_id else None
 
         best = scored[0] if scored else None
+        if confirmed_variant is None and best and best[0].matched_variant_id:
+            confirmed_variant = self.catalog.get_variant(best[0].matched_variant_id)
         alt_list = self.alternatives.select(near_scored, best, confirmed_variant)
         near_by_id = {offer.id: offer for offer, _ in near_scored}
         alternative_offers = [

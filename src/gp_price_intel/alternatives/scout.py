@@ -23,8 +23,10 @@ from gp_price_intel.normalize.spec_parser import format_capacity_gb
 
 Scored = tuple[Offer, ScoreBreakdown]
 
-# Value tests from docs/proposed-algorithm.md. An alternative is shown only when
-# it earns a badge: upgrade, downgrade, rival, or near-identical similar.
+# Value tests from docs/proposed-algorithm.md. A badge is earned for upgrade,
+# downgrade, rival, or near-identical similar. Spec-variant near-offers that
+# miss those bars still appear as an unbadged "different build" so a 256 GB
+# MBA search is not an empty alternatives row.
 UPGRADE_MIN_SPEC_GAIN = 0.25
 UPGRADE_MAX_COST_INCREASE = 0.10
 DOWNGRADE_MIN_COST_SAVING = 0.15
@@ -105,7 +107,11 @@ class AlternativeScout:
         base_cost = self._landed_amount(best_offer)
         currency = self._reference_currency(best_offer)
 
+        if confirmed_variant is None and best_offer.matched_variant_id:
+            confirmed_variant = self.catalog.get_variant(best_offer.matched_variant_id)
+
         candidates: list[Alternative] = []
+        unbadged_spec: list[Alternative] = []
         for offer, score in sorted(
             near_offers, key=lambda item: item[1].final_score, reverse=True
         ):
@@ -120,12 +126,19 @@ class AlternativeScout:
                 currency=currency,
                 confirmed_variant=confirmed_variant,
             )
-            # Fail the value tests → omit. No "shown for comparison" filler.
             if alternative.badge is None:
+                # A 256 GB MBA is a real nearby build even when the 512 GB machine
+                # costs more than the 10% upgrade cap. Keep spec variants as a
+                # last resort; failed rivals stay hidden.
+                if alternative.kind == AlternativeKind.SPEC_VARIANT:
+                    unbadged_spec.append(alternative)
                 continue
             candidates.append(alternative)
 
-        return self._pick_a_spread(candidates, max_alternatives)
+        chosen = self._pick_a_spread(candidates, max_alternatives)
+        if chosen:
+            return chosen
+        return unbadged_spec[:max_alternatives]
 
     @staticmethod
     def _pick_a_spread(candidates: list[Alternative], limit: int) -> list[Alternative]:

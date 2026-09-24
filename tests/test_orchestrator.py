@@ -66,6 +66,18 @@ def test_identical_matches_stay_on_the_decision_page() -> None:
     assert [item[0].id for item in near] == ["near"]
 
 
+def test_in_scope_colour_siblings_are_alternatives_not_a_second_ranked_list() -> None:
+    """Colour 'not important' marks every 512 GB S26 IDENTICAL — still split by build."""
+    ranked = [
+        _scored("black", MatchKind.IDENTICAL, "v-512-black", 0.9),
+        _scored("silver", MatchKind.IDENTICAL, "v-512-silver", 0.8),
+        _scored("1tb", MatchKind.SIMILAR, "v-1024", 0.7),
+    ]
+    confirmed, near = split_ranked_offers(ranked)
+    assert [item[0].id for item in confirmed] == ["black"]
+    assert [item[0].id for item in near] == ["silver", "1tb"]
+
+
 def test_similar_only_results_keep_the_closest_variant_as_highlights() -> None:
     """
     Live eBay often has the family but not the exact SKU (1 TB vs a 2 TB search).

@@ -23,6 +23,8 @@ from gp_price_intel.domain.models import (
     Money,
     NormalizedSpec,
     Offer,
+    PropertyChoice,
+    PropertyChoiceKind,
     Seller,
     SessionStatus,
     Source,
@@ -320,6 +322,82 @@ async def test_tablet_search_produces_a_decision_page(
     assert page.offers
     assert page.highlights
     assert page.alternatives
+
+
+@pytest.mark.asyncio
+async def test_short_family_searches_still_offer_spec_alternatives(
+    pipeline_orchestrator: SearchOrchestrator,
+) -> None:
+    """
+    MBA M4 / iPad Air / S26 Ultra are confirmed in two steps and often leave
+    colour unconstrained. Those siblings used to stay IDENTICAL on the ranked
+    list, so the alternatives row stayed empty.
+    """
+    preferences = UserPreferences(destination_country="TR", reference_currency="TRY")
+    cases = (
+        (
+            "S26 Ultra",
+            [
+                PropertyChoice(
+                    property_key="family_id",
+                    kind=PropertyChoiceKind.VALUE,
+                    value="samsung-galaxy-s26-ultra",
+                ),
+                PropertyChoice(
+                    property_key="storage_gb", kind=PropertyChoiceKind.VALUE, value=512
+                ),
+            ],
+        ),
+        (
+            "MBA M4",
+            [
+                PropertyChoice(
+                    property_key="family_id",
+                    kind=PropertyChoiceKind.VALUE,
+                    value="apple-macbook-air-m4",
+                ),
+                PropertyChoice(
+                    property_key="storage_gb", kind=PropertyChoiceKind.VALUE, value=256
+                ),
+                PropertyChoice(
+                    property_key="memory_gb", kind=PropertyChoiceKind.VALUE, value=16
+                ),
+                PropertyChoice(
+                    property_key="region_version", kind=PropertyChoiceKind.VALUE, value="US"
+                ),
+            ],
+        ),
+        (
+            "iPad Air",
+            [
+                PropertyChoice(
+                    property_key="storage_gb", kind=PropertyChoiceKind.VALUE, value=128
+                ),
+                PropertyChoice(
+                    property_key="connectivity",
+                    kind=PropertyChoiceKind.VALUE,
+                    value="Wi-Fi",
+                ),
+                PropertyChoice(
+                    property_key="region_version", kind=PropertyChoiceKind.VALUE, value="EU"
+                ),
+            ],
+        ),
+    )
+    for query, choices in cases:
+        session = pipeline_orchestrator.start_session(query, preferences)
+        remaining = list(choices)
+        while session.status == SessionStatus.NEEDS_CONFIRMATION and remaining:
+            pending = {
+                prompt.property_key
+                for prompt in session.normalized_query.pending_properties
+            }
+            batch = [choice for choice in remaining if choice.property_key in pending]
+            remaining = [choice for choice in remaining if choice not in batch]
+            session = pipeline_orchestrator.apply_choices(session, batch)
+        page = await pipeline_orchestrator.run(session)
+        assert page.alternatives, query
+        assert page.confirmed_variant is not None, query
 
 
 @pytest.mark.asyncio
