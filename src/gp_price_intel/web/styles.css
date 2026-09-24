@@ -328,6 +328,28 @@ body {
   align-items: stretch;
 }
 
+#highlight-row,
+#alternative-row {
+  /* 3-up track: side gutter, card, gap, card, gap, card, side gutter.
+     Cap the card so a wide monitor can fit four or five of the same width. */
+  --highlight-gutter: 1.15rem;
+  --highlight-card: min(calc((100% - 2 * var(--highlight-gutter)) / 3), 22rem);
+  grid-template-columns: repeat(auto-fill, var(--highlight-card));
+  justify-content: start;
+  column-gap: var(--highlight-gutter);
+  padding-inline: var(--highlight-gutter);
+}
+
+#highlight-row > .offer-card,
+#alternative-row > .alt-card {
+  margin-bottom: var(--highlight-gutter);
+}
+
+#highlight-row:has(.highlight-empty) {
+  grid-template-columns: minmax(0, 1fr);
+  padding-inline: 0;
+}
+
 .offer-card,
 .alt-card {
   display: flex;
@@ -345,6 +367,21 @@ body {
     display: grid;
     grid-template-rows: subgrid;
     grid-row: span 8;
+  }
+
+  /* Subgrid shares one row track across cards. Leave it while the landing-cost
+     drawer is open so only the hovered / focused card grows. */
+  .offer-card:has(.price-block:hover),
+  .offer-card:has(.price-block:focus-within),
+  .offer-card:has(.price-block.is-open),
+  .alt-card:has(.price-block:hover),
+  .alt-card:has(.price-block:focus-within),
+  .alt-card:has(.price-block.is-open) {
+    display: flex;
+    flex-direction: column;
+    align-self: start;
+    overflow: visible;
+    z-index: 2;
   }
 }
 
@@ -756,6 +793,12 @@ body {
   .card-row,
   .full-item {
     grid-template-columns: 1fr;
+  }
+
+  #highlight-row,
+  #alternative-row {
+    grid-template-columns: minmax(0, 1fr);
+    padding-inline: 0;
   }
 
   @supports (grid-template-rows: subgrid) {
