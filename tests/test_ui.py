@@ -92,11 +92,11 @@ def test_decision_cards_put_reasons_under_the_price() -> None:
 
 def test_highlight_cards_keep_a_stable_three_up_width() -> None:
     css = TestClient(create_app()).get("/ui/styles.css").text
-    assert "#highlight-row {" in css
+    assert "#highlight-row,\n#alternative-row {" in css
     assert "repeat(auto-fill, var(--highlight-card))" in css
     assert "--highlight-card: min(" in css
     assert "calc((100% - 2 * var(--highlight-gutter)) / 3)" in css
-    assert "#highlight-row {\n    grid-template-columns: minmax(0, 1fr);" in css
+    assert "#highlight-row,\n  #alternative-row {\n    grid-template-columns: minmax(0, 1fr);" in css
     assert "grid-template-columns: repeat(var(--count, 1), minmax(0, 1fr))" in css
 
 

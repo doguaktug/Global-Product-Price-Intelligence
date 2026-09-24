@@ -328,7 +328,8 @@ body {
   align-items: stretch;
 }
 
-#highlight-row {
+#highlight-row,
+#alternative-row {
   /* 3-up track: side gutter, card, gap, card, gap, card, side gutter.
      Cap the card so a wide monitor can fit four or five of the same width. */
   --highlight-gutter: 1.15rem;
@@ -339,7 +340,8 @@ body {
   padding-inline: var(--highlight-gutter);
 }
 
-#highlight-row > .offer-card {
+#highlight-row > .offer-card,
+#alternative-row > .alt-card {
   margin-bottom: var(--highlight-gutter);
 }
 
@@ -778,7 +780,8 @@ body {
     grid-template-columns: 1fr;
   }
 
-  #highlight-row {
+  #highlight-row,
+  #alternative-row {
     grid-template-columns: minmax(0, 1fr);
     padding-inline: 0;
   }
