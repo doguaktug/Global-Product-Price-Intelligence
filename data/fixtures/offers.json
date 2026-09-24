@@ -2585,7 +2585,6 @@
       "seller_reliability": 0.88,
       "review_count": 12500,
       "warranty": "24 months",
-      "model_number": "UX3405MA",
       "processor": "Intel Core Ultra 7"
     },
     {
@@ -2613,7 +2612,6 @@
       "seller_reliability": 0.82,
       "review_count": 2400,
       "warranty": "2 years",
-      "model_number": "UX3405MA",
       "processor": "Intel Core Ultra 7"
     },
     {
@@ -2641,7 +2639,6 @@
       "seller_reliability": 0.88,
       "review_count": 12500,
       "warranty": "24 months",
-      "model_number": "UX3405MA",
       "processor": "Intel Core Ultra 7"
     },
     {
@@ -2669,7 +2666,6 @@
       "seller_reliability": 0.82,
       "review_count": 2400,
       "warranty": "2 years",
-      "model_number": "UX3405MA",
       "processor": "Intel Core Ultra 7"
     },
     {
@@ -2753,7 +2749,6 @@
       "seller_reliability": 0.88,
       "review_count": 12500,
       "warranty": "24 months",
-      "model_number": "X1605VA",
       "processor": "Intel Core i5"
     },
     {
@@ -2781,7 +2776,6 @@
       "seller_reliability": 0.82,
       "review_count": 2400,
       "warranty": "2 years",
-      "model_number": "X1605VA",
       "processor": "Intel Core i5"
     },
     {
@@ -2809,7 +2803,6 @@
       "seller_reliability": 0.88,
       "review_count": 12500,
       "warranty": "24 months",
-      "model_number": "X1605VA",
       "processor": "Intel Core i7"
     },
     {
@@ -2837,7 +2830,6 @@
       "seller_reliability": 0.82,
       "review_count": 2400,
       "warranty": "2 years",
-      "model_number": "X1605VA",
       "processor": "Intel Core i7"
     },
     {
@@ -2865,7 +2857,6 @@
       "seller_reliability": 0.88,
       "review_count": 12500,
       "warranty": "24 months",
-      "model_number": "X1605VA",
       "processor": "Intel Core i7"
     },
     {
@@ -2893,7 +2884,6 @@
       "seller_reliability": 0.82,
       "review_count": 2400,
       "warranty": "2 years",
-      "model_number": "X1605VA",
       "processor": "Intel Core i7"
     },
     {
@@ -2921,7 +2911,6 @@
       "seller_reliability": 0.88,
       "review_count": 12500,
       "warranty": "24 months",
-      "model_number": "GA403UI",
       "processor": "AMD Ryzen 9"
     },
     {
@@ -2949,7 +2938,6 @@
       "seller_reliability": 0.82,
       "review_count": 2400,
       "warranty": "2 years",
-      "model_number": "GA403UI",
       "processor": "AMD Ryzen 9"
     },
     {
@@ -2977,7 +2965,6 @@
       "seller_reliability": 0.88,
       "review_count": 12500,
       "warranty": "24 months",
-      "model_number": "GA403UI",
       "processor": "AMD Ryzen 9"
     },
     {
@@ -3005,7 +2992,6 @@
       "seller_reliability": 0.82,
       "review_count": 2400,
       "warranty": "2 years",
-      "model_number": "GA403UI",
       "processor": "AMD Ryzen 9"
     },
     {
@@ -3425,7 +3411,6 @@
       "seller_reliability": 0.88,
       "review_count": 12500,
       "warranty": "24 months",
-      "model_number": "GZ302EA",
       "processor": "Intel Core Ultra 7"
     },
     {
@@ -3453,7 +3438,6 @@
       "seller_reliability": 0.82,
       "review_count": 2400,
       "warranty": "2 years",
-      "model_number": "GZ302EA",
       "processor": "Intel Core Ultra 7"
     },
     {
@@ -3481,7 +3465,6 @@
       "seller_reliability": 0.88,
       "review_count": 12500,
       "warranty": "24 months",
-      "model_number": "GZ302EA",
       "processor": "Intel Core Ultra 9"
     },
     {
@@ -3509,7 +3492,6 @@
       "seller_reliability": 0.82,
       "review_count": 2400,
       "warranty": "2 years",
-      "model_number": "GZ302EA",
       "processor": "Intel Core Ultra 9"
     },
     {
@@ -3537,7 +3519,6 @@
       "seller_reliability": 0.88,
       "review_count": 12500,
       "warranty": "24 months",
-      "model_number": "GV302XU",
       "processor": "AMD Ryzen 9"
     },
     {
@@ -3565,7 +3546,6 @@
       "seller_reliability": 0.82,
       "review_count": 2400,
       "warranty": "2 years",
-      "model_number": "GV302XU",
       "processor": "AMD Ryzen 9"
     },
     {
@@ -3593,7 +3573,6 @@
       "seller_reliability": 0.88,
       "review_count": 12500,
       "warranty": "24 months",
-      "model_number": "GV302XU",
       "processor": "AMD Ryzen 9"
     },
     {
@@ -3621,7 +3600,6 @@
       "seller_reliability": 0.82,
       "review_count": 2400,
       "warranty": "2 years",
-      "model_number": "GV302XU",
       "processor": "AMD Ryzen 9"
     },
     {
@@ -3649,7 +3627,6 @@
       "seller_reliability": 0.88,
       "review_count": 12500,
       "warranty": "24 months",
-      "model_number": "FA507NV",
       "processor": "AMD Ryzen 7"
     },
     {
@@ -3677,7 +3654,6 @@
       "seller_reliability": 0.82,
       "review_count": 2400,
       "warranty": "2 years",
-      "model_number": "FA507NV",
       "processor": "AMD Ryzen 7"
     },
     {
@@ -3705,7 +3681,6 @@
       "seller_reliability": 0.88,
       "review_count": 12500,
       "warranty": "24 months",
-      "model_number": "FA507NV",
       "processor": "AMD Ryzen 7"
     },
     {
@@ -3733,7 +3708,6 @@
       "seller_reliability": 0.82,
       "review_count": 2400,
       "warranty": "2 years",
-      "model_number": "FA507NV",
       "processor": "AMD Ryzen 7"
     },
     {
