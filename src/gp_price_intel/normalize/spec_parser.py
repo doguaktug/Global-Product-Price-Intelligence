@@ -112,6 +112,21 @@ def parse_capacity_gb(text: str | None) -> int | None:
     return round(value)
 
 
+def format_capacity_gb(gigabytes: float, *, ram: bool = False) -> str:
+    """
+    Display a catalog GB figure the way buyers read it.
+
+    Whole-terabyte sizes are stored as 1024 / 2048 GB, but the Decision Page and
+    confirm options should say ``1 TB`` / ``2 TB``, not ``1024 GB``.
+    """
+    amount = round(float(gigabytes))
+    if amount >= _GB_PER_TB and amount % _GB_PER_TB == 0:
+        label = f"{amount // _GB_PER_TB} TB"
+    else:
+        label = f"{amount} GB"
+    return f"{label} RAM" if ram else label
+
+
 #: Spec keys whose source text needs a unit conversion before it can be compared.
 #: Anything not listed here is passed through unchanged as a string.
 UNIT_PARSERS: dict[str, Any] = {

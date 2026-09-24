@@ -11,6 +11,7 @@ from gp_price_intel.domain.models import (
     Money,
     Offer,
     ScoreBreakdown,
+    grouped_amount,
 )
 from gp_price_intel.normalize.condition import condition_label, is_non_new_condition
 from gp_price_intel.normalize.offer_labels import original_listing_name, primary_offer_name
@@ -82,8 +83,7 @@ class ExplanationBuilder:
                 ExplanationReason(
                     factor="landed_cost",
                     detail=(
-                        f"Estimated total landed cost {offer.landed_cost.total.amount} "
-                        f"{offer.landed_cost.total.currency} to "
+                        f"Estimated total landed cost {offer.landed_cost.total.grouped()} to "
                         f"{offer.landed_cost.destination_country}."
                     ),
                 )
@@ -94,8 +94,8 @@ class ExplanationBuilder:
                     ExplanationReason(
                         factor="registration",
                         detail=(
-                            f"{registration.label}: {registration.amount.amount} "
-                            f"{registration.amount.currency} on top of the sticker price."
+                            f"{registration.label}: {registration.amount.grouped()} "
+                            f"on top of the sticker price."
                         ),
                     )
                 )
@@ -239,7 +239,7 @@ class ExplanationBuilder:
             amount = _reference_amount(offer)
             if amount is None:
                 return None
-            return f"Total cost {amount.amount} {amount.currency}{versus}."
+            return f"Total cost {amount.grouped()}{versus}."
         if criterion == "seller":
             rating = offer.seller.reliability
             rating_text = f"reliability {rating:.2f}" if rating is not None else "unrated seller"
@@ -312,7 +312,7 @@ class ExplanationBuilder:
         return ExplanationReason(
             factor="comparison",
             detail=(
-                f"{rival.seller.name}'s listing is {gap} {cost.currency} cheaper but loses on "
+                f"{rival.seller.name}'s listing is {grouped_amount(gap)} {cost.currency} cheaper but loses on "
                 f"{', '.join(losses[:3])}."
             ),
         )
@@ -337,12 +337,12 @@ class ExplanationBuilder:
         """
         converted = offer.converted_list_price
         assert converted is not None
-        listed = f"List price {offer.list_price.amount} {offer.list_price.currency}"
+        listed = f"List price {offer.list_price.grouped()}"
         if converted.fx.is_identity:
             return f"{listed} — already in your reference currency, no conversion applied."
 
         rate_date = converted.fx.as_of.date() if converted.fx.as_of else "an undated rate"
         return (
-            f"{listed} → {converted.reference.amount} {converted.reference.currency} "
+            f"{listed} → {converted.reference.grouped()} "
             f"(rate {converted.fx.rate}, published {rate_date} by {converted.fx.provider})."
         )

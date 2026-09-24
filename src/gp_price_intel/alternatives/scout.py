@@ -16,8 +16,10 @@ from gp_price_intel.domain.models import (
     Offer,
     ProductVariant,
     ScoreBreakdown,
+    grouped_amount,
 )
 from gp_price_intel.normalize.offer_labels import original_listing_name, primary_offer_name
+from gp_price_intel.normalize.spec_parser import format_capacity_gb
 
 Scored = tuple[Offer, ScoreBreakdown]
 
@@ -53,6 +55,16 @@ def _format(value: object) -> str:
 def _format_spec_value(key: str, value: object) -> str:
     if value is None:
         return "—"
+    if key == "storage_gb":
+        try:
+            return format_capacity_gb(float(value))  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            pass
+    if key == "memory_gb":
+        try:
+            return format_capacity_gb(float(value), ram=True)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            pass
     unit = SPEC_UNITS.get(key)
     text = _format(value)
     return f"{text} {unit}" if unit else text
@@ -441,7 +453,7 @@ class AlternativeScout:
         if delta == 0:
             return f"Same landed cost as your top pick ({currency})."
         direction = "more" if delta > 0 else "less"
-        return f"{abs(delta)} {currency} {direction} than your top pick, landed."
+        return f"{grouped_amount(abs(delta))} {currency} {direction} than your top pick, landed."
 
     # --- spec diffing ----------------------------------------------------------
 
