@@ -262,10 +262,10 @@ async def test_catalog_families_without_legacy_fixtures_still_produce_a_page(
 ) -> None:
     """Families that used to depend on live eBay now have fixture Decision Pages."""
     queries = (
-        "iPhone 16 128GB Black",
+        "Apple iPhone 16 Plus 256 GB White",
         "Samsung Galaxy S25 Ultra 256 GB Black",
-        "ASUS Zenbook 14 OLED 512GB 16GB Foggy Silver",
-        "iPad 11 128GB Wi-Fi Blue",
+        "ASUS Zenbook 14 OLED 512GB 16GB Intel Core Ultra 7 Foggy Silver",
+        "iPad 11 A16 128GB Wi-Fi Blue",
     )
     for query in queries:
         session = pipeline_orchestrator.start_session(

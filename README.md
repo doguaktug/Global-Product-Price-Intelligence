@@ -55,8 +55,8 @@ Listings you see are mostly **fixtures** (`data/fixtures/offers.json`) running t
 | --- | --- |
 | `MacBook Air M4 512GB 16GB RAM Sky Blue` | Unique catalog hit — goes straight to loading, then the Decision Page. Scroll down for alternatives |
 | `Samsung Galaxy S26 Ultra 512 GB Black` | Same path, phone fixtures |
-| `iPhone 16 128GB Black` | Previously eBay-only — now has fixture offers too |
-| `ASUS Zenbook 14 OLED 512GB 16GB Foggy Silver` | Same for a laptop family that had no fixtures |
+| `Apple iPhone 16 Plus 256 GB White` | Previously eBay-only — now has fixture offers too |
+| `ASUS Zenbook 14 OLED 512GB 16GB Intel Core Ultra 7 Foggy Silver` | Same for a laptop family that had no fixtures |
 | `Samsung S26` | Confirm popup: which model (S26 / Plus / Ultra), then storage / colour |
 | `samsung s25` | Confirm popup: S25 / Plus / Ultra, then that model's specs |
 | `asus` | Confirm popup: ROG / Zenbook / Vivobook / TUF, then the line/model for that series |
