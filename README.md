@@ -35,15 +35,28 @@ Windows (PowerShell), from the repo folder that `git status` shows as `main`:
 cd path\to\Global-Product-Price-Intelligence
 git checkout main
 git pull
+# A venv copied or created without pip cannot run `python -m pip`.
+.\.venv\Scripts\python.exe -m ensurepip --upgrade
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-.\.venv\Scripts\python.exe -m uvicorn gp_price_intel.api.main:app --reload --app-dir src --reload-dir src
+# Port 8000 is often in Windows' excluded range (Hyper-V / WSL). WinError 10013
+# is that block, not a missing package. Use 8080 unless you have freed 8000.
+.\.venv\Scripts\python.exe -m uvicorn gp_price_intel.api.main:app --reload --app-dir src --reload-dir src --host 127.0.0.1 --port 8080
 ```
 
-Stop any older uvicorn first (Ctrl+C in that terminal). If port 8000 is already taken, the new process will not replace it and the browser keeps the previous UI. Hard-refresh the page (Ctrl+F5). `/health` should show `"used_filter": true` and `web_dir` ending in `src\gp_price_intel\web`, not `site-packages`.
+If `ensurepip` itself is missing, recreate the venv from a Python that has pip:
+
+```powershell
+py -3.12 -m venv --clear .venv
+.\.venv\Scripts\python.exe -m ensurepip --upgrade
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+```
+
+Stop any older uvicorn first (Ctrl+C in that terminal). `WinError 10013` means Windows refused the bind (excluded port or reserved by HTTP.sys), not that the app crashed. Confirm with `netsh interface ipv4 show excludedportrange protocol=tcp` — if 8000 sits in a range, keep `--port 8080`. If another process already owns the port, the new process will not replace it and the browser keeps the previous UI. Hard-refresh the page (Ctrl+F5). `/health` should show `"used_filter": true` and `web_dir` ending in `src\gp_price_intel\web`, not `site-packages`.
 
 | URL | What it is |
 | --- | --- |
 | `http://127.0.0.1:8000/` | **The product UI** — search → optional confirm → loading → Decision Page |
+| `http://127.0.0.1:8080/` | Same UI when Windows refuses port 8000 (`--port 8080`) |
 | `http://127.0.0.1:8000/docs` | Swagger for the JSON API (not the comparison screens) |
 | `http://127.0.0.1:8000/health` | Process is up |
 

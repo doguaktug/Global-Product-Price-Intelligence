@@ -89,12 +89,14 @@ app = create_app()
 
 
 def run() -> None:
+    import os
+
     import uvicorn
 
     uvicorn.run(
         "gp_price_intel.api.main:app",
         host="0.0.0.0",
-        port=8000,
+        port=int(os.environ.get("PORT", "8000")),
         reload=True,
         reload_dirs=["src"],
         app_dir="src",
